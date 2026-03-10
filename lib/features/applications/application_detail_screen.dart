@@ -1,5 +1,6 @@
 import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
+import 'package:argocd_flutter/ui/error_retry_widget.dart';
 import 'package:flutter/material.dart';
 
 import 'manifest_viewer_screen.dart';
@@ -85,7 +86,10 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: Text(snapshot.error.toString()),
+                child: ErrorRetryWidget(
+                  message: snapshot.error.toString(),
+                  onRetry: _refresh,
+                ),
               ),
             );
           }
