@@ -21,9 +21,16 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final normalizedQuery = _query.trim().toLowerCase();
+    final allApplications = widget.controller.applications;
+    final unhealthyCount = allApplications
+        .where((application) => !application.isHealthy)
+        .length;
+    final outOfSyncCount = allApplications
+        .where((application) => application.isOutOfSync)
+        .length;
     final applications = widget.controller.applications
         .where((application) {
-          final normalizedQuery = _query.trim().toLowerCase();
           if (normalizedQuery.isEmpty) {
             return true;
           }
@@ -52,6 +59,13 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: <Widget>[
+            _OverviewStrip(
+              controller: widget.controller,
+              totalApplications: allApplications.length,
+              unhealthyCount: unhealthyCount,
+              outOfSyncCount: outOfSyncCount,
+            ),
+            const SizedBox(height: 20),
             TextField(
               decoration: const InputDecoration(
                 labelText: 'Filter applications',
@@ -72,13 +86,17 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ),
-            if (widget.controller.busy && applications.isEmpty)
+            if (widget.controller.loadingApplications &&
+                !widget.controller.hasLoadedApplications)
               const Padding(
                 padding: EdgeInsets.only(top: 48),
                 child: Center(child: CircularProgressIndicator()),
               )
             else if (applications.isEmpty)
-              const _EmptyState()
+              _EmptyState(
+                filtered: normalizedQuery.isNotEmpty,
+                hasApps: widget.controller.applications.isNotEmpty,
+              )
             else
               ...applications.map(
                 (application) => Padding(
@@ -91,6 +109,112 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _OverviewStrip extends StatelessWidget {
+  const _OverviewStrip({
+    required this.controller,
+    required this.totalApplications,
+    required this.unhealthyCount,
+    required this.outOfSyncCount,
+  });
+
+  final AppController controller;
+  final int totalApplications;
+  final int unhealthyCount;
+  final int outOfSyncCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final session = controller.session;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[
+            Color(0xFF0E1726),
+            Color(0xFF183153),
+            Color(0xFF1F6FEB),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'Control plane overview',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            session == null
+                ? 'Connect to ArgoCD to inspect application health.'
+                : 'Signed in as ${session.username} on ${session.serverUrl}',
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: const Color(0xFFD8E5FF),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: <Widget>[
+              _MetricChip(label: 'Applications', value: '$totalApplications'),
+              _MetricChip(label: 'Out of sync', value: '$outOfSyncCount'),
+              _MetricChip(label: 'Degraded', value: '$unhealthyCount'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricChip extends StatelessWidget {
+  const _MetricChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: const Color(0xFFD8E5FF)),
+          ),
+        ],
       ),
     );
   }
@@ -112,9 +236,9 @@ class _ApplicationCard extends StatelessWidget {
       child: Ink(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: const Color(0xFFE2EAF3)),
+          border: Border.all(color: theme.dividerColor),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,14 +272,14 @@ class _ApplicationCard extends StatelessWidget {
             Text(
               '${application.project} • ${application.namespace}',
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: const Color(0xFF506072),
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               application.repoUrl,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF68788B),
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 16),
@@ -186,10 +310,14 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withValues(
+          alpha: theme.brightness == Brightness.dark ? 0.24 : 0.12,
+        ),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -211,10 +339,12 @@ class _FactBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6F8FC),
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -230,29 +360,43 @@ class _FactBadge extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({required this.filtered, required this.hasApps});
+
+  final bool filtered;
+  final bool hasApps;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final title = filtered
+        ? 'No applications match this filter'
+        : hasApps
+        ? 'No applications visible'
+        : 'No applications loaded';
+    final subtitle = filtered
+        ? 'Clear or change the filter to see more applications.'
+        : hasApps
+        ? 'Your RBAC scope or current project access may be limiting the '
+              'visible applications.'
+        : 'Connect to ArgoCD, then pull to refresh once your RBAC scope has '
+              'visible applications.';
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2EAF3)),
+        border: Border.all(color: theme.dividerColor),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            'No applications loaded',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            title,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
           ),
-          SizedBox(height: 8),
-          Text(
-            'Connect to ArgoCD, then pull to refresh once your RBAC scope '
-            'has visible applications.',
-          ),
+          const SizedBox(height: 8),
+          Text(subtitle),
         ],
       ),
     );

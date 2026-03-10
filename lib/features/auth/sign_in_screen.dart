@@ -15,6 +15,7 @@ class _SignInScreenState extends State<SignInScreen> {
   final _serverController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _testingConnection = false;
 
   @override
   void initState() {
@@ -91,9 +92,9 @@ class _SignInScreenState extends State<SignInScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(28),
-                        border: Border.all(color: const Color(0xFFE1E8F0)),
+                        border: Border.all(color: theme.dividerColor),
                       ),
                       child: Form(
                         key: _formKey,
@@ -115,23 +116,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                 prefixIcon: Icon(Icons.cloud_outlined),
                               ),
                               keyboardType: TextInputType.url,
-                              validator: (value) {
-                                final text = value?.trim() ?? '';
-                                if (text.isEmpty) {
-                                  return 'Enter the ArgoCD server URL.';
-                                }
-                                final uri = Uri.tryParse(text);
-                                if (uri == null ||
-                                    !uri.hasScheme ||
-                                    uri.host.isEmpty) {
-                                  return 'Enter a valid HTTP or HTTPS URL.';
-                                }
-                                if (uri.scheme != 'http' &&
-                                    uri.scheme != 'https') {
-                                  return 'Only HTTP and HTTPS URLs are supported.';
-                                }
-                                return null;
-                              },
+                              validator: _serverValidator,
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
@@ -178,24 +163,51 @@ class _SignInScreenState extends State<SignInScreen> {
                               ),
                             ],
                             const SizedBox(height: 20),
-                            FilledButton.icon(
-                              onPressed: widget.controller.busy
-                                  ? null
-                                  : _submit,
-                              icon: widget.controller.busy
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(Icons.login),
-                              label: Text(
-                                widget.controller.busy
-                                    ? 'Connecting...'
-                                    : 'Sign In',
-                              ),
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              children: <Widget>[
+                                OutlinedButton.icon(
+                                  onPressed:
+                                      widget.controller.busy ||
+                                          _testingConnection
+                                      ? null
+                                      : _testConnection,
+                                  icon: _testingConnection
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(Icons.network_ping),
+                                  label: Text(
+                                    _testingConnection
+                                        ? 'Testing...'
+                                        : 'Test server',
+                                  ),
+                                ),
+                                FilledButton.icon(
+                                  onPressed: widget.controller.busy
+                                      ? null
+                                      : _submit,
+                                  icon: widget.controller.busy
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(Icons.login),
+                                  label: Text(
+                                    widget.controller.busy
+                                        ? 'Connecting...'
+                                        : 'Sign In',
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -228,6 +240,71 @@ class _SignInScreenState extends State<SignInScreen> {
       }
       setState(() {});
     }
+  }
+
+  Future<void> _testConnection() async {
+    if (!_validateServerOnly()) {
+      return;
+    }
+
+    setState(() {
+      _testingConnection = true;
+    });
+
+    try {
+      await widget.controller.testConnection(_serverController.text);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Connection verified.')));
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_errorText(error))));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _testingConnection = false;
+        });
+      }
+    }
+  }
+
+  bool _validateServerOnly() {
+    final validator = _serverValidator(_serverController.text);
+    if (validator == null) {
+      return true;
+    }
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(validator)));
+    return false;
+  }
+
+  String? _serverValidator(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) {
+      return 'Enter the ArgoCD server URL.';
+    }
+    final uri = Uri.tryParse(text);
+    if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
+      return 'Enter a valid HTTP or HTTPS URL.';
+    }
+    if (uri.scheme != 'http' && uri.scheme != 'https') {
+      return 'Only HTTP and HTTPS URLs are supported.';
+    }
+    return null;
+  }
+
+  String _errorText(Object error) {
+    final raw = error.toString();
+    return raw.startsWith('Exception: ') ? raw.substring(11) : raw;
   }
 }
 

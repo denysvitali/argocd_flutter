@@ -1,5 +1,9 @@
+import 'dart:convert';
+
 import 'package:argocd_flutter/core/models/app_session.dart';
 import 'package:argocd_flutter/core/models/argo_application.dart';
+import 'package:argocd_flutter/core/models/argo_project.dart';
+import 'package:argocd_flutter/core/models/argo_resource_node.dart';
 import 'package:dio/dio.dart';
 
 import '../api/native_adapter_helper.dart'
@@ -13,12 +17,45 @@ abstract class ArgoCdApi {
     required String password,
   });
   Future<List<ArgoApplication>> fetchApplications(AppSession session);
+  Future<List<ArgoProject>> fetchProjects(AppSession session);
   Future<ArgoApplication> fetchApplication(
     AppSession session,
     String applicationName, {
     bool refresh = false,
   });
+  Future<ArgoProject> fetchProject(AppSession session, String projectName);
+  Future<List<ArgoResourceNode>> fetchResourceTree(
+    AppSession session,
+    String applicationName,
+  );
   Future<void> syncApplication(AppSession session, String applicationName);
+  Future<void> rollbackApplication(
+    AppSession session,
+    String applicationName,
+    int historyId,
+  );
+  Future<void> deleteApplication(
+    AppSession session,
+    String applicationName, {
+    bool cascade = true,
+  });
+  Future<String> fetchResourceLogs(
+    AppSession session, {
+    required String applicationName,
+    required String namespace,
+    required String podName,
+    required String containerName,
+    int tailLines = 500,
+  });
+  Future<String> fetchResourceManifest(
+    AppSession session, {
+    required String applicationName,
+    required String namespace,
+    required String resourceName,
+    required String kind,
+    required String group,
+    required String version,
+  });
 }
 
 class NetworkArgoCdApi implements ArgoCdApi {
@@ -98,6 +135,24 @@ class NetworkArgoCdApi implements ArgoCdApi {
   }
 
   @override
+  Future<List<ArgoProject>> fetchProjects(AppSession session) async {
+    final dio = _createDio(session.serverUrl, token: session.token);
+    try {
+      final response = await dio.get<dynamic>('/api/v1/projects');
+      _throwIfRequestFailed(response);
+      final body = _map(response.data);
+      final items = body['items'] as List<dynamic>? ?? const <dynamic>[];
+      return items
+          .map((dynamic item) => ArgoProject.fromJson(_map(item)))
+          .toList(growable: false);
+    } on DioException catch (error) {
+      throw ArgoCdException(_formatDioError(error));
+    } finally {
+      dio.close(force: true);
+    }
+  }
+
+  @override
   Future<ArgoApplication> fetchApplication(
     AppSession session,
     String applicationName, {
@@ -121,6 +176,47 @@ class NetworkArgoCdApi implements ArgoCdApi {
   }
 
   @override
+  Future<ArgoProject> fetchProject(
+    AppSession session,
+    String projectName,
+  ) async {
+    final dio = _createDio(session.serverUrl, token: session.token);
+    try {
+      final response = await dio.get<dynamic>(
+        '/api/v1/projects/${Uri.encodeComponent(projectName)}',
+      );
+      _throwIfRequestFailed(response);
+      return ArgoProject.fromJson(_map(response.data));
+    } on DioException catch (error) {
+      throw ArgoCdException(_formatDioError(error));
+    } finally {
+      dio.close(force: true);
+    }
+  }
+
+  @override
+  Future<List<ArgoResourceNode>> fetchResourceTree(
+    AppSession session,
+    String applicationName,
+  ) async {
+    final dio = _createDio(session.serverUrl, token: session.token);
+    try {
+      final response = await dio.get<dynamic>(
+        '/api/v1/applications/${Uri.encodeComponent(applicationName)}/resource-tree',
+      );
+      _throwIfRequestFailed(response);
+      final body = _map(response.data);
+      return _list(body['nodes'])
+          .map((dynamic item) => ArgoResourceNode.fromJson(_map(item)))
+          .toList(growable: false);
+    } on DioException catch (error) {
+      throw ArgoCdException(_formatDioError(error));
+    } finally {
+      dio.close(force: true);
+    }
+  }
+
+  @override
   Future<void> syncApplication(
     AppSession session,
     String applicationName,
@@ -134,6 +230,128 @@ class NetworkArgoCdApi implements ArgoCdApi {
       _throwIfRequestFailed(response);
     } on DioException catch (error) {
       throw ArgoCdException(_formatDioError(error));
+    } finally {
+      dio.close(force: true);
+    }
+  }
+
+  @override
+  Future<void> rollbackApplication(
+    AppSession session,
+    String applicationName,
+    int historyId,
+  ) async {
+    final dio = _createDio(session.serverUrl, token: session.token);
+    try {
+      final response = await dio.put<dynamic>(
+        '/api/v1/applications/${Uri.encodeComponent(applicationName)}/rollback',
+        data: <String, dynamic>{'id': historyId, 'prune': true},
+      );
+      _throwIfRequestFailed(response);
+    } on DioException catch (error) {
+      throw ArgoCdException(_formatDioError(error));
+    } finally {
+      dio.close(force: true);
+    }
+  }
+
+  @override
+  Future<void> deleteApplication(
+    AppSession session,
+    String applicationName, {
+    bool cascade = true,
+  }) async {
+    final dio = _createDio(session.serverUrl, token: session.token);
+    try {
+      final response = await dio.delete<dynamic>(
+        '/api/v1/applications/${Uri.encodeComponent(applicationName)}',
+        queryParameters: <String, String>{'cascade': '$cascade'},
+      );
+      _throwIfRequestFailed(response);
+    } on DioException catch (error) {
+      throw ArgoCdException(_formatDioError(error));
+    } finally {
+      dio.close(force: true);
+    }
+  }
+
+  @override
+  Future<String> fetchResourceLogs(
+    AppSession session, {
+    required String applicationName,
+    required String namespace,
+    required String podName,
+    required String containerName,
+    int tailLines = 500,
+  }) async {
+    final dio = _createDio(session.serverUrl, token: session.token);
+    try {
+      final response = await dio.get<dynamic>(
+        '/api/v1/applications/${Uri.encodeComponent(applicationName)}/logs',
+        queryParameters: <String, dynamic>{
+          'namespace': namespace,
+          'podName': podName,
+          'container': containerName,
+          'tailLines': tailLines,
+          'follow': false,
+        },
+        options: Options(responseType: ResponseType.plain),
+      );
+      _throwIfRequestFailed(response);
+      return _extractLogContent(response.data);
+    } on DioException catch (error) {
+      throw ArgoCdException(_formatDioError(error));
+    } on FormatException catch (error) {
+      throw ArgoCdException('Failed to parse log output: ${error.message}');
+    } catch (error) {
+      if (error is ArgoCdException) {
+        rethrow;
+      }
+      throw ArgoCdException('Failed to load resource logs.');
+    } finally {
+      dio.close(force: true);
+    }
+  }
+
+  @override
+  Future<String> fetchResourceManifest(
+    AppSession session, {
+    required String applicationName,
+    required String namespace,
+    required String resourceName,
+    required String kind,
+    required String group,
+    required String version,
+  }) async {
+    final dio = _createDio(session.serverUrl, token: session.token);
+    try {
+      final response = await dio.get<dynamic>(
+        '/api/v1/applications/${Uri.encodeComponent(applicationName)}/resource',
+        queryParameters: <String, dynamic>{
+          'namespace': namespace,
+          'resourceName': resourceName,
+          'kind': kind,
+          'group': group,
+          'version': version,
+        },
+      );
+      _throwIfRequestFailed(response);
+      final body = _map(response.data);
+      final manifest = body['manifest'];
+      if (manifest is String) {
+        return manifest;
+      }
+      if (manifest != null) {
+        return manifest.toString();
+      }
+      throw const ArgoCdException('Resource manifest was not returned.');
+    } on DioException catch (error) {
+      throw ArgoCdException(_formatDioError(error));
+    } catch (error) {
+      if (error is ArgoCdException) {
+        rethrow;
+      }
+      throw const ArgoCdException('Failed to load resource manifest.');
     } finally {
       dio.close(force: true);
     }
@@ -245,4 +463,54 @@ Map<String, dynamic> _map(dynamic value) {
     );
   }
   return const <String, dynamic>{};
+}
+
+List<dynamic> _list(dynamic value) {
+  if (value is List<dynamic>) {
+    return value;
+  }
+  if (value is List) {
+    return List<dynamic>.from(value);
+  }
+  return const <dynamic>[];
+}
+
+String _extractLogContent(dynamic data) {
+  if (data is String) {
+    final lines = data
+        .split('\n')
+        .map((String line) => line.trim())
+        .where((String line) => line.isNotEmpty)
+        .map((String line) => _extractLogLineContent(jsonDecode(line)))
+        .where((String line) => line.isNotEmpty)
+        .toList(growable: false);
+    return lines.join('\n');
+  }
+
+  if (data is List) {
+    final lines = data
+        .map((dynamic item) => _extractLogLineContent(item))
+        .where((String line) => line.isNotEmpty)
+        .toList(growable: false);
+    return lines.join('\n');
+  }
+
+  final content = _extractLogLineContent(data);
+  if (content.isNotEmpty) {
+    return content;
+  }
+
+  throw const FormatException('Unexpected response format.');
+}
+
+String _extractLogLineContent(dynamic item) {
+  final result = _map(_map(item)['result']);
+  final content = result['content'];
+  if (content is String) {
+    return content;
+  }
+  if (content != null) {
+    return content.toString();
+  }
+  return '';
 }

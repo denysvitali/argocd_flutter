@@ -2,6 +2,9 @@ import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:flutter/material.dart';
 
+import 'manifest_viewer_screen.dart';
+import 'resource_tree_screen.dart';
+
 class ApplicationDetailScreen extends StatefulWidget {
   const ApplicationDetailScreen({
     super.key,
@@ -19,6 +22,7 @@ class ApplicationDetailScreen extends StatefulWidget {
 
 class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
   late Future<ArgoApplication> _future;
+  bool _actionInFlight = false;
 
   @override
   void initState() {
@@ -34,13 +38,39 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
         actions: <Widget>[
           IconButton(
             tooltip: 'Refresh',
-            onPressed: _refresh,
+            onPressed: _actionInFlight ? null : _refresh,
             icon: const Icon(Icons.refresh),
           ),
           IconButton(
             tooltip: 'Sync',
-            onPressed: _sync,
+            onPressed: _actionInFlight ? null : _sync,
             icon: const Icon(Icons.sync),
+          ),
+          PopupMenuButton<_ApplicationMenuAction>(
+            tooltip: 'More actions',
+            onSelected: (value) {
+              if (value == _ApplicationMenuAction.delete) {
+                _confirmDelete();
+              }
+            },
+            itemBuilder: (context) {
+              final colorScheme = Theme.of(context).colorScheme;
+              return <PopupMenuEntry<_ApplicationMenuAction>>[
+                PopupMenuItem<_ApplicationMenuAction>(
+                  value: _ApplicationMenuAction.delete,
+                  child: Row(
+                    children: <Widget>[
+                      Icon(Icons.delete_outline, color: colorScheme.error),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Delete Application',
+                        style: TextStyle(color: colorScheme.error),
+                      ),
+                    ],
+                  ),
+                ),
+              ];
+            },
           ),
         ],
       ),
@@ -66,9 +96,23 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
             children: <Widget>[
               _SummaryCard(application: application),
               const SizedBox(height: 20),
-              _ResourcesCard(resources: application.resources),
+              _ResourceTreeCard(
+                controller: widget.controller,
+                applicationName: application.name,
+              ),
               const SizedBox(height: 20),
-              _HistoryCard(history: application.history),
+              _ResourcesCard(
+                controller: widget.controller,
+                applicationName: application.name,
+                resources: application.resources,
+              ),
+              const SizedBox(height: 20),
+              _HistoryCard(
+                controller: widget.controller,
+                applicationName: application.name,
+                history: application.history,
+                onRolledBack: _refresh,
+              ),
             ],
           );
         },
@@ -78,14 +122,33 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
 
   Future<void> _refresh() async {
     setState(() {
+      _actionInFlight = true;
       _future = widget.controller.loadApplication(
         widget.applicationName,
         refresh: true,
       );
     });
+
+    try {
+      await _future;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _actionInFlight = false;
+        });
+      }
+    }
   }
 
   Future<void> _sync() async {
+    if (_actionInFlight) {
+      return;
+    }
+
+    setState(() {
+      _actionInFlight = true;
+    });
+
     try {
       await widget.controller.syncApplication(widget.applicationName);
       if (!mounted) {
@@ -94,7 +157,14 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Sync requested.')));
-      await _refresh();
+      _future = widget.controller.loadApplication(
+        widget.applicationName,
+        refresh: true,
+      );
+      await _future;
+      if (mounted) {
+        setState(() {});
+      }
     } catch (error) {
       if (!mounted) {
         return;
@@ -102,7 +172,180 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _actionInFlight = false;
+        });
+      }
     }
+  }
+
+  Future<void> _confirmDelete() async {
+    if (_actionInFlight) {
+      return;
+    }
+
+    bool cascade = true;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        final colorScheme = Theme.of(dialogContext).colorScheme;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Delete Application'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    "Are you sure you want to delete '${widget.applicationName}'? This action cannot be undone.",
+                  ),
+                  const SizedBox(height: 16),
+                  CheckboxListTile(
+                    value: cascade,
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: const Text(
+                      'Cascade delete (remove child resources)',
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        cascade = value ?? true;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: Text(
+                    'Delete',
+                    style: TextStyle(color: colorScheme.error),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    try {
+      setState(() {
+        _actionInFlight = true;
+      });
+      await widget.controller.deleteApplication(
+        widget.applicationName,
+        cascade: cascade,
+      );
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Application deleted.')));
+      Navigator.of(context).pop();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _actionInFlight = false;
+        });
+      }
+    }
+  }
+}
+
+enum _ApplicationMenuAction { delete }
+
+class _ResourceTreeCard extends StatelessWidget {
+  const _ResourceTreeCard({
+    required this.controller,
+    required this.applicationName,
+  });
+
+  final AppController controller;
+  final String applicationName;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => ResourceTreeScreen(
+                controller: controller,
+                applicationName: applicationName,
+              ),
+            ),
+          );
+        },
+        child: Ink(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: theme.dividerColor),
+          ),
+          child: Row(
+            children: <Widget>[
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF2FF),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(Icons.account_tree, color: Color(0xFF1F6FEB)),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'View Resource Tree',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Inspect the Kubernetes resource hierarchy for this application.',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -113,12 +356,14 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2EAF3)),
+        border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -164,18 +409,26 @@ class _SummaryCard extends StatelessWidget {
 }
 
 class _ResourcesCard extends StatelessWidget {
-  const _ResourcesCard({required this.resources});
+  const _ResourcesCard({
+    required this.controller,
+    required this.applicationName,
+    required this.resources,
+  });
 
+  final AppController controller;
+  final String applicationName;
   final List<ArgoResource> resources;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2EAF3)),
+        border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,15 +443,31 @@ class _ResourcesCard extends StatelessWidget {
           if (resources.isEmpty)
             const Text('No resources returned by the ArgoCD API.')
           else
-            ...resources.map(
-              (resource) => ListTile(
+            ...resources.map((resource) {
+              return ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text('${resource.kind} • ${resource.name}'),
                 subtitle: Text(
                   '${resource.namespace} • ${resource.status} • ${resource.health}',
                 ),
-              ),
-            ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => ManifestViewerScreen(
+                        controller: controller,
+                        applicationName: applicationName,
+                        namespace: resource.namespace,
+                        resourceName: resource.name,
+                        kind: resource.kind,
+                        group: resource.group,
+                        version: resource.version,
+                      ),
+                    ),
+                  );
+                },
+              );
+            }),
         ],
       ),
     );
@@ -206,18 +475,29 @@ class _ResourcesCard extends StatelessWidget {
 }
 
 class _HistoryCard extends StatelessWidget {
-  const _HistoryCard({required this.history});
+  const _HistoryCard({
+    required this.controller,
+    required this.applicationName,
+    required this.history,
+    required this.onRolledBack,
+  });
 
+  final AppController controller;
+  final String applicationName;
   final List<ArgoHistoryEntry> history;
+  final Future<void> Function() onRolledBack;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final currentEntry = history.isEmpty ? null : history.last;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2EAF3)),
+        border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,13 +513,128 @@ class _HistoryCard extends StatelessWidget {
             const Text('No deployment history returned by the ArgoCD API.')
           else
             ...history.map(
-              (entry) => ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(entry.revision),
-                subtitle: Text('ID ${entry.id} • ${entry.deployedAt}'),
+              (entry) => _HistoryEntryTile(
+                controller: controller,
+                applicationName: applicationName,
+                entry: entry,
+                isCurrent: identical(entry, currentEntry),
+                onRolledBack: onRolledBack,
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _HistoryEntryTile extends StatelessWidget {
+  const _HistoryEntryTile({
+    required this.controller,
+    required this.applicationName,
+    required this.entry,
+    required this.isCurrent,
+    required this.onRolledBack,
+  });
+
+  final AppController controller;
+  final String applicationName;
+  final ArgoHistoryEntry entry;
+  final bool isCurrent;
+  final Future<void> Function() onRolledBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(entry.revision),
+      subtitle: Text('ID ${entry.id} • ${entry.deployedAt}'),
+      trailing: isCurrent
+          ? const _HistoryStatusChip(label: 'Current', color: Colors.teal)
+          : TextButton.icon(
+              onPressed: () => _confirmRollback(context),
+              icon: const Icon(Icons.restore),
+              label: const Text('Rollback'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.amber.shade800,
+              ),
+            ),
+      onTap: isCurrent ? null : () => _confirmRollback(context),
+    );
+  }
+
+  Future<void> _confirmRollback(BuildContext context) async {
+    final warningColor = Colors.amber.shade800;
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Rollback Application'),
+          content: Text(
+            "Roll back '$applicationName' to revision ${entry.revision} (deploy #${entry.id})?",
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text('Rollback', style: TextStyle(color: warningColor)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !context.mounted) {
+      return;
+    }
+
+    try {
+      await controller.rollbackApplication(applicationName, entry.id);
+      if (!context.mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Rollback to revision ${entry.revision} initiated.'),
+        ),
+      );
+      await onRolledBack();
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+      messenger.showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
+}
+
+class _HistoryStatusChip extends StatelessWidget {
+  const _HistoryStatusChip({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(
+          alpha: theme.brightness == Brightness.dark ? 0.24 : 0.12,
+        ),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -253,10 +648,12 @@ class _DetailPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6F8FC),
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Text('$label: $value'),
@@ -279,9 +676,9 @@ class _LabeledText extends StatelessWidget {
         children: <Widget>[
           Text(
             label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelLarge?.copyWith(color: const Color(0xFF68788B)),
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 4),
           Text(value),

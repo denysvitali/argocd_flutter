@@ -1,5 +1,7 @@
 import 'package:argocd_flutter/core/models/app_session.dart';
 import 'package:argocd_flutter/core/models/argo_application.dart';
+import 'package:argocd_flutter/core/models/argo_project.dart';
+import 'package:argocd_flutter/core/models/argo_resource_node.dart';
 import 'package:flutter/foundation.dart';
 
 import 'argocd_api.dart';
@@ -27,6 +29,18 @@ class AppController extends ChangeNotifier {
   bool _busy = false;
   bool get busy => _busy;
 
+  bool _loadingApplications = false;
+  bool get loadingApplications => _loadingApplications;
+
+  bool _hasLoadedApplications = false;
+  bool get hasLoadedApplications => _hasLoadedApplications;
+
+  bool _loadingProjects = false;
+  bool get loadingProjects => _loadingProjects;
+
+  bool _hasLoadedProjects = false;
+  bool get hasLoadedProjects => _hasLoadedProjects;
+
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
@@ -41,6 +55,9 @@ class AppController extends ChangeNotifier {
 
   List<ArgoApplication> _applications = const <ArgoApplication>[];
   List<ArgoApplication> get applications => _applications;
+
+  List<ArgoProject> _projects = const <ArgoProject>[];
+  List<ArgoProject> get projects => _projects;
 
   Future<void>? _bootstrapFuture;
   Future<void> initialize() {
@@ -61,16 +78,23 @@ class AppController extends ChangeNotifier {
     _session = storedSession;
     _lastServerUrl = storedSession.serverUrl;
     _stage = AppStage.authenticated;
+    _loadingApplications = true;
     notifyListeners();
 
     try {
-      await refreshApplications(showSpinner: false);
+      await Future.wait<void>(<Future<void>>[
+        refreshApplications(showSpinner: false),
+        refreshProjects(showSpinner: false),
+      ]);
     } catch (_) {
       _stage = AppStage.unauthenticated;
       _session = null;
       _applications = const <ArgoApplication>[];
+      _projects = const <ArgoProject>[];
       await _storage.clearSession();
       _errorMessage = 'Saved session expired. Sign in again.';
+      _loadingApplications = false;
+      _loadingProjects = false;
       notifyListeners();
     }
   }
@@ -96,7 +120,10 @@ class AppController extends ChangeNotifier {
       _session = nextSession;
       _stage = AppStage.authenticated;
       await _storage.saveSession(nextSession);
-      await refreshApplications(showSpinner: false);
+      await Future.wait<void>(<Future<void>>[
+        refreshApplications(showSpinner: false),
+        refreshProjects(showSpinner: false),
+      ]);
     });
   }
 
@@ -108,13 +135,28 @@ class AppController extends ChangeNotifier {
 
     if (showSpinner) {
       await _runBusyAction(() async {
-        _applications = await _api.fetchApplications(session);
+        await _fetchApplications(session);
       });
       return;
     }
 
-    _applications = await _api.fetchApplications(session);
-    notifyListeners();
+    await _fetchApplications(session);
+  }
+
+  Future<void> refreshProjects({bool showSpinner = true}) async {
+    final session = _session;
+    if (session == null) {
+      throw const ArgoCdException('Not signed in.');
+    }
+
+    if (showSpinner) {
+      await _runBusyAction(() async {
+        await _fetchProjects(session);
+      });
+      return;
+    }
+
+    await _fetchProjects(session);
   }
 
   Future<ArgoApplication> loadApplication(
@@ -129,6 +171,26 @@ class AppController extends ChangeNotifier {
     return _api.fetchApplication(session, applicationName, refresh: refresh);
   }
 
+  Future<ArgoProject> loadProject(String projectName) async {
+    final session = _session;
+    if (session == null) {
+      throw const ArgoCdException('Not signed in.');
+    }
+
+    return _api.fetchProject(session, projectName);
+  }
+
+  Future<List<ArgoResourceNode>> loadResourceTree(
+    String applicationName,
+  ) async {
+    final session = _session;
+    if (session == null) {
+      throw const ArgoCdException('Not signed in.');
+    }
+
+    return _api.fetchResourceTree(session, applicationName);
+  }
+
   Future<void> syncApplication(String applicationName) async {
     final session = _session;
     if (session == null) {
@@ -137,17 +199,123 @@ class AppController extends ChangeNotifier {
 
     await _runBusyAction(() async {
       await _api.syncApplication(session, applicationName);
-      _applications = await _api.fetchApplications(session);
+      await _fetchApplications(session);
     });
+  }
+
+  Future<void> rollbackApplication(
+    String applicationName,
+    int historyId,
+  ) async {
+    final session = _session;
+    if (session == null) {
+      throw const ArgoCdException('Not signed in.');
+    }
+
+    await _runBusyAction(() async {
+      await _api.rollbackApplication(session, applicationName, historyId);
+      await _fetchApplications(session);
+    });
+  }
+
+  Future<void> deleteApplication(
+    String applicationName, {
+    bool cascade = true,
+  }) async {
+    final session = _session;
+    if (session == null) {
+      throw const ArgoCdException('Not signed in.');
+    }
+
+    await _runBusyAction(() async {
+      await _api.deleteApplication(session, applicationName, cascade: cascade);
+      await _fetchApplications(session);
+    });
+  }
+
+  Future<String> fetchResourceLogs({
+    required String applicationName,
+    required String namespace,
+    required String podName,
+    required String containerName,
+    int tailLines = 500,
+  }) async {
+    final session = _session;
+    if (session == null) {
+      throw const ArgoCdException('Not signed in.');
+    }
+
+    return _api.fetchResourceLogs(
+      session,
+      applicationName: applicationName,
+      namespace: namespace,
+      podName: podName,
+      containerName: containerName,
+      tailLines: tailLines,
+    );
+  }
+
+  Future<String> fetchResourceManifest({
+    required String applicationName,
+    required String namespace,
+    required String resourceName,
+    required String kind,
+    required String group,
+    required String version,
+  }) async {
+    final session = _session;
+    if (session == null) {
+      throw const ArgoCdException('Not signed in.');
+    }
+
+    return _api.fetchResourceManifest(
+      session,
+      applicationName: applicationName,
+      namespace: namespace,
+      resourceName: resourceName,
+      kind: kind,
+      group: group,
+      version: version,
+    );
   }
 
   Future<void> signOut() async {
     _session = null;
     _applications = const <ArgoApplication>[];
+    _projects = const <ArgoProject>[];
     _errorMessage = null;
+    _hasLoadedApplications = false;
+    _loadingApplications = false;
+    _hasLoadedProjects = false;
+    _loadingProjects = false;
     _stage = AppStage.unauthenticated;
     await _storage.clearSession();
     notifyListeners();
+  }
+
+  Future<void> updateServerUrl(String serverUrl) async {
+    final normalizedServerUrl = serverUrl.trim();
+    await _storage.saveLastServerUrl(normalizedServerUrl);
+    _lastServerUrl = normalizedServerUrl;
+    if (_session != null) {
+      await signOut();
+      return;
+    }
+    notifyListeners();
+  }
+
+  Future<void> testConnection([String? serverUrl]) async {
+    final targetUrl = serverUrl?.trim().isNotEmpty == true
+        ? serverUrl!.trim()
+        : (_session?.serverUrl ?? _lastServerUrl);
+
+    if (targetUrl.isEmpty) {
+      throw const ArgoCdException('Enter a server URL first.');
+    }
+
+    await _runBusyAction(() async {
+      await _api.verifyServer(targetUrl);
+    });
   }
 
   void clearError() {
@@ -160,9 +328,11 @@ class AppController extends ChangeNotifier {
 
   Future<void> _runBusyAction(Future<void> Function() action) async {
     _busy = true;
+    _errorMessage = null;
     notifyListeners();
     try {
       await action();
+      _errorMessage = null;
     } on ArgoCdException catch (error) {
       _errorMessage = error.message;
       rethrow;
@@ -171,6 +341,34 @@ class AppController extends ChangeNotifier {
       rethrow;
     } finally {
       _busy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _fetchApplications(AppSession session) async {
+    _loadingApplications = true;
+    notifyListeners();
+
+    try {
+      _applications = await _api.fetchApplications(session);
+      _hasLoadedApplications = true;
+      _errorMessage = null;
+    } finally {
+      _loadingApplications = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _fetchProjects(AppSession session) async {
+    _loadingProjects = true;
+    notifyListeners();
+
+    try {
+      _projects = await _api.fetchProjects(session);
+      _hasLoadedProjects = true;
+      _errorMessage = null;
+    } finally {
+      _loadingProjects = false;
       notifyListeners();
     }
   }

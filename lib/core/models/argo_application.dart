@@ -75,6 +75,8 @@ class ArgoResource {
     required this.kind,
     required this.name,
     required this.namespace,
+    required this.group,
+    required this.version,
     required this.status,
     required this.health,
   });
@@ -84,6 +86,8 @@ class ArgoResource {
       kind: _string(json['kind'], fallback: 'Resource'),
       name: _string(json['name'], fallback: 'Unknown'),
       namespace: _string(json['namespace'], fallback: '-'),
+      group: _string(json['group'], fallback: ''),
+      version: _string(json['version'], fallback: ''),
       status: _string(json['status'], fallback: 'Unknown'),
       health: _string(json['health'], fallback: 'Unknown'),
     );
@@ -92,6 +96,8 @@ class ArgoResource {
   final String kind;
   final String name;
   final String namespace;
+  final String group;
+  final String version;
   final String status;
   final String health;
 }
@@ -105,13 +111,13 @@ class ArgoHistoryEntry {
 
   factory ArgoHistoryEntry.fromJson(Map<String, dynamic> json) {
     return ArgoHistoryEntry(
-      id: _string(json['id'], fallback: '-'),
+      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       revision: _string(json['revision'], fallback: '-'),
       deployedAt: _string(json['deployedAt'], fallback: '-'),
     );
   }
 
-  final String id;
+  final int id;
   final String revision;
   final String deployedAt;
 }
