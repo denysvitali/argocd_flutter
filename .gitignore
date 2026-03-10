@@ -49,3 +49,4 @@ android/key.properties
 /android/app/debug
 /android/app/profile
 /android/app/release
+.claude/worktrees/
