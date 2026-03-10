@@ -1,5 +1,6 @@
 import 'package:argocd_flutter/core/models/argo_resource_node.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
+import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class ResourceTreeScreen extends StatefulWidget {
@@ -244,7 +245,7 @@ class _ResourceNodeTile extends StatelessWidget {
           initiallyExpanded: isInitiallyExpanded,
           leading: Icon(
             _iconForKind(node.kind),
-            color: const Color(0xFF1F6FEB),
+            color: AppColors.cobalt,
           ),
           title: Text('${node.kind}: ${node.name}'),
           subtitle: Text(subtitleParts.join(' • ')),
@@ -306,16 +307,6 @@ class _HealthDot extends StatelessWidget {
   }
 
   Color _colorForStatus(String healthStatus) {
-    switch (healthStatus.toLowerCase()) {
-      case 'healthy':
-        return const Color(0xFF14B8A6);
-      case 'degraded':
-        return const Color(0xFFFF6B57);
-      case 'progressing':
-      case 'missing':
-        return const Color(0xFFFFC857);
-      default:
-        return Colors.grey;
-    }
+    return AppColors.healthColor(healthStatus);
   }
 }
