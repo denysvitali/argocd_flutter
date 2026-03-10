@@ -24,7 +24,7 @@ on:
 
 env:
   FLUTTER_VERSION: '3.38.7'
-  JAVA_VERSION: '17'
+  JAVA_VERSION: '21'
   DART_VM_OPTIONS: '--max-gen-heap-size=4096'
 
 permissions:
