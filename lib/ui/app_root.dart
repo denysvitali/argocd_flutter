@@ -7,6 +7,7 @@ import 'package:argocd_flutter/features/dashboard/dashboard_screen.dart';
 import 'package:argocd_flutter/features/projects/project_detail_screen.dart';
 import 'package:argocd_flutter/features/projects/projects_screen.dart';
 import 'package:argocd_flutter/features/settings/settings_screen.dart';
+import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -34,49 +35,47 @@ class _ArgoCdAppState extends State<ArgoCdApp> {
 
   @override
   Widget build(BuildContext context) {
-    const canvas = Color(0xFFF4F7FB);
-    const ink = Color(0xFF0E1726);
-    const cobalt = Color(0xFF1F6FEB);
-    const teal = Color(0xFF14B8A6);
-    const darkSurface = Color(0xFF1A2332);
-    const darkBorder = Color(0xFF2A3A4E);
-    const darkOnSurface = Color(0xFFE2EAF3);
-
     final baseTheme = ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: canvas,
+      scaffoldBackgroundColor: AppColors.canvas,
       colorScheme: const ColorScheme.light(
-        primary: cobalt,
-        secondary: teal,
+        primary: AppColors.cobalt,
+        secondary: AppColors.teal,
         surface: Colors.white,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
-        onSurface: ink,
+        onSurface: AppColors.ink,
       ),
       textTheme: GoogleFonts.spaceGroteskTextTheme().copyWith(
-        bodyMedium: GoogleFonts.dmSans(color: ink, fontSize: 16),
-        bodyLarge: GoogleFonts.dmSans(color: ink, fontSize: 18),
+        bodyMedium: GoogleFonts.dmSans(color: AppColors.ink, fontSize: 16),
+        bodyLarge: GoogleFonts.dmSans(color: AppColors.ink, fontSize: 18),
       ),
-      dividerColor: const Color(0xFFE2EAF3),
+      dividerColor: AppColors.border,
     );
 
     final darkTheme = ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: ink,
+      scaffoldBackgroundColor: AppColors.ink,
       colorScheme: const ColorScheme.dark(
-        primary: cobalt,
-        secondary: teal,
-        surface: darkSurface,
+        primary: AppColors.cobalt,
+        secondary: AppColors.teal,
+        surface: AppColors.darkSurface,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
-        onSurface: darkOnSurface,
+        onSurface: AppColors.border,
       ),
       textTheme: GoogleFonts.spaceGroteskTextTheme(ThemeData.dark().textTheme)
           .copyWith(
-            bodyMedium: GoogleFonts.dmSans(color: darkOnSurface, fontSize: 16),
-            bodyLarge: GoogleFonts.dmSans(color: darkOnSurface, fontSize: 18),
+            bodyMedium: GoogleFonts.dmSans(
+              color: AppColors.border,
+              fontSize: 16,
+            ),
+            bodyLarge: GoogleFonts.dmSans(
+              color: AppColors.border,
+              fontSize: 18,
+            ),
           ),
-      dividerColor: darkBorder,
+      dividerColor: AppColors.darkBorder,
     );
 
     return AnimatedBuilder(
