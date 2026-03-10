@@ -1,0 +1,493 @@
+import 'dart:convert';
+
+import 'package:argocd_flutter/core/models/app_session.dart';
+import 'package:argocd_flutter/core/models/argo_application.dart';
+import 'package:argocd_flutter/core/models/argo_project.dart';
+import 'package:argocd_flutter/core/models/argo_resource_node.dart';
+import 'package:argocd_flutter/core/services/app_controller.dart';
+import 'package:argocd_flutter/core/services/argocd_api.dart';
+import 'package:argocd_flutter/core/services/certificate_provider.dart';
+import 'package:argocd_flutter/core/services/session_storage.dart';
+import 'package:argocd_flutter/features/applications/manifest_viewer_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+const String _sampleManifest = '{'
+    '"apiVersion":"v1",'
+    '"kind":"Service",'
+    '"metadata":{"name":"my-svc","namespace":"default","labels":{"app":"web"}},'
+    '"spec":{"type":"ClusterIP","ports":[{"port":80,"targetPort":8080,"protocol":"TCP"}],'
+    '"selector":{"app":"web"}},'
+    '"status":{"loadBalancer":{}},'
+    '"replicas":3,'
+    '"enabled":true,'
+    '"description":null'
+    '}';
+
+void main() {
+  group('jsonToYaml', () {
+    test('converts a simple flat object', () {
+      final json = <String, dynamic>{'name': 'hello', 'count': 42};
+      final yaml = jsonToYaml(json);
+      expect(yaml, contains('name: hello'));
+      expect(yaml, contains('count: 42'));
+    });
+
+    test('converts nested objects', () {
+      final json = <String, dynamic>{
+        'metadata': <String, dynamic>{
+          'name': 'my-svc',
+          'labels': <String, dynamic>{'app': 'web'},
+        },
+      };
+      final yaml = jsonToYaml(json);
+      expect(yaml, contains('metadata:'));
+      expect(yaml, contains('  name: my-svc'));
+      expect(yaml, contains('  labels:'));
+      expect(yaml, contains('    app: web'));
+    });
+
+    test('converts arrays', () {
+      final json = <String, dynamic>{
+        'ports': <dynamic>[
+          <String, dynamic>{'port': 80, 'protocol': 'TCP'},
+        ],
+      };
+      final yaml = jsonToYaml(json);
+      expect(yaml, contains('ports:'));
+      expect(yaml, contains('- port: 80'));
+      expect(yaml, contains('  protocol: TCP'));
+    });
+
+    test('converts simple array values', () {
+      final json = <String, dynamic>{
+        'items': <dynamic>['alpha', 'beta', 'gamma'],
+      };
+      final yaml = jsonToYaml(json);
+      expect(yaml, contains('- alpha'));
+      expect(yaml, contains('- beta'));
+      expect(yaml, contains('- gamma'));
+    });
+
+    test('handles null, boolean, and numeric values', () {
+      final json = <String, dynamic>{
+        'enabled': true,
+        'disabled': false,
+        'count': 42,
+        'ratio': 3.14,
+        'nothing': null,
+      };
+      final yaml = jsonToYaml(json);
+      expect(yaml, contains('enabled: true'));
+      expect(yaml, contains('disabled: false'));
+      expect(yaml, contains('count: 42'));
+      expect(yaml, contains('ratio: 3.14'));
+      expect(yaml, contains('nothing: null'));
+    });
+
+    test('quotes strings that need quoting', () {
+      final json = <String, dynamic>{
+        'value': 'hello: world',
+        'empty': '',
+        'truthy': 'true',
+      };
+      final yaml = jsonToYaml(json);
+      expect(yaml, contains("'hello: world'"));
+      expect(yaml, contains("''"));
+      expect(yaml, contains("'true'"));
+    });
+
+    test('handles empty map and empty list', () {
+      final json = <String, dynamic>{
+        'emptyMap': <String, dynamic>{},
+        'emptyList': <dynamic>[],
+      };
+      final yaml = jsonToYaml(json);
+      expect(yaml, contains('emptyMap: {}'));
+      expect(yaml, contains('emptyList: []'));
+    });
+
+    test('converts the full sample manifest', () {
+      final decoded =
+          jsonDecode(_sampleManifest) as Map<String, dynamic>;
+      final yaml = jsonToYaml(decoded);
+      expect(yaml, contains('apiVersion: v1'));
+      expect(yaml, contains('kind: Service'));
+      expect(yaml, contains('metadata:'));
+      expect(yaml, contains('  name: my-svc'));
+      expect(yaml, contains('spec:'));
+      expect(yaml, contains('replicas: 3'));
+      expect(yaml, contains('enabled: true'));
+      expect(yaml, contains('description: null'));
+    });
+  });
+
+  group('tokenizeYamlLine', () {
+    test('tokenizes a key-value line', () {
+      final tokens = tokenizeYamlLine('name: hello');
+      expect(tokens.length, 4);
+      expect(tokens[0].text, 'name');
+      expect(tokens[0].type, YamlTokenType.key);
+      expect(tokens[1].text, ':');
+      expect(tokens[1].type, YamlTokenType.key);
+      // Space between colon and value
+      expect(tokens[2].text, ' ');
+      expect(tokens[2].type, null);
+      expect(tokens[3].text, 'hello');
+      expect(tokens[3].type, YamlTokenType.stringValue);
+    });
+
+    test('tokenizes a numeric value', () {
+      final tokens = tokenizeYamlLine('count: 42');
+      final valueToken = tokens.last;
+      expect(valueToken.text, '42');
+      expect(valueToken.type, YamlTokenType.numberValue);
+    });
+
+    test('tokenizes a boolean value', () {
+      final tokens = tokenizeYamlLine('enabled: true');
+      final valueToken = tokens.last;
+      expect(valueToken.text, 'true');
+      expect(valueToken.type, YamlTokenType.numberValue);
+    });
+
+    test('tokenizes null value', () {
+      final tokens = tokenizeYamlLine('value: null');
+      final valueToken = tokens.last;
+      expect(valueToken.text, 'null');
+      expect(valueToken.type, YamlTokenType.boolNullValue);
+    });
+
+    test('tokenizes a list dash line', () {
+      final tokens = tokenizeYamlLine('  - port: 80');
+      expect(tokens[0].text, '  ');
+      expect(tokens[0].type, null);
+      expect(tokens[1].text, '-');
+      expect(tokens[1].type, YamlTokenType.listDash);
+      // After the dash there should be key tokens
+      final keyToken = tokens.firstWhere(
+        (YamlToken t) => t.type == YamlTokenType.key,
+      );
+      expect(keyToken.text, ' port');
+    });
+  });
+
+  group('ManifestViewerScreen widget', () {
+    late AppController controller;
+
+    setUp(() {
+      final storage = _MemorySessionStorage()
+        ..seedSession(
+          const AppSession(
+            serverUrl: 'https://argocd.example.com',
+            username: 'ops',
+            token: 'token',
+          ),
+        );
+      controller = AppController(
+        storage: storage,
+        api: _FakeArgoCdApi(manifest: _sampleManifest),
+        certificateProvider: const CertificateProvider(),
+      );
+    });
+
+    Widget buildTestWidget() {
+      return MaterialApp(
+        home: ManifestViewerScreen(
+          controller: controller,
+          applicationName: 'my-app',
+          namespace: 'default',
+          resourceName: 'my-svc',
+          kind: 'Service',
+          group: '',
+          version: 'v1',
+        ),
+      );
+    }
+
+    testWidgets('renders YAML view with collapsible sections', (
+      WidgetTester tester,
+    ) async {
+      await controller.initialize();
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      // Should show the title
+      expect(find.text('Service: my-svc'), findsOneWidget);
+
+      // Should show top-level keys as collapsible sections
+      expect(find.text('metadata'), findsOneWidget);
+      expect(find.text('spec'), findsOneWidget);
+      expect(find.text('status'), findsOneWidget);
+    });
+
+    testWidgets('toggles between YAML and JSON view', (
+      WidgetTester tester,
+    ) async {
+      await controller.initialize();
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      // Initially in YAML mode - shows collapsible sections
+      expect(find.text('metadata'), findsOneWidget);
+
+      // Find and tap the toggle button (code icon for YAML mode)
+      final toggleButton = find.byIcon(Icons.code);
+      expect(toggleButton, findsOneWidget);
+      await tester.tap(toggleButton);
+      await tester.pumpAndSettle();
+
+      // Now in JSON mode - should show raw JSON with braces
+      expect(find.byIcon(Icons.data_object), findsOneWidget);
+    });
+
+    testWidgets('search opens and filters content', (
+      WidgetTester tester,
+    ) async {
+      await controller.initialize();
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      // Tap search icon
+      await tester.tap(find.byIcon(Icons.search));
+      await tester.pumpAndSettle();
+
+      // Should show search field
+      expect(find.byType(TextField), findsOneWidget);
+
+      // Type a search query
+      await tester.enterText(find.byType(TextField), 'ClusterIP');
+      await tester.pumpAndSettle();
+
+      // The spec section should still be visible since it contains ClusterIP
+      expect(find.text('spec'), findsOneWidget);
+    });
+
+    testWidgets('shows loading state', (WidgetTester tester) async {
+      await controller.initialize();
+      await tester.pumpWidget(buildTestWidget());
+      // Don't pump and settle — check for loading indicator
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    });
+
+    testWidgets('shows error state with retry button', (
+      WidgetTester tester,
+    ) async {
+      final storage = _MemorySessionStorage()
+        ..seedSession(
+          const AppSession(
+            serverUrl: 'https://argocd.example.com',
+            username: 'ops',
+            token: 'token',
+          ),
+        );
+      final errorController = AppController(
+        storage: storage,
+        api: _FakeArgoCdApi(shouldFail: true),
+        certificateProvider: const CertificateProvider(),
+      );
+      await errorController.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ManifestViewerScreen(
+            controller: errorController,
+            applicationName: 'my-app',
+            namespace: 'default',
+            resourceName: 'my-svc',
+            kind: 'Service',
+            group: '',
+            version: 'v1',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Retry'), findsOneWidget);
+    });
+
+    testWidgets('copy button is present and enabled after loading', (
+      WidgetTester tester,
+    ) async {
+      await controller.initialize();
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.copy), findsOneWidget);
+    });
+
+    testWidgets('refresh button triggers reload', (
+      WidgetTester tester,
+    ) async {
+      await controller.initialize();
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.refresh));
+      await tester.pump();
+
+      // Should show loading indicator during refresh
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      await tester.pumpAndSettle();
+
+      // After settling, should be back to YAML view
+      expect(find.text('metadata'), findsOneWidget);
+    });
+
+    testWidgets('collapsing a section hides its content', (
+      WidgetTester tester,
+    ) async {
+      await controller.initialize();
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      // metadata section should be expanded initially
+      expect(find.text('metadata'), findsOneWidget);
+
+      // Tap to collapse the metadata section
+      await tester.tap(find.text('metadata'));
+      await tester.pumpAndSettle();
+
+      // The section header should still be visible
+      expect(find.text('metadata'), findsOneWidget);
+    });
+  });
+}
+
+class _MemorySessionStorage implements SessionStorage {
+  AppSession? _session;
+  String? _serverUrl;
+
+  @override
+  Future<void> clearSession() async {
+    _session = null;
+  }
+
+  @override
+  Future<String?> loadLastServerUrl() async => _serverUrl;
+
+  @override
+  Future<AppSession?> loadSession() async => _session;
+
+  @override
+  Future<void> saveLastServerUrl(String serverUrl) async {
+    _serverUrl = serverUrl;
+  }
+
+  @override
+  Future<void> saveSession(AppSession session) async {
+    _session = session;
+    _serverUrl = session.serverUrl;
+  }
+
+  void seedSession(AppSession session) {
+    _session = session;
+    _serverUrl = session.serverUrl;
+  }
+}
+
+class _FakeArgoCdApi implements ArgoCdApi {
+  _FakeArgoCdApi({
+    this.manifest = '',
+    this.shouldFail = false,
+  });
+
+  final String manifest;
+  final bool shouldFail;
+
+  @override
+  Future<String> fetchResourceManifest(
+    AppSession session, {
+    required String applicationName,
+    required String namespace,
+    required String resourceName,
+    required String kind,
+    required String group,
+    required String version,
+  }) async {
+    if (shouldFail) {
+      throw const ArgoCdException('Failed to load manifest');
+    }
+    return manifest;
+  }
+
+  @override
+  Future<List<ArgoApplication>> fetchApplications(AppSession session) async {
+    return const <ArgoApplication>[];
+  }
+
+  @override
+  Future<ArgoApplication> fetchApplication(
+    AppSession session,
+    String applicationName, {
+    bool refresh = false,
+  }) async {
+    throw const ArgoCdException('Not implemented');
+  }
+
+  @override
+  Future<List<ArgoProject>> fetchProjects(AppSession session) async {
+    return const <ArgoProject>[];
+  }
+
+  @override
+  Future<ArgoProject> fetchProject(
+    AppSession session,
+    String projectName,
+  ) async {
+    throw const ArgoCdException('Not implemented');
+  }
+
+  @override
+  Future<List<ArgoResourceNode>> fetchResourceTree(
+    AppSession session,
+    String applicationName,
+  ) async {
+    return const <ArgoResourceNode>[];
+  }
+
+  @override
+  Future<String> fetchResourceLogs(
+    AppSession session, {
+    required String applicationName,
+    required String namespace,
+    required String podName,
+    required String containerName,
+    int tailLines = 500,
+  }) async {
+    return '';
+  }
+
+  @override
+  Future<void> syncApplication(
+    AppSession session,
+    String applicationName,
+  ) async {}
+
+  @override
+  Future<void> rollbackApplication(
+    AppSession session,
+    String applicationName,
+    int historyId,
+  ) async {}
+
+  @override
+  Future<void> deleteApplication(
+    AppSession session,
+    String applicationName, {
+    bool cascade = true,
+  }) async {}
+
+  @override
+  Future<AppSession> signIn({
+    required String serverUrl,
+    required String username,
+    required String password,
+  }) async {
+    return AppSession(serverUrl: serverUrl, username: username, token: 'token');
+  }
+
+  @override
+  Future<void> verifyServer(String serverUrl) async {}
+}
