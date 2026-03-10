@@ -1,4 +1,5 @@
 import 'package:argocd_flutter/core/services/app_controller.dart';
+import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -93,7 +94,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
           return Container(
             width: double.infinity,
             height: double.infinity,
-            color: const Color(0xFF0E1726),
+            color: AppColors.ink,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: SingleChildScrollView(
@@ -103,7 +104,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                   style: const TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 13,
-                    color: Color(0xFFE2EAF3),
+                    color: AppColors.border,
                     height: 1.5,
                   ),
                 ),

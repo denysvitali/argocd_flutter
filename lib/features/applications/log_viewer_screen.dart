@@ -1,4 +1,5 @@
 import 'package:argocd_flutter/core/services/app_controller.dart';
+import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -53,7 +54,7 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        color: const Color(0xFF0E1726),
+        color: AppColors.ink,
         child: FutureBuilder<String>(
           future: _future,
           builder: (context, snapshot) {
@@ -92,7 +93,7 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
                 style: const TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 13,
-                  color: Color(0xFF14B8A6),
+                  color: AppColors.teal,
                 ),
               ),
             );

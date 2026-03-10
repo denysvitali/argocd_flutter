@@ -1,4 +1,5 @@
 import 'package:argocd_flutter/core/services/app_controller.dart';
+import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -43,9 +44,9 @@ class _SignInScreenState extends State<SignInScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: <Color>[
-              Color(0xFFF4F7FB),
-              Color(0xFFE8F0FF),
-              Color(0xFFFFF2E8),
+              AppColors.canvas,
+              AppColors.blueLight,
+              AppColors.peach,
             ],
           ),
         ),
@@ -63,7 +64,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       padding: const EdgeInsets.all(28),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(28),
-                        color: const Color(0xFF0E1726),
+                        color: AppColors.ink,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,7 +82,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             'your session locally, and inspect application '
                             'health from the same shell.',
                             style: theme.textTheme.titleMedium?.copyWith(
-                              color: const Color(0xFFD8E5FF),
+                              color: AppColors.textOnDarkMuted,
                             ),
                           ),
                         ],
@@ -318,7 +319,7 @@ class _CertificateBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F9FF),
+        color: AppColors.canvasSubtle,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
