@@ -449,6 +449,373 @@ void main() {
     });
   });
 
+  group('ArgoApplication.fromJson edge cases', () {
+    test('handles null values in metadata', () {
+      final json = <String, dynamic>{
+        'metadata': <String, dynamic>{'name': null, 'namespace': null},
+        'spec': <String, dynamic>{},
+        'status': <String, dynamic>{},
+      };
+
+      final app = ArgoApplication.fromJson(json);
+
+      expect(app.name, 'Unknown');
+    });
+
+    test('handles numeric values where strings are expected', () {
+      final json = <String, dynamic>{
+        'metadata': <String, dynamic>{'name': 12345},
+        'spec': <String, dynamic>{
+          'project': 42,
+          'source': <String, dynamic>{
+            'repoURL': 99,
+            'path': 0,
+          },
+          'destination': <String, dynamic>{
+            'server': 100,
+            'namespace': 200,
+          },
+        },
+        'status': <String, dynamic>{},
+      };
+
+      final app = ArgoApplication.fromJson(json);
+
+      expect(app.name, '12345');
+      expect(app.project, '42');
+      expect(app.repoUrl, '99');
+    });
+
+    test('handles malformed resources list', () {
+      final json = <String, dynamic>{
+        'metadata': <String, dynamic>{'name': 'test'},
+        'spec': <String, dynamic>{},
+        'status': <String, dynamic>{
+          'resources': <dynamic>[
+            <String, dynamic>{},
+            <String, dynamic>{'kind': 'Service', 'name': 'svc'},
+          ],
+        },
+      };
+
+      final app = ArgoApplication.fromJson(json);
+
+      expect(app.resources, hasLength(2));
+      expect(app.resources[0].kind, 'Resource');
+      expect(app.resources[0].name, 'Unknown');
+      expect(app.resources[1].kind, 'Service');
+      expect(app.resources[1].name, 'svc');
+    });
+
+    test('handles malformed history entries', () {
+      final json = <String, dynamic>{
+        'metadata': <String, dynamic>{'name': 'test'},
+        'spec': <String, dynamic>{},
+        'status': <String, dynamic>{
+          'history': <dynamic>[
+            <String, dynamic>{},
+            <String, dynamic>{
+              'id': 'not-a-number',
+              'revision': 'abc123',
+              'deployedAt': '2026-03-10T10:00:00Z',
+            },
+          ],
+        },
+      };
+
+      final app = ArgoApplication.fromJson(json);
+
+      expect(app.history, hasLength(2));
+      expect(app.history[0].id, 0);
+      expect(app.history[0].revision, '-');
+      expect(app.history[1].id, 0); // 'not-a-number' cannot parse to int
+      expect(app.history[1].revision, 'abc123');
+    });
+
+    test('handles operationState present but phase missing', () {
+      final json = <String, dynamic>{
+        'metadata': <String, dynamic>{'name': 'test'},
+        'spec': <String, dynamic>{},
+        'status': <String, dynamic>{
+          'operationState': <String, dynamic>{},
+        },
+      };
+
+      final app = ArgoApplication.fromJson(json);
+
+      // operationState is present but phase is absent, so fallback is 'Unknown'
+      expect(app.operationPhase, 'Unknown');
+    });
+
+    test('empty strings fall back to defaults', () {
+      final json = <String, dynamic>{
+        'metadata': <String, dynamic>{'name': ''},
+        'spec': <String, dynamic>{
+          'project': '',
+          'source': <String, dynamic>{
+            'repoURL': '   ',
+            'path': '',
+            'targetRevision': '',
+          },
+          'destination': <String, dynamic>{
+            'server': '',
+            'namespace': '',
+          },
+        },
+        'status': <String, dynamic>{
+          'sync': <String, dynamic>{'status': ''},
+          'health': <String, dynamic>{'status': ''},
+        },
+      };
+
+      final app = ArgoApplication.fromJson(json);
+
+      expect(app.name, 'Unknown');
+      expect(app.project, 'default');
+      expect(app.repoUrl, 'Unknown');
+      expect(app.path, '/');
+      expect(app.targetRevision, 'HEAD');
+      expect(app.syncStatus, 'Unknown');
+      expect(app.healthStatus, 'Unknown');
+    });
+  });
+
+  group('ArgoResourceNode.fromJson edge cases', () {
+    test('parses multiple parent UIDs', () {
+      final json = <String, dynamic>{
+        'kind': 'Pod',
+        'name': 'test-pod',
+        'parentRefs': <dynamic>[
+          <String, dynamic>{'uid': 'parent-1'},
+          <String, dynamic>{'uid': 'parent-2'},
+          <String, dynamic>{'uid': 'parent-3'},
+        ],
+      };
+
+      final node = ArgoResourceNode.fromJson(json);
+
+      expect(node.parentUids, hasLength(3));
+      expect(node.parentUids, <String>['parent-1', 'parent-2', 'parent-3']);
+    });
+
+    test('handles health with Degraded status and message', () {
+      final json = <String, dynamic>{
+        'kind': 'Deployment',
+        'name': 'broken-deploy',
+        'health': <String, dynamic>{
+          'status': 'Degraded',
+          'message': 'Deployment has 0 available replicas',
+        },
+      };
+
+      final node = ArgoResourceNode.fromJson(json);
+
+      expect(node.healthStatus, 'Degraded');
+      expect(node.healthMessage, 'Deployment has 0 available replicas');
+    });
+
+    test('handles health with Progressing status', () {
+      final json = <String, dynamic>{
+        'kind': 'Deployment',
+        'name': 'rolling-deploy',
+        'health': <String, dynamic>{
+          'status': 'Progressing',
+          'message': 'Waiting for rollout',
+        },
+      };
+
+      final node = ArgoResourceNode.fromJson(json);
+
+      expect(node.healthStatus, 'Progressing');
+    });
+
+    test('handles completely empty JSON', () {
+      final node = ArgoResourceNode.fromJson(<String, dynamic>{});
+
+      expect(node.kind, 'Resource');
+      expect(node.name, 'Unknown');
+      expect(node.namespace, '-');
+      expect(node.uid, isEmpty);
+      expect(node.parentUids, isEmpty);
+      expect(node.healthStatus, 'Unknown');
+    });
+  });
+
+  group('ArgoProject.fromJson edge cases', () {
+    test('parses wildcard source repos', () {
+      final json = <String, dynamic>{
+        'metadata': <String, dynamic>{'name': 'wildcard-project'},
+        'spec': <String, dynamic>{
+          'description': 'Allows all repos',
+          'sourceRepos': <dynamic>['*'],
+          'destinations': <dynamic>[],
+        },
+      };
+
+      final project = ArgoProject.fromJson(json);
+
+      expect(project.sourceRepos, <String>['*']);
+    });
+
+    test('filters out empty source repos', () {
+      final json = <String, dynamic>{
+        'metadata': <String, dynamic>{'name': 'filter-test'},
+        'spec': <String, dynamic>{
+          'sourceRepos': <dynamic>[
+            'https://github.com/org/repo.git',
+            '',
+            '   ',
+            'https://github.com/org/other.git',
+          ],
+        },
+      };
+
+      final project = ArgoProject.fromJson(json);
+
+      expect(project.sourceRepos, hasLength(2));
+      expect(project.sourceRepos[0], 'https://github.com/org/repo.git');
+      expect(project.sourceRepos[1], 'https://github.com/org/other.git');
+    });
+
+    test('parses destinations with wildcard namespace', () {
+      final json = <String, dynamic>{
+        'metadata': <String, dynamic>{'name': 'wildcard-ns'},
+        'spec': <String, dynamic>{
+          'destinations': <dynamic>[
+            <String, dynamic>{
+              'server': 'https://kubernetes.default.svc',
+              'namespace': '*',
+            },
+          ],
+        },
+      };
+
+      final project = ArgoProject.fromJson(json);
+
+      expect(project.destinations, hasLength(1));
+      expect(project.destinations[0].namespace, '*');
+      expect(project.destinations[0].name, isEmpty);
+    });
+
+    test('parses empty destinations list', () {
+      final json = <String, dynamic>{
+        'metadata': <String, dynamic>{'name': 'no-dest'},
+        'spec': <String, dynamic>{
+          'destinations': <dynamic>[],
+        },
+      };
+
+      final project = ArgoProject.fromJson(json);
+
+      expect(project.destinations, isEmpty);
+    });
+
+    test('parses destinations with missing fields', () {
+      final json = <String, dynamic>{
+        'metadata': <String, dynamic>{'name': 'missing-dest-fields'},
+        'spec': <String, dynamic>{
+          'destinations': <dynamic>[
+            <String, dynamic>{},
+          ],
+        },
+      };
+
+      final project = ArgoProject.fromJson(json);
+
+      expect(project.destinations, hasLength(1));
+      expect(project.destinations[0].server, '*');
+      expect(project.destinations[0].namespace, '*');
+      expect(project.destinations[0].name, isEmpty);
+    });
+
+    test('parses cluster resource whitelist with wildcard', () {
+      final json = <String, dynamic>{
+        'metadata': <String, dynamic>{'name': 'crw-test'},
+        'spec': <String, dynamic>{
+          'clusterResourceWhitelist': <dynamic>[
+            <String, dynamic>{'group': '*', 'kind': '*'},
+          ],
+        },
+      };
+
+      final project = ArgoProject.fromJson(json);
+
+      expect(project.clusterResourceWhitelist, hasLength(1));
+      expect(project.clusterResourceWhitelist[0].group, '*');
+      expect(project.clusterResourceWhitelist[0].kind, '*');
+    });
+  });
+
+  group('ArgoResource.fromJson edge cases', () {
+    test('handles completely empty JSON', () {
+      final resource = ArgoResource.fromJson(<String, dynamic>{});
+
+      expect(resource.kind, 'Resource');
+      expect(resource.name, 'Unknown');
+      expect(resource.namespace, '-');
+      expect(resource.group, isEmpty);
+      expect(resource.version, isEmpty);
+      expect(resource.status, 'Unknown');
+      expect(resource.health, 'Unknown');
+    });
+
+    test('parses all fields correctly', () {
+      final json = <String, dynamic>{
+        'kind': 'Deployment',
+        'name': 'web',
+        'namespace': 'production',
+        'group': 'apps',
+        'version': 'v1',
+        'status': 'Synced',
+        'health': 'Healthy',
+      };
+
+      final resource = ArgoResource.fromJson(json);
+
+      expect(resource.kind, 'Deployment');
+      expect(resource.name, 'web');
+      expect(resource.namespace, 'production');
+      expect(resource.group, 'apps');
+      expect(resource.version, 'v1');
+      expect(resource.status, 'Synced');
+      expect(resource.health, 'Healthy');
+    });
+  });
+
+  group('ArgoHistoryEntry.fromJson edge cases', () {
+    test('handles completely empty JSON', () {
+      final entry = ArgoHistoryEntry.fromJson(<String, dynamic>{});
+
+      expect(entry.id, 0);
+      expect(entry.revision, '-');
+      expect(entry.deployedAt, '-');
+    });
+
+    test('parses numeric id from string', () {
+      final json = <String, dynamic>{
+        'id': '42',
+        'revision': 'abc',
+        'deployedAt': '2026-01-01',
+      };
+
+      final entry = ArgoHistoryEntry.fromJson(json);
+
+      expect(entry.id, 42);
+    });
+
+    test('parses numeric id from integer', () {
+      final json = <String, dynamic>{
+        'id': 7,
+        'revision': 'def',
+        'deployedAt': '2026-02-02',
+      };
+
+      final entry = ArgoHistoryEntry.fromJson(json);
+
+      expect(entry.id, 7);
+    });
+  });
+
   group('AppSession.copyWith', () {
     test('returns new instance with updated serverUrl', () {
       const session = AppSession(
