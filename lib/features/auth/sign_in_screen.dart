@@ -17,25 +17,44 @@ class _SignInScreenState extends State<SignInScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _testingConnection = false;
+  bool _obscurePassword = true;
+  bool _serverUrlRemembered = false;
+  String? _dismissedError;
 
   @override
   void initState() {
     super.initState();
-    _serverController.text = widget.controller.lastServerUrl;
+    final lastUrl = widget.controller.lastServerUrl;
+    _serverController.text = lastUrl;
+    _serverUrlRemembered = lastUrl.isNotEmpty;
+    _serverController.addListener(_onServerUrlChanged);
   }
 
   @override
   void dispose() {
+    _serverController.removeListener(_onServerUrlChanged);
     _serverController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
+  void _onServerUrlChanged() {
+    final matches = _serverController.text == widget.controller.lastServerUrl &&
+        widget.controller.lastServerUrl.isNotEmpty;
+    if (matches != _serverUrlRemembered) {
+      setState(() {
+        _serverUrlRemembered = matches;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final certificateStatus = widget.controller.certificateStatus;
+    final errorMessage = widget.controller.errorMessage;
+    final showError = errorMessage != null && errorMessage != _dismissedError;
 
     return Scaffold(
       body: DecoratedBox(
@@ -59,6 +78,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
+                    // Logo / branding area
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(28),
@@ -67,8 +87,21 @@ class _SignInScreenState extends State<SignInScreen> {
                         color: AppColors.ink,
                       ),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
+                          Container(
+                            width: 72,
+                            height: 72,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.cobalt.withValues(alpha: 0.2),
+                            ),
+                            child: const Icon(
+                              Icons.cloud_sync_outlined,
+                              size: 36,
+                              color: AppColors.cobalt,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
                           Text(
                             'ArgoCD Flutter',
                             style: theme.textTheme.displaySmall?.copyWith(
@@ -81,6 +114,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             'Sign in to your ArgoCD control plane, persist '
                             'your session locally, and inspect application '
                             'health from the same shell.',
+                            textAlign: TextAlign.center,
                             style: theme.textTheme.titleMedium?.copyWith(
                               color: AppColors.textOnDarkMuted,
                             ),
@@ -89,6 +123,26 @@ class _SignInScreenState extends State<SignInScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
+                    // Error banner
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      child: showError
+                          ? Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: _ErrorBanner(
+                                message: errorMessage,
+                                onDismiss: () {
+                                  setState(() {
+                                    _dismissedError = errorMessage;
+                                  });
+                                  widget.controller.clearError();
+                                },
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                    // Form card
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(24),
@@ -108,16 +162,29 @@ class _SignInScreenState extends State<SignInScreen> {
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 24),
                             TextFormField(
                               controller: _serverController,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: 'Server URL',
                                 hintText: 'https://argocd.example.com',
-                                prefixIcon: Icon(Icons.cloud_outlined),
+                                prefixIcon:
+                                    const Icon(Icons.cloud_outlined),
+                                suffixIcon: _serverUrlRemembered
+                                    ? Tooltip(
+                                        message: 'Server URL remembered '
+                                            'from last session',
+                                        child: Icon(
+                                          Icons.bookmark,
+                                          color: theme.colorScheme.primary,
+                                        ),
+                                      )
+                                    : null,
                               ),
                               keyboardType: TextInputType.url,
                               validator: _serverValidator,
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
@@ -136,10 +203,25 @@ class _SignInScreenState extends State<SignInScreen> {
                             const SizedBox(height: 16),
                             TextFormField(
                               controller: _passwordController,
-                              obscureText: true,
-                              decoration: const InputDecoration(
+                              obscureText: _obscurePassword,
+                              decoration: InputDecoration(
                                 labelText: 'Password',
-                                prefixIcon: Icon(Icons.lock_outline),
+                                prefixIcon: const Icon(Icons.lock_outline),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _obscurePassword = !_obscurePassword;
+                                    });
+                                  },
+                                  tooltip: _obscurePassword
+                                      ? 'Show password'
+                                      : 'Hide password',
+                                ),
                               ),
                               validator: (value) {
                                 if ((value ?? '').isEmpty) {
@@ -153,16 +235,6 @@ class _SignInScreenState extends State<SignInScreen> {
                               _CertificateBanner(
                                 message: certificateStatus.message,
                               ),
-                            if (widget.controller.errorMessage !=
-                                null) ...<Widget>[
-                              const SizedBox(height: 16),
-                              Text(
-                                widget.controller.errorMessage!,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.error,
-                                ),
-                              ),
-                            ],
                             const SizedBox(height: 20),
                             Wrap(
                               spacing: 12,
@@ -189,24 +261,9 @@ class _SignInScreenState extends State<SignInScreen> {
                                         : 'Test server',
                                   ),
                                 ),
-                                FilledButton.icon(
-                                  onPressed: widget.controller.busy
-                                      ? null
-                                      : _submit,
-                                  icon: widget.controller.busy
-                                      ? const SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      : const Icon(Icons.login),
-                                  label: Text(
-                                    widget.controller.busy
-                                        ? 'Connecting...'
-                                        : 'Sign In',
-                                  ),
+                                _SignInButton(
+                                  busy: widget.controller.busy,
+                                  onPressed: _submit,
                                 ),
                               ],
                             ),
@@ -228,6 +285,10 @@ class _SignInScreenState extends State<SignInScreen> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+
+    setState(() {
+      _dismissedError = null;
+    });
 
     try {
       await widget.controller.signIn(
@@ -306,6 +367,130 @@ class _SignInScreenState extends State<SignInScreen> {
   String _errorText(Object error) {
     final raw = error.toString();
     return raw.startsWith('Exception: ') ? raw.substring(11) : raw;
+  }
+}
+
+class _SignInButton extends StatelessWidget {
+  const _SignInButton({required this.busy, required this.onPressed});
+
+  final bool busy;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      child: FilledButton.icon(
+        onPressed: busy ? null : onPressed,
+        icon: busy
+            ? const _ShimmerIcon()
+            : const Icon(Icons.login),
+        label: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: Text(
+            busy ? 'Connecting...' : 'Sign In',
+            key: ValueKey<bool>(busy),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShimmerIcon extends StatefulWidget {
+  const _ShimmerIcon();
+
+  @override
+  State<_ShimmerIcon> createState() => _ShimmerIconState();
+}
+
+class _ShimmerIconState extends State<_ShimmerIcon>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animationController,
+      builder: (context, child) {
+        return Opacity(
+          opacity: 0.3 + 0.7 * _animationController.value,
+          child: child,
+        );
+      },
+      child: const SizedBox(
+        width: 18,
+        height: 18,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message, required this.onDismiss});
+
+  final String message;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Material(
+      color: theme.colorScheme.errorContainer,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Icon(
+              Icons.error_outline,
+              color: theme.colorScheme.error,
+              size: 22,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onErrorContainer,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: Icon(
+                Icons.close,
+                size: 20,
+                color: theme.colorScheme.onErrorContainer,
+              ),
+              onPressed: onDismiss,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              tooltip: 'Dismiss',
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
