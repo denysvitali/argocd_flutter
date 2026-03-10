@@ -318,7 +318,9 @@ class _ResourceTreeCard extends StatelessWidget {
                   color: const Color(0xFFEAF2FF),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.account_tree, color: Color(0xFF1F6FEB)),
+                child: const ExcludeSemantics(
+                  child: Icon(Icons.account_tree, color: Color(0xFF1F6FEB)),
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -340,7 +342,7 @@ class _ResourceTreeCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              const Icon(Icons.chevron_right),
+              const ExcludeSemantics(child: Icon(Icons.chevron_right)),
             ],
           ),
         ),
@@ -450,7 +452,9 @@ class _ResourcesCard extends StatelessWidget {
                 subtitle: Text(
                   '${resource.namespace} • ${resource.status} • ${resource.health}',
                 ),
-                trailing: const Icon(Icons.chevron_right),
+                trailing: const ExcludeSemantics(
+                  child: Icon(Icons.chevron_right),
+                ),
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
@@ -621,19 +625,22 @@ class _HistoryStatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(
-          alpha: theme.brightness == Brightness.dark ? 0.24 : 0.12,
+    return Semantics(
+      label: 'Status: $label',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(
+            alpha: theme.brightness == Brightness.dark ? 0.24 : 0.12,
+          ),
+          borderRadius: BorderRadius.circular(999),
         ),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-          color: color,
-          fontWeight: FontWeight.w700,
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );

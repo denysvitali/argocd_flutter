@@ -242,9 +242,11 @@ class _ResourceNodeTile extends StatelessWidget {
           tilePadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
           childrenPadding: EdgeInsets.zero,
           initiallyExpanded: isInitiallyExpanded,
-          leading: Icon(
-            _iconForKind(node.kind),
-            color: const Color(0xFF1F6FEB),
+          leading: ExcludeSemantics(
+            child: Icon(
+              _iconForKind(node.kind),
+              color: const Color(0xFF1F6FEB),
+            ),
           ),
           title: Text('${node.kind}: ${node.name}'),
           subtitle: Text(subtitleParts.join(' • ')),
@@ -295,12 +297,15 @@ class _HealthDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 12,
-      height: 12,
-      decoration: BoxDecoration(
-        color: _colorForStatus(status),
-        shape: BoxShape.circle,
+    return Semantics(
+      label: 'Health: $status',
+      child: Container(
+        width: 12,
+        height: 12,
+        decoration: BoxDecoration(
+          color: _colorForStatus(status),
+          shape: BoxShape.circle,
+        ),
       ),
     );
   }

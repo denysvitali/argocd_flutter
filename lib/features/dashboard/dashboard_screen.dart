@@ -260,7 +260,10 @@ class _SegmentBar extends StatelessWidget {
               .map(
                 (segment) => Expanded(
                   flex: segment.count,
-                  child: Container(color: segment.color),
+                  child: Semantics(
+                    label: '${segment.label}: ${segment.count}',
+                    child: Container(color: segment.color),
+                  ),
                 ),
               )
               .toList(growable: false),
@@ -288,10 +291,12 @@ class _LegendItem extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ExcludeSemantics(
+          child: Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
         ),
         const SizedBox(width: 8),
         Text('$label ($count)', style: theme.textTheme.bodyMedium),
@@ -374,19 +379,22 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(
-          alpha: theme.brightness == Brightness.dark ? 0.24 : 0.12,
+    return Semantics(
+      label: 'Status: $label',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(
+            alpha: theme.brightness == Brightness.dark ? 0.24 : 0.12,
+          ),
+          borderRadius: BorderRadius.circular(999),
         ),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: theme.textTheme.labelLarge?.copyWith(
-          color: color,
-          fontWeight: FontWeight.w700,
+        child: Text(
+          label,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );

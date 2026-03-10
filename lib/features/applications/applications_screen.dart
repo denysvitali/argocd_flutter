@@ -69,7 +69,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
             TextField(
               decoration: const InputDecoration(
                 labelText: 'Filter applications',
-                prefixIcon: Icon(Icons.search),
+                prefixIcon: ExcludeSemantics(child: Icon(Icons.search)),
               ),
               onChanged: (value) {
                 setState(() {
@@ -312,19 +312,22 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(
-          alpha: theme.brightness == Brightness.dark ? 0.24 : 0.12,
+    return Semantics(
+      label: 'Status: $label',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(
+            alpha: theme.brightness == Brightness.dark ? 0.24 : 0.12,
+          ),
+          borderRadius: BorderRadius.circular(999),
         ),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-          color: color,
-          fontWeight: FontWeight.w700,
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );
@@ -350,7 +353,7 @@ class _FactBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(icon, size: 18),
+          ExcludeSemantics(child: Icon(icon, size: 18)),
           const SizedBox(width: 8),
           Text(label),
         ],
