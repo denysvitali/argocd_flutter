@@ -217,6 +217,17 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > "${{ github.workspace }}/upload-keystore.p12"
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=upload
+          storeFile=${{ github.workspace }}/upload-keystore.p12
+          EOF
+          sed -i 's/^[[:space:]]*//' android/key.properties
+
       - name: Build Release APK
         run: |
           flutter build apk --release --no-pub \
