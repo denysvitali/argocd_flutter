@@ -1,5 +1,6 @@
 import 'package:argocd_flutter/core/models/argo_project.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
+import 'package:argocd_flutter/ui/last_updated_text.dart';
 import 'package:flutter/material.dart';
 
 class ProjectsScreen extends StatefulWidget {
@@ -52,6 +53,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: <Widget>[
+            LastUpdatedText(timestamp: widget.controller.lastRefreshedAt),
             _OverviewStrip(
               controller: widget.controller,
               totalProjects: allProjects.length,

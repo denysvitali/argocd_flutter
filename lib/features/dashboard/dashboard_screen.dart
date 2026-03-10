@@ -1,5 +1,6 @@
 import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
+import 'package:argocd_flutter/ui/last_updated_text.dart';
 import 'package:flutter/material.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -53,6 +54,7 @@ class DashboardScreen extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: <Widget>[
+                LastUpdatedText(timestamp: controller.lastRefreshedAt),
                 _SectionCard(
                   title: 'Summary',
                   child: GridView.count(

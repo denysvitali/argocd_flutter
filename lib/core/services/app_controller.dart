@@ -41,6 +41,9 @@ class AppController extends ChangeNotifier {
   bool _hasLoadedProjects = false;
   bool get hasLoadedProjects => _hasLoadedProjects;
 
+  DateTime? _lastRefreshedAt;
+  DateTime? get lastRefreshedAt => _lastRefreshedAt;
+
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
@@ -288,6 +291,7 @@ class AppController extends ChangeNotifier {
     _loadingApplications = false;
     _hasLoadedProjects = false;
     _loadingProjects = false;
+    _lastRefreshedAt = null;
     _stage = AppStage.unauthenticated;
     await _storage.clearSession();
     notifyListeners();
@@ -352,6 +356,7 @@ class AppController extends ChangeNotifier {
     try {
       _applications = await _api.fetchApplications(session);
       _hasLoadedApplications = true;
+      _lastRefreshedAt = DateTime.now();
       _errorMessage = null;
     } finally {
       _loadingApplications = false;
@@ -366,6 +371,7 @@ class AppController extends ChangeNotifier {
     try {
       _projects = await _api.fetchProjects(session);
       _hasLoadedProjects = true;
+      _lastRefreshedAt = DateTime.now();
       _errorMessage = null;
     } finally {
       _loadingProjects = false;

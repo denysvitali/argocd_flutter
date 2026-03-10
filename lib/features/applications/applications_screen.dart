@@ -1,5 +1,6 @@
 import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
+import 'package:argocd_flutter/ui/last_updated_text.dart';
 import 'package:flutter/material.dart';
 
 class ApplicationsScreen extends StatefulWidget {
@@ -59,6 +60,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: <Widget>[
+            LastUpdatedText(timestamp: widget.controller.lastRefreshedAt),
             _OverviewStrip(
               controller: widget.controller,
               totalApplications: allApplications.length,
