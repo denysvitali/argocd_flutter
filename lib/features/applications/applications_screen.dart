@@ -6,6 +6,10 @@ import 'package:argocd_flutter/ui/last_updated_text.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
 
+enum ApplicationSortField { name, health, lastSynced, project }
+
+enum ApplicationFilterChip { all, healthy, degraded, outOfSync, progressing }
+
 class ApplicationsScreen extends StatefulWidget {
   const ApplicationsScreen({
     super.key,
@@ -23,6 +27,9 @@ class ApplicationsScreen extends StatefulWidget {
 class _ApplicationsScreenState extends State<ApplicationsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+  bool _isGridView = false;
+  ApplicationSortField _sortField = ApplicationSortField.name;
+  ApplicationFilterChip _activeFilter = ApplicationFilterChip.all;
 
   @override
   void dispose() {
@@ -30,18 +37,64 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
     super.dispose();
   }
 
+  List<ArgoApplication> _applyFilter(List<ArgoApplication> applications) {
+    return switch (_activeFilter) {
+      ApplicationFilterChip.all => applications,
+      ApplicationFilterChip.healthy =>
+        applications.where((a) => a.isHealthy).toList(growable: false),
+      ApplicationFilterChip.degraded => applications
+          .where(
+            (a) => a.healthStatus.toLowerCase() == 'degraded',
+          )
+          .toList(growable: false),
+      ApplicationFilterChip.outOfSync =>
+        applications.where((a) => a.isOutOfSync).toList(growable: false),
+      ApplicationFilterChip.progressing => applications
+          .where(
+            (a) => a.healthStatus.toLowerCase() == 'progressing',
+          )
+          .toList(growable: false),
+    };
+  }
+
+  List<ArgoApplication> _applySort(List<ArgoApplication> applications) {
+    final sorted = List<ArgoApplication>.of(applications);
+    sorted.sort((ArgoApplication a, ArgoApplication b) {
+      return switch (_sortField) {
+        ApplicationSortField.name =>
+          a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        ApplicationSortField.health =>
+          _healthSortOrder(a.healthStatus) - _healthSortOrder(b.healthStatus),
+        ApplicationSortField.lastSynced =>
+          (b.lastSyncedAt ?? '').compareTo(a.lastSyncedAt ?? ''),
+        ApplicationSortField.project =>
+          a.project.toLowerCase().compareTo(b.project.toLowerCase()),
+      };
+    });
+    return sorted;
+  }
+
+  static int _healthSortOrder(String status) {
+    return switch (status.toLowerCase()) {
+      'degraded' => 0,
+      'progressing' => 1,
+      'missing' => 2,
+      'healthy' => 3,
+      _ => 4,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final normalizedQuery = _query.trim().toLowerCase();
     final allApplications = widget.controller.applications;
-    final unhealthyCount = allApplications
-        .where((application) => !application.isHealthy)
-        .length;
+    final unhealthyCount =
+        allApplications.where((application) => !application.isHealthy).length;
     final outOfSyncCount = allApplications
         .where((application) => application.isOutOfSync)
         .length;
-    final applications = widget.controller.applications
-        .where((application) {
+    final searchedApplications =
+        allApplications.where((application) {
           if (normalizedQuery.isEmpty) {
             return true;
           }
@@ -49,13 +102,25 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
           return application.name.toLowerCase().contains(normalizedQuery) ||
               application.project.toLowerCase().contains(normalizedQuery) ||
               application.namespace.toLowerCase().contains(normalizedQuery);
-        })
-        .toList(growable: false);
+        }).toList(growable: false);
+    final filteredApplications = _applyFilter(searchedApplications);
+    final applications = _applySort(filteredApplications);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Applications'),
         actions: <Widget>[
+          IconButton(
+            tooltip: _isGridView ? 'List view' : 'Grid view',
+            onPressed: () {
+              setState(() {
+                _isGridView = !_isGridView;
+              });
+            },
+            icon: Icon(
+              _isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
+            ),
+          ),
           IconButton(
             tooltip: 'Refresh',
             onPressed: widget.controller.busy
@@ -64,6 +129,13 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
             icon: const Icon(Icons.refresh),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: widget.controller.busy
+            ? null
+            : () => widget.controller.refreshApplications(),
+        tooltip: 'Refresh applications',
+        child: const Icon(Icons.refresh),
       ),
       body: RefreshIndicator(
         onRefresh: () => widget.controller.refreshApplications(),
@@ -93,18 +165,42 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               },
               showClear: _query.isNotEmpty,
             ),
-            if (normalizedQuery.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(
-                  '${applications.length} of ${allApplications.length} applications',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.grey,
-                    fontWeight: FontWeight.w600,
-                  ),
+            const SizedBox(height: 12),
+            _FilterChips(
+              activeFilter: _activeFilter,
+              onSelected: (filter) {
+                setState(() {
+                  _activeFilter = filter;
+                });
+              },
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: <Widget>[
+                if (normalizedQuery.isNotEmpty ||
+                    _activeFilter != ApplicationFilterChip.all)
+                  Expanded(
+                    child: Text(
+                      '${applications.length} of ${allApplications.length} applications',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.grey,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  )
+                else
+                  const Spacer(),
+                _SortDropdown(
+                  value: _sortField,
+                  onChanged: (field) {
+                    setState(() {
+                      _sortField = field;
+                    });
+                  },
                 ),
-              ),
-            const SizedBox(height: 20),
+              ],
+            ),
+            const SizedBox(height: 16),
             if (widget.controller.errorMessage != null)
               ErrorRetryWidget(
                 message: widget.controller.errorMessage!,
@@ -112,11 +208,17 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               ),
             if (widget.controller.loadingApplications &&
                 !widget.controller.hasLoadedApplications)
-              const _LoadingSkeleton()
+              _LoadingSkeleton(isGrid: _isGridView)
             else if (applications.isEmpty)
               _EmptyState(
-                filtered: normalizedQuery.isNotEmpty,
+                filtered: normalizedQuery.isNotEmpty ||
+                    _activeFilter != ApplicationFilterChip.all,
                 hasApps: widget.controller.applications.isNotEmpty,
+              )
+            else if (_isGridView)
+              _ApplicationGrid(
+                applications: applications,
+                onOpenApplication: widget.onOpenApplication,
               )
             else
               ...applications.map(
@@ -130,6 +232,115 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _FilterChips extends StatelessWidget {
+  const _FilterChips({
+    required this.activeFilter,
+    required this.onSelected,
+  });
+
+  final ApplicationFilterChip activeFilter;
+  final ValueChanged<ApplicationFilterChip> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: <Widget>[
+          _buildChip(context, ApplicationFilterChip.all, 'All'),
+          const SizedBox(width: 8),
+          _buildChip(context, ApplicationFilterChip.healthy, 'Healthy'),
+          const SizedBox(width: 8),
+          _buildChip(context, ApplicationFilterChip.degraded, 'Degraded'),
+          const SizedBox(width: 8),
+          _buildChip(
+            context,
+            ApplicationFilterChip.outOfSync,
+            'Out of Sync',
+          ),
+          const SizedBox(width: 8),
+          _buildChip(
+            context,
+            ApplicationFilterChip.progressing,
+            'Progressing',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChip(
+    BuildContext context,
+    ApplicationFilterChip chip,
+    String label,
+  ) {
+    final isSelected = activeFilter == chip;
+
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => onSelected(chip),
+      selectedColor: AppColors.cobalt.withValues(alpha: 0.15),
+      checkmarkColor: AppColors.cobalt,
+      labelStyle: TextStyle(
+        color: isSelected ? AppColors.cobalt : AppColors.grey,
+        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+      ),
+      side: BorderSide(
+        color: isSelected ? AppColors.cobalt : AppColors.border,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+    );
+  }
+}
+
+class _SortDropdown extends StatelessWidget {
+  const _SortDropdown({required this.value, required this.onChanged});
+
+  final ApplicationSortField value;
+  final ValueChanged<ApplicationSortField> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonHideUnderline(
+      child: DropdownButton<ApplicationSortField>(
+        value: value,
+        icon: const Icon(Icons.sort_rounded, size: 20),
+        isDense: true,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: AppColors.grey,
+          fontWeight: FontWeight.w600,
+        ),
+        items: const <DropdownMenuItem<ApplicationSortField>>[
+          DropdownMenuItem(
+            value: ApplicationSortField.name,
+            child: Text('Sort by name'),
+          ),
+          DropdownMenuItem(
+            value: ApplicationSortField.health,
+            child: Text('Sort by health'),
+          ),
+          DropdownMenuItem(
+            value: ApplicationSortField.lastSynced,
+            child: Text('Sort by last synced'),
+          ),
+          DropdownMenuItem(
+            value: ApplicationSortField.project,
+            child: Text('Sort by project'),
+          ),
+        ],
+        onChanged: (ApplicationSortField? field) {
+          if (field != null) {
+            onChanged(field);
+          }
+        },
       ),
     );
   }
@@ -342,126 +553,300 @@ class _ApplicationCard extends StatelessWidget {
     final theme = Theme.of(context);
     final healthColor = AppColors.healthColor(application.healthStatus);
 
-    return InkWell(
-      onTap: onTap,
+    return Material(
+      color: theme.colorScheme.surface,
       borderRadius: BorderRadius.circular(24),
-      child: Ink(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: theme.dividerColor),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border(
-                left: BorderSide(color: healthColor, width: 4),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: theme.dividerColor),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  left: BorderSide(color: healthColor, width: 4),
+                ),
               ),
-            ),
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Text(
-                        application.name,
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    application.name,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: <Widget>[
+                      Icon(
+                        Icons.folder_outlined,
+                        size: 16,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          '${application.project} \u2022 ${application.namespace}',
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
-                    ),
-                    Icon(
-                      _syncIcon(application.syncStatus),
-                      size: 18,
-                      color: AppColors.syncColor(application.syncStatus),
-                    ),
-                    const SizedBox(width: 4),
-                    StatusChip(
-                      label: application.syncStatus,
-                      color: AppColors.syncColor(application.syncStatus),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      _healthIcon(application.healthStatus),
-                      size: 18,
-                      color: healthColor,
-                    ),
-                    const SizedBox(width: 4),
-                    StatusChip(
-                      label: application.healthStatus,
-                      color: healthColor,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: <Widget>[
-                    Icon(
-                      Icons.folder_outlined,
-                      size: 16,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        '${application.project} \u2022 ${application.namespace}',
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: <Widget>[
+                      Icon(
+                        Icons.link_rounded,
+                        size: 16,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          application.repoUrl,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.greyLight,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: <Widget>[
-                    Icon(
-                      Icons.link_rounded,
-                      size: 16,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        application.repoUrl,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: <Widget>[
+                      Icon(
+                        _healthIcon(application.healthStatus),
+                        size: 18,
+                        color: healthColor,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: <Widget>[
-                    _ColoredFactBadge(
-                      icon: Icons.route_outlined,
-                      label: application.path,
-                    ),
-                    _ColoredFactBadge(
-                      icon: Icons.commit_outlined,
-                      label: application.targetRevision,
-                    ),
-                    _ColoredFactBadge(
-                      icon: Icons.public,
-                      label: application.cluster,
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 4),
+                      StatusChip(
+                        label: application.healthStatus,
+                        color: healthColor,
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        _syncIcon(application.syncStatus),
+                        size: 18,
+                        color: AppColors.syncColor(application.syncStatus),
+                      ),
+                      const SizedBox(width: 4),
+                      StatusChip(
+                        label: application.syncStatus,
+                        color: AppColors.syncColor(application.syncStatus),
+                      ),
+                      const Spacer(),
+                      if (application.lastSyncedAt != null &&
+                          application.lastSyncedAt!.isNotEmpty)
+                        Text(
+                          _formatRelativeTime(application.lastSyncedAt!),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.greyLight,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: <Widget>[
+                      _ColoredFactBadge(
+                        icon: Icons.route_outlined,
+                        label: application.path,
+                      ),
+                      _ColoredFactBadge(
+                        icon: Icons.commit_outlined,
+                        label: application.targetRevision,
+                      ),
+                      _ColoredFactBadge(
+                        icon: Icons.public,
+                        label: application.cluster,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
   }
+}
+
+class _ApplicationGrid extends StatelessWidget {
+  const _ApplicationGrid({
+    required this.applications,
+    required this.onOpenApplication,
+  });
+
+  final List<ArgoApplication> applications;
+  final ValueChanged<String> onOpenApplication;
+
+  @override
+  Widget build(BuildContext context) {
+    final List<Widget> rows = <Widget>[];
+    for (int i = 0; i < applications.length; i += 2) {
+      final first = applications[i];
+      final second = i + 1 < applications.length ? applications[i + 1] : null;
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(
+                child: _ApplicationGridCard(
+                  application: first,
+                  onTap: () => onOpenApplication(first.name),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: second != null
+                    ? _ApplicationGridCard(
+                        application: second,
+                        onTap: () => onOpenApplication(second.name),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return Column(children: rows);
+  }
+}
+
+class _ApplicationGridCard extends StatelessWidget {
+  const _ApplicationGridCard({
+    required this.application,
+    required this.onTap,
+  });
+
+  final ArgoApplication application;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final healthColor = AppColors.healthColor(application.healthStatus);
+
+    return Material(
+      color: theme.colorScheme.surface,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: theme.dividerColor),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  left: BorderSide(color: healthColor, width: 4),
+                ),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    application.name,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    application.project,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: <Widget>[
+                      Icon(
+                        _healthIcon(application.healthStatus),
+                        size: 16,
+                        color: healthColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: StatusChip(
+                          label: application.healthStatus,
+                          color: healthColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: <Widget>[
+                      Icon(
+                        _syncIcon(application.syncStatus),
+                        size: 16,
+                        color: AppColors.syncColor(application.syncStatus),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: StatusChip(
+                          label: application.syncStatus,
+                          color: AppColors.syncColor(application.syncStatus),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (application.lastSyncedAt != null &&
+                      application.lastSyncedAt!.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 8),
+                    Text(
+                      _formatRelativeTime(application.lastSyncedAt!),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.greyLight,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _formatRelativeTime(String isoTimestamp) {
+  final dateTime = DateTime.tryParse(isoTimestamp);
+  if (dateTime == null) {
+    return isoTimestamp;
+  }
+  return formatTimeAgo(dateTime);
 }
 
 class _ColoredFactBadge extends StatelessWidget {
@@ -515,8 +900,7 @@ class _EmptyState extends StatelessWidget {
     if (filtered) {
       icon = Icons.search_off_rounded;
       title = 'No applications match this filter';
-      subtitle =
-          'Clear or change the filter to see more applications.';
+      subtitle = 'Clear or change the filter to see more applications.';
     } else if (hasApps) {
       icon = Icons.visibility_off_rounded;
       title = 'No applications visible';
@@ -564,15 +948,41 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _LoadingSkeleton extends StatelessWidget {
-  const _LoadingSkeleton();
+  const _LoadingSkeleton({required this.isGrid});
+
+  final bool isGrid;
 
   @override
   Widget build(BuildContext context) {
+    if (isGrid) {
+      return Column(
+        children: <Widget>[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(child: _SkeletonCard(delay: 0, compact: true)),
+              const SizedBox(width: 12),
+              Expanded(child: _SkeletonCard(delay: 120, compact: true)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(child: _SkeletonCard(delay: 240, compact: true)),
+              const SizedBox(width: 12),
+              Expanded(child: _SkeletonCard(delay: 360, compact: true)),
+            ],
+          ),
+        ],
+      );
+    }
+
     return Column(
       children: List<Widget>.generate(3, (index) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),
-          child: _SkeletonCard(delay: index * 120),
+          child: _SkeletonCard(delay: index * 120, compact: false),
         );
       }),
     );
@@ -580,9 +990,10 @@ class _LoadingSkeleton extends StatelessWidget {
 }
 
 class _SkeletonCard extends StatefulWidget {
-  const _SkeletonCard({required this.delay});
+  const _SkeletonCard({required this.delay, required this.compact});
 
   final int delay;
+  final bool compact;
 
   @override
   State<_SkeletonCard> createState() => _SkeletonCardState();
@@ -623,78 +1034,161 @@ class _SkeletonCardState extends State<_SkeletonCard>
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, child) {
+        if (widget.compact) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: theme.dividerColor),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Container(
+                      width: 4,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.ink.withValues(alpha: _animation.value),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          _SkeletonLine(
+                            width: 100,
+                            height: 16,
+                            alpha: _animation.value,
+                          ),
+                          const SizedBox(height: 6),
+                          _SkeletonLine(
+                            width: 70,
+                            height: 12,
+                            alpha: _animation.value,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: <Widget>[
+                    _SkeletonLine(
+                      width: 60,
+                      height: 28,
+                      alpha: _animation.value,
+                      borderRadius: 999,
+                    ),
+                    const SizedBox(width: 8),
+                    _SkeletonLine(
+                      width: 60,
+                      height: 28,
+                      alpha: _animation.value,
+                      borderRadius: 999,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }
+
         return Container(
-          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: theme.dividerColor),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  left: BorderSide(
+                    color: AppColors.ink.withValues(alpha: _animation.value),
+                    width: 4,
+                  ),
+                ),
+              ),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Expanded(
-                    child: _SkeletonLine(
-                      width: 180,
-                      height: 20,
-                      alpha: _animation.value,
-                    ),
-                  ),
                   _SkeletonLine(
-                    width: 72,
-                    height: 32,
+                    width: 180,
+                    height: 20,
                     alpha: _animation.value,
-                    borderRadius: 999,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(height: 8),
                   _SkeletonLine(
-                    width: 72,
-                    height: 32,
+                    width: 220,
+                    height: 14,
                     alpha: _animation.value,
-                    borderRadius: 999,
+                  ),
+                  const SizedBox(height: 6),
+                  _SkeletonLine(
+                    width: 280,
+                    height: 14,
+                    alpha: _animation.value,
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: <Widget>[
+                      _SkeletonLine(
+                        width: 72,
+                        height: 32,
+                        alpha: _animation.value,
+                        borderRadius: 999,
+                      ),
+                      const SizedBox(width: 8),
+                      _SkeletonLine(
+                        width: 72,
+                        height: 32,
+                        alpha: _animation.value,
+                        borderRadius: 999,
+                      ),
+                      const Spacer(),
+                      _SkeletonLine(
+                        width: 60,
+                        height: 14,
+                        alpha: _animation.value,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: <Widget>[
+                      _SkeletonLine(
+                        width: 80,
+                        height: 34,
+                        alpha: _animation.value,
+                        borderRadius: 16,
+                      ),
+                      const SizedBox(width: 10),
+                      _SkeletonLine(
+                        width: 80,
+                        height: 34,
+                        alpha: _animation.value,
+                        borderRadius: 16,
+                      ),
+                      const SizedBox(width: 10),
+                      _SkeletonLine(
+                        width: 80,
+                        height: 34,
+                        alpha: _animation.value,
+                        borderRadius: 16,
+                      ),
+                    ],
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
-              _SkeletonLine(
-                width: 220,
-                height: 14,
-                alpha: _animation.value,
-              ),
-              const SizedBox(height: 8),
-              _SkeletonLine(
-                width: 280,
-                height: 14,
-                alpha: _animation.value,
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: <Widget>[
-                  _SkeletonLine(
-                    width: 80,
-                    height: 34,
-                    alpha: _animation.value,
-                    borderRadius: 16,
-                  ),
-                  const SizedBox(width: 10),
-                  _SkeletonLine(
-                    width: 80,
-                    height: 34,
-                    alpha: _animation.value,
-                    borderRadius: 16,
-                  ),
-                  const SizedBox(width: 10),
-                  _SkeletonLine(
-                    width: 80,
-                    height: 34,
-                    alpha: _animation.value,
-                    borderRadius: 16,
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
         );
       },
