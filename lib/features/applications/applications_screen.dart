@@ -18,6 +18,20 @@ class ApplicationsScreen extends StatefulWidget {
 
 class _ApplicationsScreenState extends State<ApplicationsScreen> {
   String _query = '';
+  final Set<String> _healthFilters = <String>{};
+  final Set<String> _syncFilters = <String>{};
+
+  static const List<String> _healthOptions = <String>[
+    'Healthy',
+    'Degraded',
+    'Missing',
+    'Unknown',
+  ];
+
+  static const List<String> _syncOptions = <String>[
+    'Synced',
+    'OutOfSync',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -31,15 +45,29 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
         .length;
     final applications = widget.controller.applications
         .where((application) {
-          if (normalizedQuery.isEmpty) {
-            return true;
+          if (normalizedQuery.isNotEmpty) {
+            final matches =
+                application.name.toLowerCase().contains(normalizedQuery) ||
+                application.project.toLowerCase().contains(normalizedQuery) ||
+                application.namespace.toLowerCase().contains(normalizedQuery);
+            if (!matches) return false;
           }
 
-          return application.name.toLowerCase().contains(normalizedQuery) ||
-              application.project.toLowerCase().contains(normalizedQuery) ||
-              application.namespace.toLowerCase().contains(normalizedQuery);
+          if (_healthFilters.isNotEmpty &&
+              !_healthFilters.contains(application.healthStatus)) {
+            return false;
+          }
+
+          if (_syncFilters.isNotEmpty &&
+              !_syncFilters.contains(application.syncStatus)) {
+            return false;
+          }
+
+          return true;
         })
         .toList(growable: false);
+    final hasActiveFilters = _healthFilters.isNotEmpty ||
+        _syncFilters.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -77,6 +105,51 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                 });
               },
             ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 42,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: <Widget>[
+                  ..._healthOptions.map(
+                    (status) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(status),
+                        selected: _healthFilters.contains(status),
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              _healthFilters.add(status);
+                            } else {
+                              _healthFilters.remove(status);
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  ..._syncOptions.map(
+                    (status) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(status),
+                        selected: _syncFilters.contains(status),
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              _syncFilters.add(status);
+                            } else {
+                              _syncFilters.remove(status);
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 20),
             if (widget.controller.errorMessage != null)
               Padding(
@@ -94,7 +167,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               )
             else if (applications.isEmpty)
               _EmptyState(
-                filtered: normalizedQuery.isNotEmpty,
+                filtered: normalizedQuery.isNotEmpty || hasActiveFilters,
                 hasApps: widget.controller.applications.isNotEmpty,
               )
             else
@@ -312,19 +385,22 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(
-          alpha: theme.brightness == Brightness.dark ? 0.24 : 0.12,
+    return Semantics(
+      label: 'Status: $label',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(
+            alpha: theme.brightness == Brightness.dark ? 0.24 : 0.12,
+          ),
+          borderRadius: BorderRadius.circular(999),
         ),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-          color: color,
-          fontWeight: FontWeight.w700,
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );
@@ -350,7 +426,7 @@ class _FactBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(icon, size: 18),
+          ExcludeSemantics(child: Icon(icon, size: 18)),
           const SizedBox(width: 8),
           Text(label),
         ],
