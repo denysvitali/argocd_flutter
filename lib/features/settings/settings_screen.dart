@@ -1,5 +1,6 @@
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/core/services/theme_controller.dart';
+import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -24,46 +25,40 @@ class SettingsScreen extends StatelessWidget {
         children: <Widget>[
           _SectionCard(
             title: 'Appearance',
+            icon: Icons.palette_outlined,
             children: <Widget>[
-              SegmentedButton<ThemeMode>(
-                segments: const <ButtonSegment<ThemeMode>>[
-                  ButtonSegment<ThemeMode>(
-                    value: ThemeMode.system,
-                    label: Text('System'),
-                    icon: Icon(Icons.brightness_auto_outlined),
-                  ),
-                  ButtonSegment<ThemeMode>(
-                    value: ThemeMode.light,
-                    label: Text('Light'),
-                    icon: Icon(Icons.light_mode_outlined),
-                  ),
-                  ButtonSegment<ThemeMode>(
-                    value: ThemeMode.dark,
-                    label: Text('Dark'),
-                    icon: Icon(Icons.dark_mode_outlined),
-                  ),
-                ],
-                selected: <ThemeMode>{themeController.themeMode},
-                onSelectionChanged: (selection) {
-                  final mode = selection.first;
-                  themeController.setThemeMode(mode);
-                },
-              ),
+              _ThemePicker(themeController: themeController),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           _SectionCard(
             title: 'Connection',
+            icon: Icons.cloud_outlined,
             children: <Widget>[
-              _Row(
-                label: 'Server',
-                value: session?.serverUrl ?? controller.lastServerUrl,
+              _ConnectionTile(
+                icon: Icons.dns_outlined,
+                title: 'Server',
+                subtitle:
+                    session?.serverUrl ?? controller.lastServerUrl,
+                trailing: _ConnectionDot(
+                  connected: session != null,
+                ),
               ),
-              _Row(label: 'Username', value: session?.username ?? 'Signed out'),
-              _Row(
-                label: 'Session state',
-                value: session == null ? 'No active session' : 'Authenticated',
+              const Divider(height: 1),
+              _ConnectionTile(
+                icon: Icons.person_outline,
+                title: 'Username',
+                subtitle: session?.username ?? 'Signed out',
               ),
+              const Divider(height: 1),
+              _ConnectionTile(
+                icon: Icons.wifi_outlined,
+                title: 'Session state',
+                subtitle:
+                    session == null ? 'No active session' : 'Authenticated',
+                trailing: _ConnectionDot(connected: session != null),
+              ),
+              const SizedBox(height: 16),
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
@@ -93,27 +88,32 @@ class SettingsScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           _SectionCard(
             title: 'Certificates',
+            icon: Icons.verified_user_outlined,
             children: <Widget>[
-              _Row(
-                label: 'Support',
-                value: certificateStatus?.supported == true
+              _ConnectionTile(
+                icon: Icons.security_outlined,
+                title: 'Support',
+                subtitle: certificateStatus?.supported == true
                     ? 'Enabled'
                     : 'Unavailable',
               ),
-              _Row(
-                label: 'Details',
-                value:
+              const Divider(height: 1),
+              _ConnectionTile(
+                icon: Icons.info_outline,
+                title: 'Details',
+                subtitle:
                     certificateStatus?.message ??
                     'Loading certificate support...',
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           _SectionCard(
             title: 'Actions',
+            icon: Icons.bolt_outlined,
             children: <Widget>[
               FilledButton.icon(
                 onPressed: controller.busy
@@ -124,15 +124,79 @@ class SettingsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
-                onPressed: controller.busy ? null : () => controller.signOut(),
+                onPressed: controller.busy
+                    ? null
+                    : () => _confirmSignOut(context),
                 icon: const Icon(Icons.logout),
                 label: const Text('Sign out'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _SectionCard(
+            title: 'About',
+            icon: Icons.info_outline,
+            children: <Widget>[
+              _ConnectionTile(
+                icon: Icons.apps_outlined,
+                title: 'Application',
+                subtitle: 'ArgoCD Flutter',
+              ),
+              const Divider(height: 1),
+              _ConnectionTile(
+                icon: Icons.tag_outlined,
+                title: 'Version',
+                subtitle: '1.0.0+1',
+              ),
+              const Divider(height: 1),
+              _ConnectionTile(
+                icon: Icons.flutter_dash_outlined,
+                title: 'Framework',
+                subtitle: 'Flutter 3.38+',
+              ),
+              const Divider(height: 1),
+              _ConnectionTile(
+                icon: Icons.code_outlined,
+                title: 'Source',
+                subtitle: 'github.com/argocd-flutter',
               ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _confirmSignOut(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          icon: const Icon(Icons.logout),
+          title: const Text('Sign out'),
+          content: const Text(
+            'Are you sure you want to sign out? You will need to '
+            'enter your credentials again to reconnect.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Sign out'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    await controller.signOut();
   }
 
   Future<void> _showServerDialog(BuildContext context) async {
@@ -209,10 +273,137 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
+class _ThemePicker extends StatelessWidget {
+  const _ThemePicker({required this.themeController});
+
+  final ThemeController themeController;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final currentMode = themeController.themeMode;
+
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: _ThemeCard(
+            icon: Icons.brightness_auto_outlined,
+            label: 'System',
+            selected: currentMode == ThemeMode.system,
+            onTap: () => themeController.setThemeMode(ThemeMode.system),
+            theme: theme,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _ThemeCard(
+            icon: Icons.light_mode_outlined,
+            label: 'Light',
+            selected: currentMode == ThemeMode.light,
+            onTap: () => themeController.setThemeMode(ThemeMode.light),
+            theme: theme,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _ThemeCard(
+            icon: Icons.dark_mode_outlined,
+            label: 'Dark',
+            selected: currentMode == ThemeMode.dark,
+            onTap: () => themeController.setThemeMode(ThemeMode.dark),
+            theme: theme,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ThemeCard extends StatelessWidget {
+  const _ThemeCard({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.theme,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = selected
+        ? theme.colorScheme.primary
+        : theme.dividerColor;
+    final backgroundColor = selected
+        ? theme.colorScheme.primary.withValues(alpha: 0.08)
+        : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      child: Material(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: borderColor,
+                width: selected ? 2 : 1,
+              ),
+            ),
+            child: Column(
+              children: <Widget>[
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    icon,
+                    key: ValueKey<bool>(selected),
+                    size: 28,
+                    color: selected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  label,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: selected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.title, required this.children});
+  const _SectionCard({
+    required this.title,
+    required this.icon,
+    required this.children,
+  });
 
   final String title;
+  final IconData icon;
   final List<Widget> children;
 
   @override
@@ -229,11 +420,21 @@ class _SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+          Row(
+            children: <Widget>[
+              Icon(
+                icon,
+                size: 22,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           ...children,
@@ -243,28 +444,44 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-class _Row extends StatelessWidget {
-  const _Row({required this.label, required this.value});
+class _ConnectionTile extends StatelessWidget {
+  const _ConnectionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.trailing,
+  });
 
-  final String label;
-  final String value;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(value),
-        ],
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon),
+      title: Text(title),
+      subtitle: Text(subtitle),
+      trailing: trailing,
+    );
+  }
+}
+
+class _ConnectionDot extends StatelessWidget {
+  const _ConnectionDot({required this.connected});
+
+  final bool connected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 12,
+      height: 12,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: connected ? AppColors.teal : AppColors.coral,
       ),
     );
   }
