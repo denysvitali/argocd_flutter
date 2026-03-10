@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:argocd_flutter/core/models/argo_project.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
@@ -5,6 +7,8 @@ import 'package:argocd_flutter/ui/error_retry_widget.dart';
 import 'package:argocd_flutter/ui/last_updated_text.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
+
+enum _SortOption { name, destinations, sourceRepos }
 
 class ProjectsScreen extends StatefulWidget {
   const ProjectsScreen({
@@ -23,18 +27,51 @@ class ProjectsScreen extends StatefulWidget {
 class _ProjectsScreenState extends State<ProjectsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+  _SortOption _sortOption = _SortOption.name;
+  Timer? _debounce;
 
   @override
   void dispose() {
     _searchController.dispose();
+    _debounce?.cancel();
     super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() {
+          _query = value;
+        });
+      }
+    });
+  }
+
+  List<ArgoProject> _sortProjects(List<ArgoProject> projects) {
+    final sorted = List<ArgoProject>.of(projects);
+    switch (_sortOption) {
+      case _SortOption.name:
+        sorted.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
+      case _SortOption.destinations:
+        sorted.sort(
+          (a, b) => b.destinations.length.compareTo(a.destinations.length),
+        );
+      case _SortOption.sourceRepos:
+        sorted.sort(
+          (a, b) => b.sourceRepos.length.compareTo(a.sourceRepos.length),
+        );
+    }
+    return sorted;
   }
 
   @override
   Widget build(BuildContext context) {
     final normalizedQuery = _query.trim().toLowerCase();
     final allProjects = widget.controller.projects;
-    final projects = allProjects
+    final filtered = allProjects
         .where((project) {
           if (normalizedQuery.isEmpty) {
             return true;
@@ -44,11 +81,71 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               project.description.toLowerCase().contains(normalizedQuery);
         })
         .toList(growable: false);
+    final projects = _sortProjects(filtered);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Projects'),
         actions: <Widget>[
+          PopupMenuButton<_SortOption>(
+            tooltip: 'Sort by',
+            icon: const Icon(Icons.sort),
+            onSelected: (option) {
+              setState(() {
+                _sortOption = option;
+              });
+            },
+            itemBuilder: (context) => <PopupMenuEntry<_SortOption>>[
+              PopupMenuItem<_SortOption>(
+                value: _SortOption.name,
+                child: Row(
+                  children: <Widget>[
+                    Icon(
+                      Icons.sort_by_alpha,
+                      size: 20,
+                      color: _sortOption == _SortOption.name
+                          ? AppColors.cobalt
+                          : AppColors.grey,
+                    ),
+                    const SizedBox(width: 12),
+                    const Text('Name'),
+                  ],
+                ),
+              ),
+              PopupMenuItem<_SortOption>(
+                value: _SortOption.destinations,
+                child: Row(
+                  children: <Widget>[
+                    Icon(
+                      Icons.dns_outlined,
+                      size: 20,
+                      color: _sortOption == _SortOption.destinations
+                          ? AppColors.cobalt
+                          : AppColors.grey,
+                    ),
+                    const SizedBox(width: 12),
+                    const Text('Destinations'),
+                  ],
+                ),
+              ),
+              PopupMenuItem<_SortOption>(
+                value: _SortOption.sourceRepos,
+                child: Row(
+                  children: <Widget>[
+                    Icon(
+                      Icons.code_outlined,
+                      size: 20,
+                      color: _sortOption == _SortOption.sourceRepos
+                          ? AppColors.cobalt
+                          : AppColors.grey,
+                    ),
+                    const SizedBox(width: 12),
+                    const Text('Source repos'),
+                  ],
+                ),
+              ),
+            ],
+          ),
           IconButton(
             tooltip: 'Refresh',
             onPressed: widget.controller.busy
@@ -79,13 +176,10 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
             const SizedBox(height: 20),
             _SearchBar(
               controller: _searchController,
-              onChanged: (value) {
-                setState(() {
-                  _query = value;
-                });
-              },
+              onChanged: _onSearchChanged,
               onClear: () {
                 _searchController.clear();
+                _debounce?.cancel();
                 setState(() {
                   _query = '';
                 });
@@ -126,6 +220,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                   child: _ProjectCard(
                     project: project,
                     onTap: () => widget.onOpenProject(project.name),
+                    searchQuery: normalizedQuery,
                   ),
                 ),
               ),
@@ -299,10 +394,15 @@ class _OverviewStrip extends StatelessWidget {
 }
 
 class _ProjectCard extends StatelessWidget {
-  const _ProjectCard({required this.project, required this.onTap});
+  const _ProjectCard({
+    required this.project,
+    required this.onTap,
+    this.searchQuery = '',
+  });
 
   final ArgoProject project;
   final VoidCallback onTap;
+  final String searchQuery;
 
   Color _accentColor() {
     if (project.destinations.length >= 5) {
@@ -321,6 +421,8 @@ class _ProjectCard extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
+      splashColor: accent.withValues(alpha: 0.12),
+      highlightColor: accent.withValues(alpha: 0.06),
       child: Ink(
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
@@ -334,7 +436,14 @@ class _ProjectCard extends StatelessWidget {
               Container(
                 width: 5,
                 decoration: BoxDecoration(
-                  color: accent,
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[
+                      accent,
+                      accent.withValues(alpha: 0.5),
+                    ],
+                  ),
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(24),
                     bottomLeft: Radius.circular(24),
@@ -350,8 +459,9 @@ class _ProjectCard extends StatelessWidget {
                       Row(
                         children: <Widget>[
                           Expanded(
-                            child: Text(
-                              project.name,
+                            child: _HighlightedText(
+                              text: project.name,
+                              query: searchQuery,
                               style: theme.textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.w700,
                               ),
@@ -366,8 +476,9 @@ class _ProjectCard extends StatelessWidget {
                       ),
                       if (project.description.isNotEmpty) ...<Widget>[
                         const SizedBox(height: 8),
-                        Text(
-                          project.description,
+                        _HighlightedText(
+                          text: project.description,
+                          query: searchQuery,
                           style: theme.textTheme.bodyLarge?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -378,16 +489,25 @@ class _ProjectCard extends StatelessWidget {
                         spacing: 12,
                         runSpacing: 12,
                         children: <Widget>[
-                          FactBadge(
+                          _CountBadge(
                             icon: Icons.code_outlined,
-                            label:
-                                '${project.sourceRepos.length} source repos',
+                            count: project.sourceRepos.length,
+                            label: 'repos',
+                            color: AppColors.cobalt,
                           ),
-                          FactBadge(
+                          _CountBadge(
                             icon: Icons.dns_outlined,
-                            label:
-                                '${project.destinations.length} destinations',
+                            count: project.destinations.length,
+                            label: 'destinations',
+                            color: AppColors.teal,
                           ),
+                          if (project.clusterResourceWhitelist.isNotEmpty)
+                            _CountBadge(
+                              icon: Icons.shield_outlined,
+                              count: project.clusterResourceWhitelist.length,
+                              label: 'resources',
+                              color: AppColors.coral,
+                            ),
                         ],
                       ),
                     ],
@@ -399,6 +519,104 @@ class _ProjectCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _CountBadge extends StatelessWidget {
+  const _CountBadge({
+    required this.icon,
+    required this.count,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final int count;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            '$count',
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: color.withValues(alpha: 0.8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HighlightedText extends StatelessWidget {
+  const _HighlightedText({
+    required this.text,
+    required this.query,
+    this.style,
+  });
+
+  final String text;
+  final String query;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    if (query.isEmpty) {
+      return Text(text, style: style);
+    }
+
+    final lowerText = text.toLowerCase();
+    final lowerQuery = query.toLowerCase();
+    final spans = <TextSpan>[];
+    var start = 0;
+
+    while (true) {
+      final index = lowerText.indexOf(lowerQuery, start);
+      if (index == -1) {
+        spans.add(TextSpan(text: text.substring(start)));
+        break;
+      }
+
+      if (index > start) {
+        spans.add(TextSpan(text: text.substring(start, index)));
+      }
+
+      spans.add(
+        TextSpan(
+          text: text.substring(index, index + query.length),
+          style: TextStyle(
+            backgroundColor: AppColors.amber.withValues(alpha: 0.3),
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      );
+
+      start = index + query.length;
+    }
+
+    return RichText(text: TextSpan(style: style, children: spans));
   }
 }
 
