@@ -24,60 +24,28 @@ class ApplicationDetailScreen extends StatefulWidget {
       _ApplicationDetailScreenState();
 }
 
-class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
+class _ApplicationDetailScreenState extends State<ApplicationDetailScreen>
+    with SingleTickerProviderStateMixin {
   late Future<ArgoApplication> _future;
+  late TabController _tabController;
   bool _actionInFlight = false;
 
   @override
   void initState() {
     super.initState();
     _future = widget.controller.loadApplication(widget.applicationName);
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.applicationName),
-        actions: <Widget>[
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed: _actionInFlight ? null : _refresh,
-            icon: const Icon(Icons.refresh),
-          ),
-          IconButton(
-            tooltip: 'Sync',
-            onPressed: _actionInFlight ? null : _sync,
-            icon: const Icon(Icons.sync),
-          ),
-          PopupMenuButton<_ApplicationMenuAction>(
-            tooltip: 'More actions',
-            onSelected: (value) {
-              if (value == _ApplicationMenuAction.delete) {
-                _confirmDelete();
-              }
-            },
-            itemBuilder: (context) {
-              final colorScheme = Theme.of(context).colorScheme;
-              return <PopupMenuEntry<_ApplicationMenuAction>>[
-                PopupMenuItem<_ApplicationMenuAction>(
-                  value: _ApplicationMenuAction.delete,
-                  child: Row(
-                    children: <Widget>[
-                      Icon(Icons.delete_outline, color: colorScheme.error),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Delete Application',
-                        style: TextStyle(color: colorScheme.error),
-                      ),
-                    ],
-                  ),
-                ),
-              ];
-            },
-          ),
-        ],
-      ),
       body: FutureBuilder<ArgoApplication>(
         future: _future,
         builder: (context, snapshot) {
@@ -95,31 +63,15 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
           }
 
           final application = snapshot.requireData;
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: <Widget>[
-              _SummaryCard(application: application),
-              const SizedBox(height: 20),
-              _ResourceTreeCard(
-                controller: widget.controller,
-                applicationName: application.name,
-              ),
-              const SizedBox(height: 20),
-              _ResourcesCard(
-                controller: widget.controller,
-                applicationName: application.name,
-                resources: application.resources,
-              ),
-              const SizedBox(height: 20),
-              _HistoryCard(
-                controller: widget.controller,
-                applicationName: application.name,
-                history: application.history,
-                onRolledBack: _refresh,
-              ),
-              const SizedBox(height: 20),
-              const _EventsCard(),
-            ],
+          return _DetailBody(
+            controller: widget.controller,
+            application: application,
+            tabController: _tabController,
+            actionInFlight: _actionInFlight,
+            onRefresh: _refresh,
+            onSync: _sync,
+            onDelete: _confirmDelete,
+            onRolledBack: _refresh,
           );
         },
       ),
@@ -306,7 +258,354 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
   }
 }
 
-enum _ApplicationMenuAction { delete }
+class _DetailBody extends StatelessWidget {
+  const _DetailBody({
+    required this.controller,
+    required this.application,
+    required this.tabController,
+    required this.actionInFlight,
+    required this.onRefresh,
+    required this.onSync,
+    required this.onDelete,
+    required this.onRolledBack,
+  });
+
+  final AppController controller;
+  final ArgoApplication application;
+  final TabController tabController;
+  final bool actionInFlight;
+  final Future<void> Function() onRefresh;
+  final Future<void> Function() onSync;
+  final Future<void> Function() onDelete;
+  final Future<void> Function() onRolledBack;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      children: <Widget>[
+        Expanded(
+          child: NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              return <Widget>[
+                SliverAppBar(
+                  expandedHeight: 220,
+                  pinned: true,
+                  forceElevated: innerBoxIsScrolled,
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: _HeroHeader(application: application),
+                  ),
+                  title: innerBoxIsScrolled
+                      ? Text(
+                          application.name,
+                          style: const TextStyle(fontSize: 16),
+                        )
+                      : null,
+                  bottom: TabBar(
+                    controller: tabController,
+                    labelColor: theme.colorScheme.onSurface,
+                    unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+                    indicatorColor: AppColors.cobalt,
+                    tabs: const <Widget>[
+                      Tab(text: 'Overview'),
+                      Tab(text: 'Resources'),
+                      Tab(text: 'History'),
+                    ],
+                  ),
+                ),
+              ];
+            },
+            body: TabBarView(
+              controller: tabController,
+              children: <Widget>[
+                _OverviewTab(
+                  controller: controller,
+                  application: application,
+                ),
+                _ResourcesTab(
+                  controller: controller,
+                  applicationName: application.name,
+                  resources: application.resources,
+                ),
+                _HistoryTab(
+                  controller: controller,
+                  applicationName: application.name,
+                  history: application.history,
+                  onRolledBack: onRolledBack,
+                ),
+              ],
+            ),
+          ),
+        ),
+        _BottomActionBar(
+          actionInFlight: actionInFlight,
+          onRefresh: onRefresh,
+          onSync: onSync,
+          onDelete: onDelete,
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Hero header
+// ---------------------------------------------------------------------------
+
+class _HeroHeader extends StatelessWidget {
+  const _HeroHeader({required this.application});
+
+  final ArgoApplication application;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final topPadding = MediaQuery.of(context).padding.top;
+
+    return Container(
+      padding: EdgeInsets.only(
+        top: topPadding + 56,
+        left: 20,
+        right: 20,
+        bottom: 56,
+      ),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: <Color>[
+            AppColors.gradientAppStart,
+            AppColors.gradientAppMid,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            application.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${application.project}  \u2022  ${application.namespace}  \u2022  ${_shortCluster(application.cluster)}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.textOnDarkMuted,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: <Widget>[
+              StatusChip(
+                label: application.healthStatus,
+                color: AppColors.healthColor(application.healthStatus),
+              ),
+              StatusChip(
+                label: application.syncStatus,
+                color: AppColors.syncColor(application.syncStatus),
+              ),
+              if (application.lastSyncedAt != null)
+                StatusChip(
+                  label: 'Synced ${_formatRelativeTime(application.lastSyncedAt!)}',
+                  color: AppColors.grey,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _shortCluster(String cluster) {
+    final uri = Uri.tryParse(cluster);
+    if (uri != null && uri.host.isNotEmpty) {
+      return uri.host;
+    }
+    return cluster;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Overview tab
+// ---------------------------------------------------------------------------
+
+class _OverviewTab extends StatelessWidget {
+  const _OverviewTab({
+    required this.controller,
+    required this.application,
+  });
+
+  final AppController controller;
+  final ArgoApplication application;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: <Widget>[
+        _SummarySection(application: application),
+        const SizedBox(height: 20),
+        _SourceSection(application: application),
+        const SizedBox(height: 20),
+        _DestinationSection(application: application),
+        const SizedBox(height: 20),
+        _ResourceTreeCard(
+          controller: controller,
+          applicationName: application.name,
+        ),
+      ],
+    );
+  }
+}
+
+class _SummarySection extends StatelessWidget {
+  const _SummarySection({required this.application});
+
+  final ArgoApplication application;
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionCard(
+      title: 'Summary',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: <Widget>[
+              _DetailPill(label: 'Project', value: application.project),
+              _DetailPill(label: 'Namespace', value: application.namespace),
+              _DetailPill(label: 'Phase', value: application.operationPhase),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(color: AppColors.border),
+          const SizedBox(height: 8),
+          Row(
+            children: <Widget>[
+              _StatusIndicator(
+                label: 'Health',
+                value: application.healthStatus,
+                color: AppColors.healthColor(application.healthStatus),
+              ),
+              const SizedBox(width: 24),
+              _StatusIndicator(
+                label: 'Sync',
+                value: application.syncStatus,
+                color: AppColors.syncColor(application.syncStatus),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusIndicator extends StatelessWidget {
+  const _StatusIndicator({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _SourceSection extends StatelessWidget {
+  const _SourceSection({required this.application});
+
+  final ArgoApplication application;
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionCard(
+      title: 'Source',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _LabeledText(label: 'Repository', value: application.repoUrl),
+          _LabeledText(label: 'Path', value: application.path),
+          _LabeledText(
+            label: 'Target revision',
+            value: application.targetRevision,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DestinationSection extends StatelessWidget {
+  const _DestinationSection({required this.application});
+
+  final ArgoApplication application;
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionCard(
+      title: 'Destination',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _LabeledText(label: 'Cluster', value: application.cluster),
+          _LabeledText(label: 'Namespace', value: application.namespace),
+          if (application.lastSyncedAt != null)
+            _LabeledText(
+              label: 'Last reconciled',
+              value: application.lastSyncedAt!,
+            ),
+        ],
+      ),
+    );
+  }
+}
 
 class _ResourceTreeCard extends StatelessWidget {
   const _ResourceTreeCard({
@@ -384,121 +683,12 @@ class _ResourceTreeCard extends StatelessWidget {
   }
 }
 
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required this.application});
+// ---------------------------------------------------------------------------
+// Resources tab
+// ---------------------------------------------------------------------------
 
-  final ArgoApplication application;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: theme.dividerColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: <Color>[
-                  AppColors.gradientAppStart,
-                  AppColors.gradientAppMid,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  application.name,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: <Widget>[
-                    StatusChip(
-                      label: application.syncStatus,
-                      color: AppColors.syncColor(application.syncStatus),
-                    ),
-                    StatusChip(
-                      label: application.healthStatus,
-                      color: AppColors.healthColor(application.healthStatus),
-                    ),
-                    StatusChip(
-                      label: application.operationPhase,
-                      color: AppColors.grey,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: <Widget>[
-                    _DetailPill(
-                      label: 'Project',
-                      value: application.project,
-                    ),
-                    _DetailPill(
-                      label: 'Namespace',
-                      value: application.namespace,
-                    ),
-                    _DetailPill(
-                      label: 'Cluster',
-                      value: application.cluster,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const Divider(color: AppColors.border),
-                const SizedBox(height: 8),
-                _LabeledText(
-                  label: 'Repository',
-                  value: application.repoUrl,
-                ),
-                _LabeledText(label: 'Path', value: application.path),
-                _LabeledText(
-                  label: 'Target revision',
-                  value: application.targetRevision,
-                ),
-                if (application.lastSyncedAt != null)
-                  _LabeledText(
-                    label: 'Last reconciled',
-                    value: application.lastSyncedAt!,
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ResourcesCard extends StatelessWidget {
-  const _ResourcesCard({
+class _ResourcesTab extends StatelessWidget {
+  const _ResourcesTab({
     required this.controller,
     required this.applicationName,
     required this.resources,
@@ -510,94 +700,187 @@ class _ResourcesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    if (resources.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text('No resources returned by the ArgoCD API.'),
+        ),
+      );
+    }
 
-    return SectionCard(
-      title: 'Resources',
-      child: resources.isEmpty
-          ? const Text('No resources returned by the ArgoCD API.')
-          : Column(
-              children: resources.map((resource) {
-                final iconColor = colorForResourceKind(resource.kind);
-                final isPod = resource.kind.toLowerCase() == 'pod';
-
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: iconColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      iconForResourceKind(resource.kind),
-                      color: iconColor,
-                      size: 20,
-                    ),
-                  ),
-                  title: Text(
-                    '${resource.kind} \u2022 ${resource.name}',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  subtitle: Text(
-                    '${resource.namespace} \u2022 ${resource.status} \u2022 ${resource.health}',
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      if (isPod)
-                        IconButton(
-                          tooltip: 'Logs',
-                          icon: const Icon(
-                            Icons.article_outlined,
-                            color: AppColors.cobalt,
-                          ),
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => LogViewerScreen(
-                                  controller: controller,
-                                  applicationName: applicationName,
-                                  namespace: resource.namespace,
-                                  podName: resource.name,
-                                  containerName: resource.name,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      const ExcludeSemantics(
-                        child: Icon(Icons.chevron_right),
-                      ),
-                    ],
-                  ),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => ManifestViewerScreen(
-                          controller: controller,
-                          applicationName: applicationName,
-                          namespace: resource.namespace,
-                          resourceName: resource.name,
-                          kind: resource.kind,
-                          group: resource.group,
-                          version: resource.version,
-                        ),
-                      ),
-                    );
-                  },
-                );
-              }).toList(growable: false),
-            ),
+    return ListView.builder(
+      padding: const EdgeInsets.all(20),
+      itemCount: resources.length,
+      itemBuilder: (context, index) {
+        final resource = resources[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _ResourceCard(
+            controller: controller,
+            applicationName: applicationName,
+            resource: resource,
+          ),
+        );
+      },
     );
   }
 }
 
-class _HistoryCard extends StatelessWidget {
-  const _HistoryCard({
+class _ResourceCard extends StatelessWidget {
+  const _ResourceCard({
+    required this.controller,
+    required this.applicationName,
+    required this.resource,
+  });
+
+  final AppController controller;
+  final String applicationName;
+  final ArgoResource resource;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final kindColor = colorForResourceKind(resource.kind);
+    final kindIcon = iconForResourceKind(resource.kind);
+    final healthColor = AppColors.healthColor(resource.health);
+    final isPod = resource.kind.toLowerCase() == 'pod';
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => ManifestViewerScreen(
+                controller: controller,
+                applicationName: applicationName,
+                namespace: resource.namespace,
+                resourceName: resource.name,
+                kind: resource.kind,
+                group: resource.group,
+                version: resource.version,
+              ),
+            ),
+          );
+        },
+        child: Ink(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: kindColor.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Row(
+            children: <Widget>[
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: kindColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(kindIcon, color: kindColor, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Row(
+                      children: <Widget>[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: kindColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            resource.kind,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: kindColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: healthColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          resource.health,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: healthColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      resource.name,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${resource.namespace} \u2022 ${resource.status}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (isPod)
+                IconButton(
+                  tooltip: 'Logs',
+                  icon: const Icon(
+                    Icons.article_outlined,
+                    color: AppColors.cobalt,
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => LogViewerScreen(
+                          controller: controller,
+                          applicationName: applicationName,
+                          namespace: resource.namespace,
+                          podName: resource.name,
+                          containerName: resource.name,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              const ExcludeSemantics(child: Icon(Icons.chevron_right)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// History tab
+// ---------------------------------------------------------------------------
+
+class _HistoryTab extends StatelessWidget {
+  const _HistoryTab({
     required this.controller,
     required this.applicationName,
     required this.history,
@@ -611,35 +894,45 @@ class _HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentEntry = history.isEmpty ? null : history.last;
+    if (history.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text('No deployment history returned by the ArgoCD API.'),
+        ),
+      );
+    }
 
-    return SectionCard(
-      title: 'Deployment history',
-      child: history.isEmpty
-          ? const Text('No deployment history returned by the ArgoCD API.')
-          : Column(
-              children: history
-                  .map(
-                    (entry) => _HistoryEntryTile(
-                      controller: controller,
-                      applicationName: applicationName,
-                      entry: entry,
-                      isCurrent: identical(entry, currentEntry),
-                      onRolledBack: onRolledBack,
-                    ),
-                  )
-                  .toList(growable: false),
-            ),
+    final currentEntry = history.last;
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      itemCount: history.length,
+      itemBuilder: (context, index) {
+        final entry = history[history.length - 1 - index];
+        final isCurrent = identical(entry, currentEntry);
+        final isLast = index == history.length - 1;
+
+        return _TimelineEntry(
+          controller: controller,
+          applicationName: applicationName,
+          entry: entry,
+          isCurrent: isCurrent,
+          isLast: isLast,
+          onRolledBack: onRolledBack,
+        );
+      },
     );
   }
 }
 
-class _HistoryEntryTile extends StatelessWidget {
-  const _HistoryEntryTile({
+class _TimelineEntry extends StatelessWidget {
+  const _TimelineEntry({
     required this.controller,
     required this.applicationName,
     required this.entry,
     required this.isCurrent,
+    required this.isLast,
     required this.onRolledBack,
   });
 
@@ -647,71 +940,144 @@ class _HistoryEntryTile extends StatelessWidget {
   final String applicationName;
   final ArgoHistoryEntry entry;
   final bool isCurrent;
+  final bool isLast;
   final Future<void> Function() onRolledBack;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final relativeTime = _formatRelativeTime(entry.deployedAt);
+    final dotColor = isCurrent ? AppColors.teal : AppColors.grey;
 
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: isCurrent
-          ? Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppColors.teal.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.check_circle_outline,
-                color: AppColors.teal,
-                size: 20,
-              ),
-            )
-          : Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.history,
-                color: AppColors.grey,
-                size: 20,
-              ),
-            ),
-      title: Row(
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const ExcludeSemantics(
-            child: Icon(Icons.commit, size: 16, color: AppColors.grey),
+          SizedBox(
+            width: 32,
+            child: Column(
+              children: <Widget>[
+                const SizedBox(height: 4),
+                Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: dotColor,
+                    shape: BoxShape.circle,
+                    border: isCurrent
+                        ? Border.all(
+                            color: dotColor.withValues(alpha: 0.4),
+                            width: 3,
+                          )
+                        : null,
+                  ),
+                ),
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      color: theme.dividerColor,
+                    ),
+                  ),
+              ],
+            ),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              entry.revision,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isCurrent
+                      ? AppColors.teal.withValues(alpha: 0.3)
+                      : theme.dividerColor,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      if (isCurrent)
+                        const Padding(
+                          padding: EdgeInsets.only(right: 8),
+                          child: StatusChip(
+                            label: 'Current',
+                            color: AppColors.teal,
+                          ),
+                        ),
+                      Text(
+                        'Deploy #${entry.id}',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: <Widget>[
+                      const ExcludeSemantics(
+                        child: Icon(
+                          Icons.commit,
+                          size: 16,
+                          color: AppColors.grey,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          entry.revision,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: <Widget>[
+                      const ExcludeSemantics(
+                        child: Icon(
+                          Icons.schedule,
+                          size: 14,
+                          color: AppColors.greyLight,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        relativeTime,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (!isCurrent) ...<Widget>[
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: () => _confirmRollback(context),
+                        icon: const Icon(Icons.restore, size: 18),
+                        label: const Text('Rollback'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.amber,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           ),
         ],
       ),
-      subtitle: Text('ID ${entry.id} \u2022 $relativeTime'),
-      trailing: isCurrent
-          ? const StatusChip(label: 'Current', color: AppColors.teal)
-          : TextButton.icon(
-              onPressed: () => _confirmRollback(context),
-              icon: const Icon(Icons.restore),
-              label: const Text('Rollback'),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.amber,
-              ),
-            ),
-      onTap: isCurrent ? null : () => _confirmRollback(context),
     );
   }
 
@@ -764,29 +1130,70 @@ class _HistoryEntryTile extends StatelessWidget {
   }
 }
 
-class _EventsCard extends StatelessWidget {
-  const _EventsCard();
+// ---------------------------------------------------------------------------
+// Bottom action bar (used by _DetailBody)
+// ---------------------------------------------------------------------------
+
+class _BottomActionBar extends StatelessWidget {
+  const _BottomActionBar({
+    required this.actionInFlight,
+    required this.onRefresh,
+    required this.onSync,
+    required this.onDelete,
+  });
+
+  final bool actionInFlight;
+  final VoidCallback onRefresh;
+  final VoidCallback onSync;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return SectionCard(
-      title: 'Events',
+    return Container(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 12,
+        bottom: 12 + MediaQuery.of(context).padding.bottom,
+      ),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(top: BorderSide(color: theme.dividerColor)),
+      ),
       child: Row(
         children: <Widget>[
-          Icon(
-            Icons.event_note,
-            color: AppColors.greyLight,
-            size: 24,
+          Expanded(
+            child: FilledButton.icon(
+              onPressed: actionInFlight ? null : onRefresh,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Refresh'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.cobalt,
+              ),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              'Event stream is not available in the current API version.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.grey,
+            child: FilledButton.icon(
+              onPressed: actionInFlight ? null : onSync,
+              icon: const Icon(Icons.sync, size: 18),
+              label: const Text('Sync'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.teal,
               ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          IconButton(
+            tooltip: 'Delete',
+            onPressed: actionInFlight ? null : onDelete,
+            icon: Icon(
+              Icons.delete_outline,
+              color: actionInFlight
+                  ? theme.disabledColor
+                  : theme.colorScheme.error,
             ),
           ),
         ],
@@ -794,6 +1201,10 @@ class _EventsCard extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Shared helpers
+// ---------------------------------------------------------------------------
 
 class _DetailPill extends StatelessWidget {
   const _DetailPill({required this.label, required this.value});
