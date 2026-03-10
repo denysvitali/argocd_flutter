@@ -23,4 +23,3 @@ The repository includes:
 
 - `devenv.nix` aligned with `../happy_flutter`
 - GitHub Actions for analysis, tests, APK builds, and web builds
-- Claude Code workflow and MCP config copied from the reference setup
