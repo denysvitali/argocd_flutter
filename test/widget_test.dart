@@ -53,9 +53,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Applications'), findsWidgets);
-    expect(find.text('Control plane overview'), findsOneWidget);
-    expect(find.text('payments-api'), findsOneWidget);
+    expect(find.text('Dashboard'), findsWidgets);
+    expect(find.text('Summary'), findsOneWidget);
+    expect(find.text('All applications are healthy and synced!'), findsOneWidget);
   });
 }
 
