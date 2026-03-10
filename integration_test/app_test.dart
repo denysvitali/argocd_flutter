@@ -10,10 +10,8 @@ import 'package:argocd_flutter/core/services/theme_controller.dart';
 import 'package:argocd_flutter/ui/app_root.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:integration_test/integration_test.dart';
 
 void main() {
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('full app flow: sign in, navigate tabs, sign out', (
     WidgetTester tester,
