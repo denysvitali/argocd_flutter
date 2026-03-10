@@ -1,5 +1,6 @@
 import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
+import 'package:argocd_flutter/ui/error_retry_widget.dart';
 import 'package:flutter/material.dart';
 
 class ApplicationsScreen extends StatefulWidget {
@@ -79,12 +80,9 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
             ),
             const SizedBox(height: 20),
             if (widget.controller.errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Text(
-                  widget.controller.errorMessage!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
+              ErrorRetryWidget(
+                message: widget.controller.errorMessage!,
+                onRetry: () => widget.controller.refreshApplications(),
               ),
             if (widget.controller.loadingApplications &&
                 !widget.controller.hasLoadedApplications)

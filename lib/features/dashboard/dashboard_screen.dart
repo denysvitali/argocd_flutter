@@ -1,5 +1,6 @@
 import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
+import 'package:argocd_flutter/ui/error_retry_widget.dart';
 import 'package:flutter/material.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -140,11 +141,9 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 if (controller.errorMessage != null) ...<Widget>[
                   const SizedBox(height: 20),
-                  Text(
-                    controller.errorMessage!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+                  ErrorRetryWidget(
+                    message: controller.errorMessage!,
+                    onRetry: () => controller.refreshApplications(),
                   ),
                 ],
                 if (controller.loadingApplications &&
