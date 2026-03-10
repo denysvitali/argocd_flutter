@@ -1,9 +1,11 @@
 import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
+import 'package:argocd_flutter/ui/resource_icons.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
 
+import 'log_viewer_screen.dart';
 import 'manifest_viewer_screen.dart';
 import 'resource_tree_screen.dart';
 
@@ -115,6 +117,8 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                 history: application.history,
                 onRolledBack: _refresh,
               ),
+              const SizedBox(height: 20),
+              const _EventsCard(),
             ],
           );
         },
@@ -153,7 +157,8 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
         return AlertDialog(
           title: const Text('Sync Application'),
           content: Text(
-            'Sync \'${widget.applicationName}\' with its target revision?',
+            'Sync \'${widget.applicationName}\'? '
+            'This will trigger a new sync operation.',
           ),
           actions: <Widget>[
             TextButton(
@@ -389,7 +394,7 @@ class _SummaryCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
@@ -398,40 +403,94 @@ class _SummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            application.name,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: <Widget>[
-              _DetailPill(label: 'Project', value: application.project),
-              _DetailPill(label: 'Namespace', value: application.namespace),
-              _DetailPill(label: 'Cluster', value: application.cluster),
-              _DetailPill(label: 'Sync', value: application.syncStatus),
-              _DetailPill(label: 'Health', value: application.healthStatus),
-              _DetailPill(
-                label: 'Operation',
-                value: application.operationPhase,
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: <Color>[
+                  AppColors.gradientAppStart,
+                  AppColors.gradientAppMid,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _LabeledText(label: 'Repository', value: application.repoUrl),
-          _LabeledText(label: 'Path', value: application.path),
-          _LabeledText(
-            label: 'Target revision',
-            value: application.targetRevision,
-          ),
-          if (application.lastSyncedAt != null)
-            _LabeledText(
-              label: 'Last reconciled',
-              value: application.lastSyncedAt!,
             ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  application.name,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: <Widget>[
+                    StatusChip(
+                      label: application.syncStatus,
+                      color: AppColors.syncColor(application.syncStatus),
+                    ),
+                    StatusChip(
+                      label: application.healthStatus,
+                      color: AppColors.healthColor(application.healthStatus),
+                    ),
+                    StatusChip(
+                      label: application.operationPhase,
+                      color: AppColors.grey,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: <Widget>[
+                    _DetailPill(
+                      label: 'Project',
+                      value: application.project,
+                    ),
+                    _DetailPill(
+                      label: 'Namespace',
+                      value: application.namespace,
+                    ),
+                    _DetailPill(
+                      label: 'Cluster',
+                      value: application.cluster,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(color: AppColors.border),
+                const SizedBox(height: 8),
+                _LabeledText(
+                  label: 'Repository',
+                  value: application.repoUrl,
+                ),
+                _LabeledText(label: 'Path', value: application.path),
+                _LabeledText(
+                  label: 'Target revision',
+                  value: application.targetRevision,
+                ),
+                if (application.lastSyncedAt != null)
+                  _LabeledText(
+                    label: 'Last reconciled',
+                    value: application.lastSyncedAt!,
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -451,20 +510,69 @@ class _ResourcesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return SectionCard(
       title: 'Resources',
       child: resources.isEmpty
           ? const Text('No resources returned by the ArgoCD API.')
           : Column(
               children: resources.map((resource) {
+                final iconColor = colorForResourceKind(resource.kind);
+                final isPod = resource.kind.toLowerCase() == 'pod';
+
                 return ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text('${resource.kind} \u2022 ${resource.name}'),
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: iconColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      iconForResourceKind(resource.kind),
+                      color: iconColor,
+                      size: 20,
+                    ),
+                  ),
+                  title: Text(
+                    '${resource.kind} \u2022 ${resource.name}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   subtitle: Text(
                     '${resource.namespace} \u2022 ${resource.status} \u2022 ${resource.health}',
                   ),
-                  trailing: const ExcludeSemantics(
-                    child: Icon(Icons.chevron_right),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      if (isPod)
+                        IconButton(
+                          tooltip: 'Logs',
+                          icon: const Icon(
+                            Icons.article_outlined,
+                            color: AppColors.cobalt,
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => LogViewerScreen(
+                                  controller: controller,
+                                  applicationName: applicationName,
+                                  namespace: resource.namespace,
+                                  podName: resource.name,
+                                  containerName: resource.name,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      const ExcludeSemantics(
+                        child: Icon(Icons.chevron_right),
+                      ),
+                    ],
                   ),
                   onTap: () {
                     Navigator.of(context).push(
@@ -543,10 +651,56 @@ class _HistoryEntryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final relativeTime = _formatRelativeTime(entry.deployedAt);
+
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      title: Text(entry.revision),
-      subtitle: Text('ID ${entry.id} \u2022 ${entry.deployedAt}'),
+      leading: isCurrent
+          ? Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.teal.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.check_circle_outline,
+                color: AppColors.teal,
+                size: 20,
+              ),
+            )
+          : Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.history,
+                color: AppColors.grey,
+                size: 20,
+              ),
+            ),
+      title: Row(
+        children: <Widget>[
+          const ExcludeSemantics(
+            child: Icon(Icons.commit, size: 16, color: AppColors.grey),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              entry.revision,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+      subtitle: Text('ID ${entry.id} \u2022 $relativeTime'),
       trailing: isCurrent
           ? const StatusChip(label: 'Current', color: AppColors.teal)
           : TextButton.icon(
@@ -610,6 +764,37 @@ class _HistoryEntryTile extends StatelessWidget {
   }
 }
 
+class _EventsCard extends StatelessWidget {
+  const _EventsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SectionCard(
+      title: 'Events',
+      child: Row(
+        children: <Widget>[
+          Icon(
+            Icons.event_note,
+            color: AppColors.greyLight,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Event stream is not available in the current API version.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.grey,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _DetailPill extends StatelessWidget {
   const _DetailPill({required this.label, required this.value});
 
@@ -656,4 +841,41 @@ class _LabeledText extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatRelativeTime(String deployedAt) {
+  final parsed = DateTime.tryParse(deployedAt);
+  if (parsed == null) {
+    return deployedAt;
+  }
+
+  final now = DateTime.now().toUtc();
+  final diff = now.difference(parsed);
+
+  if (diff.isNegative) {
+    return deployedAt;
+  }
+
+  if (diff.inSeconds < 60) {
+    return 'just now';
+  }
+  if (diff.inMinutes < 60) {
+    final m = diff.inMinutes;
+    return '$m ${m == 1 ? 'minute' : 'minutes'} ago';
+  }
+  if (diff.inHours < 24) {
+    final h = diff.inHours;
+    return '$h ${h == 1 ? 'hour' : 'hours'} ago';
+  }
+  if (diff.inDays < 30) {
+    final d = diff.inDays;
+    return '$d ${d == 1 ? 'day' : 'days'} ago';
+  }
+  if (diff.inDays < 365) {
+    final months = diff.inDays ~/ 30;
+    return '$months ${months == 1 ? 'month' : 'months'} ago';
+  }
+
+  final years = diff.inDays ~/ 365;
+  return '$years ${years == 1 ? 'year' : 'years'} ago';
 }
