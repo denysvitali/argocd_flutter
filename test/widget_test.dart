@@ -214,5 +214,18 @@ class _FakeArgoCdApi implements ArgoCdApi {
   ) async {}
 
   @override
+  Future<String> fetchResourceManifest(
+    AppSession session, {
+    required String applicationName,
+    required String namespace,
+    required String resourceName,
+    required String kind,
+    required String group,
+    required String version,
+  }) async {
+    return '';
+  }
+
+  @override
   Future<void> verifyServer(String serverUrl) async {}
 }
