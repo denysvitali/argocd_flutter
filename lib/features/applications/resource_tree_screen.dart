@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:argocd_flutter/core/models/argo_resource_node.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
@@ -24,6 +26,11 @@ class ResourceTreeScreen extends StatefulWidget {
 
 class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
   late Future<List<ArgoResourceNode>> _future;
+  String _searchQuery = '';
+  bool _allExpanded = true;
+
+  /// Incremented to signal a global expand/collapse reset.
+  int _expandGeneration = 0;
 
   @override
   void initState() {
@@ -51,6 +58,15 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
         ),
         actions: <Widget>[
           IconButton(
+            tooltip: _allExpanded ? 'Collapse All' : 'Expand All',
+            onPressed: _toggleExpandAll,
+            icon: Icon(
+              _allExpanded
+                  ? Icons.unfold_less_rounded
+                  : Icons.unfold_more_rounded,
+            ),
+          ),
+          IconButton(
             tooltip: 'Refresh',
             onPressed: _refresh,
             icon: const Icon(Icons.refresh),
@@ -64,70 +80,80 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
           AsyncSnapshot<List<ArgoResourceNode>> snapshot,
         ) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
+            return _buildLoadingState(theme);
           }
 
           if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(
-                      snapshot.error.toString(),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
-                      onPressed: _refresh,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              ),
-            );
+            return _buildErrorState(snapshot.error, theme);
           }
 
           final nodes = snapshot.requireData;
-          final tree = _ResourceTreeData(nodes);
 
           if (nodes.isEmpty) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'No resource tree data returned by the ArgoCD API.',
-                ),
-              ),
-            );
+            return _buildEmptyState(theme);
+          }
+
+          final tree = _ResourceTreeData(nodes);
+          final List<ArgoResourceNode> filteredRoots;
+          if (_searchQuery.isEmpty) {
+            filteredRoots = tree.rootNodes;
+          } else {
+            filteredRoots = _filterTree(tree, tree.rootNodes);
           }
 
           return ListView(
             padding: const EdgeInsets.all(20),
             children: <Widget>[
               _SummaryHeader(nodes: nodes),
-              const SizedBox(height: 20),
-              SectionCard(
-                title: 'Kubernetes Hierarchy',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: tree.rootNodes
-                      .map(
-                        (ArgoResourceNode node) => _ResourceNodeTile(
+              const SizedBox(height: 16),
+              _buildSearchBar(theme),
+              const SizedBox(height: 16),
+              if (filteredRoots.isEmpty && _searchQuery.isNotEmpty)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      children: <Widget>[
+                        Icon(
+                          Icons.search_off_rounded,
+                          size: 48,
+                          color: AppColors.greyLight,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No resources match "$_searchQuery"',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                SectionCard(
+                  title: 'Kubernetes Hierarchy',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      for (int i = 0; i < filteredRoots.length; i++)
+                        _ResourceNodeTile(
+                          key: ValueKey<String>(
+                            '${filteredRoots[i].uid}_$_expandGeneration',
+                          ),
                           controller: widget.controller,
                           applicationName: widget.applicationName,
-                          node: node,
+                          node: filteredRoots[i],
                           tree: tree,
                           depth: 0,
-                          isInitiallyExpanded: true,
+                          isInitiallyExpanded: _allExpanded,
                           ancestorUids: const <String>{},
+                          isLastChild: i == filteredRoots.length - 1,
+                          searchQuery: _searchQuery,
                         ),
-                      )
-                      .toList(growable: false),
+                    ],
+                  ),
                 ),
-              ),
             ],
           );
         },
@@ -135,15 +161,199 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
     );
   }
 
+  Widget _buildSearchBar(ThemeData theme) {
+    return TextField(
+      decoration: InputDecoration(
+        hintText: 'Filter by name or kind...',
+        prefixIcon: const Icon(Icons.search, size: 20),
+        suffixIcon: _searchQuery.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear, size: 20),
+                onPressed: () {
+                  setState(() {
+                    _searchQuery = '';
+                  });
+                },
+              )
+            : null,
+        filled: true,
+        fillColor: theme.colorScheme.surfaceContainerHighest,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+      ),
+      onChanged: (String value) {
+        setState(() {
+          _searchQuery = value.trim().toLowerCase();
+        });
+      },
+    );
+  }
+
+  Widget _buildLoadingState(ThemeData theme) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          const SizedBox(
+            width: 48,
+            height: 48,
+            child: CircularProgressIndicator(strokeWidth: 3),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Loading resource tree...',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppColors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(Object? error, ThemeData theme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(
+              Icons.error_outline_rounded,
+              size: 56,
+              color: AppColors.coral,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Failed to load resources',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error.toString(),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.grey,
+              ),
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: _refresh,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(ThemeData theme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(
+              Icons.account_tree_outlined,
+              size: 64,
+              color: AppColors.greyLight,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No resources found',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'No resource tree data returned by the ArgoCD API.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.grey,
+              ),
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: _refresh,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Refresh'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<ArgoResourceNode> _filterTree(
+    _ResourceTreeData tree,
+    List<ArgoResourceNode> nodes,
+  ) {
+    final List<ArgoResourceNode> result = <ArgoResourceNode>[];
+    for (final ArgoResourceNode node in nodes) {
+      if (_nodeMatchesSearch(node) ||
+          _hasMatchingDescendant(tree, node, <String>{})) {
+        result.add(node);
+      }
+    }
+    return result;
+  }
+
+  bool _nodeMatchesSearch(ArgoResourceNode node) {
+    return node.name.toLowerCase().contains(_searchQuery) ||
+        node.kind.toLowerCase().contains(_searchQuery);
+  }
+
+  bool _hasMatchingDescendant(
+    _ResourceTreeData tree,
+    ArgoResourceNode node,
+    Set<String> visited,
+  ) {
+    final children = tree.childrenFor(node.uid);
+    for (final ArgoResourceNode child in children) {
+      if (visited.contains(child.uid)) {
+        continue;
+      }
+      if (_nodeMatchesSearch(child)) {
+        return true;
+      }
+      if (_hasMatchingDescendant(
+        tree,
+        child,
+        <String>{...visited, child.uid},
+      )) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   void _refresh() {
     setState(() {
       _future = widget.controller.loadResourceTree(widget.applicationName);
     });
   }
+
+  void _toggleExpandAll() {
+    setState(() {
+      _allExpanded = !_allExpanded;
+      _expandGeneration++;
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
-// Summary header
+// Summary header with donut chart
 // ---------------------------------------------------------------------------
 
 class _SummaryHeader extends StatelessWidget {
@@ -161,6 +371,8 @@ class _SummaryHeader extends StatelessWidget {
     int progressing = 0;
     int other = 0;
 
+    final kindCounts = <String, int>{};
+
     for (final ArgoResourceNode node in nodes) {
       switch (node.healthStatus.toLowerCase()) {
         case 'healthy':
@@ -172,7 +384,41 @@ class _SummaryHeader extends StatelessWidget {
         default:
           other++;
       }
+      kindCounts[node.kind] = (kindCounts[node.kind] ?? 0) + 1;
     }
+
+    final sortedKinds = kindCounts.entries.toList()
+      ..sort(
+        (MapEntry<String, int> a, MapEntry<String, int> b) =>
+            b.value.compareTo(a.value),
+      );
+
+    final healthSegments = <_DonutSegment>[
+      if (healthy > 0)
+        _DonutSegment(
+          value: healthy.toDouble(),
+          color: AppColors.healthColor('healthy'),
+          label: 'Healthy',
+        ),
+      if (progressing > 0)
+        _DonutSegment(
+          value: progressing.toDouble(),
+          color: AppColors.healthColor('progressing'),
+          label: 'Progressing',
+        ),
+      if (degraded > 0)
+        _DonutSegment(
+          value: degraded.toDouble(),
+          color: AppColors.healthColor('degraded'),
+          label: 'Degraded',
+        ),
+      if (other > 0)
+        _DonutSegment(
+          value: other.toDouble(),
+          color: AppColors.grey,
+          label: 'Other',
+        ),
+    ];
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -190,75 +436,207 @@ class _SummaryHeader extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            '$total resources',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.grey,
+          const SizedBox(height: 20),
+          Center(
+            child: SizedBox(
+              width: 140,
+              height: 140,
+              child: CustomPaint(
+                painter: _DonutChartPainter(
+                  segments: healthSegments,
+                  total: total.toDouble(),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        '$total',
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        'resources',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 16),
+          // Health legend
           Wrap(
-            spacing: 12,
-            runSpacing: 12,
+            spacing: 16,
+            runSpacing: 8,
             children: <Widget>[
-              if (healthy > 0)
-                StatusChip(
-                  label: '$healthy Healthy',
-                  color: AppColors.healthColor('healthy'),
-                ),
-              if (degraded > 0)
-                StatusChip(
-                  label: '$degraded Degraded',
-                  color: AppColors.healthColor('degraded'),
-                ),
-              if (progressing > 0)
-                StatusChip(
-                  label: '$progressing Progressing',
-                  color: AppColors.healthColor('progressing'),
-                ),
-              if (other > 0)
-                StatusChip(
-                  label: '$other Other',
-                  color: AppColors.grey,
+              for (final _DonutSegment segment in healthSegments)
+                _LegendItem(
+                  color: segment.color,
+                  label: '${segment.value.toInt()} ${segment.label}',
                 ),
             ],
           ),
           const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: SizedBox(
-              height: 8,
-              child: Row(
-                children: <Widget>[
-                  if (healthy > 0)
-                    Expanded(
-                      flex: healthy,
-                      child: ColoredBox(
-                        color: AppColors.healthColor('healthy'),
-                      ),
-                    ),
-                  if (progressing > 0)
-                    Expanded(
-                      flex: progressing,
-                      child: ColoredBox(
-                        color: AppColors.healthColor('progressing'),
-                      ),
-                    ),
-                  if (degraded > 0)
-                    Expanded(
-                      flex: degraded,
-                      child: ColoredBox(
-                        color: AppColors.healthColor('degraded'),
-                      ),
-                    ),
-                  if (other > 0)
-                    Expanded(
-                      flex: other,
-                      child: const ColoredBox(color: AppColors.grey),
-                    ),
-                ],
-              ),
+          const Divider(),
+          const SizedBox(height: 12),
+          // Resource kind counts
+          Text(
+            'Resources by Kind',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: <Widget>[
+              for (final MapEntry<String, int> entry in sortedKinds)
+                _KindCountBadge(
+                  kind: entry.key,
+                  count: entry.value,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Donut chart painter
+// ---------------------------------------------------------------------------
+
+class _DonutSegment {
+  const _DonutSegment({
+    required this.value,
+    required this.color,
+    required this.label,
+  });
+
+  final double value;
+  final Color color;
+  final String label;
+}
+
+class _DonutChartPainter extends CustomPainter {
+  _DonutChartPainter({required this.segments, required this.total});
+
+  final List<_DonutSegment> segments;
+  final double total;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (total <= 0 || segments.isEmpty) {
+      return;
+    }
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = math.min(size.width, size.height) / 2;
+    const strokeWidth = 20.0;
+    final rect = Rect.fromCircle(
+      center: center,
+      radius: radius - strokeWidth / 2,
+    );
+
+    const gapAngle = 0.04;
+    final totalGap = gapAngle * segments.length;
+    final availableSweep = 2 * math.pi - totalGap;
+
+    double startAngle = -math.pi / 2;
+
+    for (final _DonutSegment segment in segments) {
+      final sweepAngle = (segment.value / total) * availableSweep;
+      final paint = Paint()
+        ..color = segment.color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
+
+      canvas.drawArc(rect, startAngle, sweepAngle, false, paint);
+      startAngle += sweepAngle + gapAngle;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DonutChartPainter oldDelegate) {
+    return segments != oldDelegate.segments || total != oldDelegate.total;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Legend and badge widgets
+// ---------------------------------------------------------------------------
+
+class _LegendItem extends StatelessWidget {
+  const _LegendItem({required this.color, required this.label});
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _KindCountBadge extends StatelessWidget {
+  const _KindCountBadge({required this.kind, required this.count});
+
+  final String kind;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final Color kindColor = colorForResourceKind(kind);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: kindColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            iconForResourceKind(kind),
+            size: 14,
+            color: kindColor,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '$count $kind',
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: kindColor,
             ),
           ),
         ],
@@ -326,11 +704,12 @@ class _ResourceTreeData {
 }
 
 // ---------------------------------------------------------------------------
-// Node tile
+// Node tile with tree connectors
 // ---------------------------------------------------------------------------
 
-class _ResourceNodeTile extends StatelessWidget {
+class _ResourceNodeTile extends StatefulWidget {
   const _ResourceNodeTile({
+    super.key,
     required this.controller,
     required this.applicationName,
     required this.node,
@@ -338,6 +717,8 @@ class _ResourceNodeTile extends StatelessWidget {
     required this.depth,
     required this.isInitiallyExpanded,
     required this.ancestorUids,
+    required this.isLastChild,
+    this.searchQuery = '',
   });
 
   final AppController controller;
@@ -347,91 +728,171 @@ class _ResourceNodeTile extends StatelessWidget {
   final int depth;
   final bool isInitiallyExpanded;
   final Set<String> ancestorUids;
+  final bool isLastChild;
+  final String searchQuery;
+
+  @override
+  State<_ResourceNodeTile> createState() => _ResourceNodeTileState();
+}
+
+class _ResourceNodeTileState extends State<_ResourceNodeTile> {
+  late bool _expanded;
+
+  @override
+  void initState() {
+    super.initState();
+    _expanded = widget.isInitiallyExpanded;
+  }
+
+  void _toggleExpanded() {
+    setState(() {
+      _expanded = !_expanded;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final children = tree
-        .childrenFor(node.uid)
-        .where((ArgoResourceNode child) => !ancestorUids.contains(child.uid))
+    final children = widget.tree
+        .childrenFor(widget.node.uid)
+        .where(
+          (ArgoResourceNode child) =>
+              !widget.ancestorUids.contains(child.uid),
+        )
         .toList(growable: false);
-    final nextAncestors = <String>{...ancestorUids, node.uid};
-    final bool isPod = node.kind.toLowerCase() == 'pod';
+    final nextAncestors = <String>{...widget.ancestorUids, widget.node.uid};
+    final bool hasChildren = children.isNotEmpty;
     final theme = Theme.of(context);
-    final Color kindColor = colorForResourceKind(node.kind);
 
-    final Widget tile = Padding(
-      padding: EdgeInsets.only(left: depth * 20),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          if (depth > 0)
-            Padding(
-              padding: const EdgeInsets.only(top: 18, right: 4),
-              child: SizedBox(
-                width: 12,
-                child: Divider(
-                  thickness: 1,
-                  color: AppColors.border,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        // The node row with tree connector
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              // Tree connector lines
+              if (widget.depth > 0)
+                SizedBox(
+                  width: 24,
+                  child: CustomPaint(
+                    painter: _NodeConnectorPainter(
+                      color: theme.dividerColor,
+                      isLastChild: widget.isLastChild,
+                    ),
+                  ),
+                ),
+              // Expand/collapse arrow
+              if (hasChildren)
+                GestureDetector(
+                  onTap: _toggleExpanded,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: AnimatedRotation(
+                      turns: _expanded ? 0.25 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(
+                        Icons.chevron_right_rounded,
+                        size: 20,
+                        color: AppColors.grey,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                const SizedBox(width: 20),
+              // Node card
+              Expanded(
+                child: _NodeCard(
+                  controller: widget.controller,
+                  applicationName: widget.applicationName,
+                  node: widget.node,
+                  isPod: widget.node.kind.toLowerCase() == 'pod',
+                  kindColor: colorForResourceKind(widget.node.kind),
+                  theme: theme,
                 ),
               ),
-            ),
-          Expanded(
-            child: _NodeCard(
-              controller: controller,
-              applicationName: applicationName,
-              node: node,
-              isPod: isPod,
-              kindColor: kindColor,
-              theme: theme,
-            ),
+            ],
           ),
-        ],
-      ),
-    );
-
-    if (children.isEmpty) {
-      return tile;
-    }
-
-    return Theme(
-      data: theme.copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        childrenPadding: EdgeInsets.zero,
-        initiallyExpanded: isInitiallyExpanded,
-        controlAffinity: ListTileControlAffinity.leading,
-        title: tile,
-        children: <Widget>[
-          Padding(
-            padding: EdgeInsets.only(left: depth * 20 + 10),
-            child: CustomPaint(
-              painter: _TreeLinePainter(color: AppColors.border),
+        ),
+        // Children with animated expand/collapse
+        if (hasChildren && _expanded)
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topLeft,
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: widget.depth > 0 ? 24.0 : 0.0,
+              ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: children
-                    .map(
-                      (ArgoResourceNode child) => _ResourceNodeTile(
-                        controller: controller,
-                        applicationName: applicationName,
-                        node: child,
-                        tree: tree,
-                        depth: depth + 1,
-                        isInitiallyExpanded: false,
-                        ancestorUids: nextAncestors,
-                      ),
-                    )
-                    .toList(growable: false),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  for (int i = 0; i < children.length; i++)
+                    _ResourceNodeTile(
+                      key: ValueKey<String>(children[i].uid),
+                      controller: widget.controller,
+                      applicationName: widget.applicationName,
+                      node: children[i],
+                      tree: widget.tree,
+                      depth: widget.depth + 1,
+                      isInitiallyExpanded: widget.isInitiallyExpanded,
+                      ancestorUids: nextAncestors,
+                      isLastChild: i == children.length - 1,
+                      searchQuery: widget.searchQuery,
+                    ),
+                ],
               ),
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 }
 
 // ---------------------------------------------------------------------------
-// Node card content
+// Node connector painter (vertical + horizontal lines)
+// ---------------------------------------------------------------------------
+
+class _NodeConnectorPainter extends CustomPainter {
+  _NodeConnectorPainter({
+    required this.color,
+    required this.isLastChild,
+  });
+
+  final Color color;
+  final bool isLastChild;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+
+    final double midX = size.width / 2;
+    final double midY = 20; // align with icon center
+
+    // Vertical line from top
+    canvas.drawLine(Offset(midX, 0), Offset(midX, midY), paint);
+
+    // Horizontal line to the right
+    canvas.drawLine(Offset(midX, midY), Offset(size.width, midY), paint);
+
+    // Continue vertical line down if not last child
+    if (!isLastChild) {
+      canvas.drawLine(Offset(midX, midY), Offset(midX, size.height), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_NodeConnectorPainter oldDelegate) {
+    return color != oldDelegate.color || isLastChild != oldDelegate.isLastChild;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Node card content with left color strip
 // ---------------------------------------------------------------------------
 
 class _NodeCard extends StatelessWidget {
@@ -454,116 +915,229 @@ class _NodeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          InkWell(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _openManifest(context),
+        onLongPress: () => _showDetailSheet(context),
+        child: Container(
+          decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            onTap: () => _openManifest(context),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-              child: Row(
-                children: <Widget>[
-                  Container(
-                    width: 36,
-                    height: 36,
+            border: Border.all(color: theme.dividerColor),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Container(width: 4, color: kindColor),
+                const SizedBox(width: 10),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Container(
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: kindColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                       iconForResourceKind(node.kind),
-                      size: 20,
+                      size: 18,
                       color: kindColor,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: <Widget>[
-                        Text.rich(
-                          TextSpan(
-                            children: <InlineSpan>[
-                              TextSpan(
-                                text: node.kind,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              TextSpan(
-                                text: '  ${node.name}',
-                                style: theme.textTheme.bodyMedium,
-                              ),
-                            ],
+                        Text(
+                          node.kind,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: kindColor,
+                            letterSpacing: 0.5,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
-                        Row(
-                          children: <Widget>[
-                            Text(
-                              'ns: ${node.namespace}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppColors.grey,
-                              ),
-                            ),
-                            if (node.createdAt.isNotEmpty) ...<Widget>[
-                              const SizedBox(width: 8),
-                              Text(
-                                node.createdAt,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: AppColors.greyLight,
-                                ),
-                              ),
-                            ],
-                          ],
+                        Text(
+                          node.name,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
+                        _MetadataRow(node: node, theme: theme),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  StatusChip(
-                    label: node.healthStatus,
-                    color: AppColors.healthColor(node.healthStatus),
-                  ),
-                  const SizedBox(width: 4),
-                  ExcludeSemantics(
-                    child: Icon(
-                      Icons.description_outlined,
-                      size: 18,
-                      color: AppColors.greyLight,
+                ),
+                const SizedBox(width: 8),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Tooltip(
+                    message: node.healthStatus,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: AppColors.healthColor(node.healthStatus),
+                        shape: BoxShape.circle,
+                      ),
                     ),
                   ),
-                ],
-              ),
+                ),
+                if (isPod)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Center(
+                      child: _SmallActionButton(
+                        icon: Icons.article_outlined,
+                        label: 'Logs',
+                        color: AppColors.teal,
+                        onPressed: () => _openLogs(context),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
-          if (isPod)
-            Padding(
-              padding: const EdgeInsets.only(left: 48, bottom: 4),
-              child: Row(
-                children: <Widget>[
-                  _SmallActionButton(
-                    icon: Icons.article_outlined,
-                    label: 'Logs',
-                    color: AppColors.teal,
-                    onPressed: () => _openLogs(context),
-                  ),
-                  const SizedBox(width: 8),
-                  _SmallActionButton(
-                    icon: Icons.data_object,
-                    label: 'Manifest',
-                    color: AppColors.cobalt,
-                    onPressed: () => _openManifest(context),
-                  ),
-                ],
-              ),
-            ),
-        ],
+        ),
       ),
+    );
+  }
+
+  void _showDetailSheet(BuildContext context) {
+    final theme = Theme.of(context);
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.5,
+          minChildSize: 0.3,
+          maxChildSize: 0.85,
+          expand: false,
+          builder: (BuildContext context, ScrollController scrollController) {
+            return ListView(
+              controller: scrollController,
+              padding: const EdgeInsets.all(24),
+              children: <Widget>[
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: AppColors.greyLight,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Row(
+                  children: <Widget>[
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: kindColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        iconForResourceKind(node.kind),
+                        color: kindColor,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            node.kind,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: kindColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            node.name,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                const Divider(),
+                const SizedBox(height: 12),
+                _DetailRow(label: 'Kind', value: node.kind),
+                _DetailRow(label: 'Name', value: node.name),
+                _DetailRow(label: 'Namespace', value: node.namespace),
+                _DetailRow(label: 'Group', value: node.group),
+                _DetailRow(label: 'Version', value: node.version),
+                _DetailRow(label: 'UID', value: node.uid),
+                _DetailRow(
+                  label: 'Health Status',
+                  value: node.healthStatus,
+                  valueColor: AppColors.healthColor(node.healthStatus),
+                ),
+                if (node.healthMessage.isNotEmpty)
+                  _DetailRow(
+                    label: 'Health Message',
+                    value: node.healthMessage,
+                  ),
+                _DetailRow(label: 'Created At', value: node.createdAt),
+                if (node.parentUids.isNotEmpty)
+                  _DetailRow(
+                    label: 'Parent UIDs',
+                    value: node.parentUids.join(', '),
+                  ),
+                const SizedBox(height: 16),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _openManifest(context);
+                        },
+                        icon: const Icon(Icons.data_object, size: 18),
+                        label: const Text('View Manifest'),
+                      ),
+                    ),
+                    if (isPod) ...<Widget>[
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            _openLogs(context);
+                          },
+                          icon: const Icon(Icons.article_outlined, size: 18),
+                          label: const Text('View Logs'),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -593,6 +1167,102 @@ class _NodeCard extends StatelessWidget {
           group: node.group,
           version: node.version,
         ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Metadata row (namespace, version, age)
+// ---------------------------------------------------------------------------
+
+class _MetadataRow extends StatelessWidget {
+  const _MetadataRow({required this.node, required this.theme});
+
+  final ArgoResourceNode node;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = theme.textTheme.bodySmall?.copyWith(
+      color: AppColors.greyLight,
+      fontSize: 11,
+    );
+    final dotStyle = TextStyle(color: AppColors.greyLight, fontSize: 11);
+
+    return Row(
+      children: <Widget>[
+        Text(node.namespace, style: style),
+        if (node.version.isNotEmpty) ...<Widget>[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text('\u00b7', style: dotStyle),
+          ),
+          Text(node.version, style: style),
+        ],
+        if (node.createdAt.isNotEmpty) ...<Widget>[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text('\u00b7', style: dotStyle),
+          ),
+          Flexible(
+            child: Text(
+              node.createdAt,
+              style: style,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Detail row for bottom sheet
+// ---------------------------------------------------------------------------
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final displayValue = value.isEmpty ? '-' : value;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.grey,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              displayValue,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: valueColor,
+                fontWeight: valueColor != null ? FontWeight.w700 : null,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -646,30 +1316,5 @@ class _SmallActionButton extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Tree-line painter for visual guides
-// ---------------------------------------------------------------------------
-
-class _TreeLinePainter extends CustomPainter {
-  _TreeLinePainter({required this.color});
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
-
-    canvas.drawLine(Offset(0, 0), Offset(0, size.height), paint);
-  }
-
-  @override
-  bool shouldRepaint(_TreeLinePainter oldDelegate) {
-    return color != oldDelegate.color;
   }
 }
