@@ -1,6 +1,7 @@
 import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
-import 'package:argocd_flutter/ui/error_retry_widget.dart';
+import 'package:argocd_flutter/ui/app_colors.dart';
+import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
 
 import 'manifest_viewer_screen.dart';
@@ -86,10 +87,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: ErrorRetryWidget(
-                  message: snapshot.error.toString(),
-                  onRetry: _refresh,
-                ),
+                child: Text(snapshot.error.toString()),
               ),
             );
           }
@@ -319,10 +317,12 @@ class _ResourceTreeCard extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEAF2FF),
+                  color: AppColors.cobaltLight,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.account_tree, color: Color(0xFF1F6FEB)),
+                child: const ExcludeSemantics(
+                  child: Icon(Icons.account_tree, color: AppColors.cobalt),
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -344,7 +344,7 @@ class _ResourceTreeCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              const Icon(Icons.chevron_right),
+              const ExcludeSemantics(child: Icon(Icons.chevron_right)),
             ],
           ),
         ),
@@ -425,55 +425,39 @@ class _ResourcesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: theme.dividerColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            'Resources',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 16),
-          if (resources.isEmpty)
-            const Text('No resources returned by the ArgoCD API.')
-          else
-            ...resources.map((resource) {
-              return ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text('${resource.kind} • ${resource.name}'),
-                subtitle: Text(
-                  '${resource.namespace} • ${resource.status} • ${resource.health}',
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => ManifestViewerScreen(
-                        controller: controller,
-                        applicationName: applicationName,
-                        namespace: resource.namespace,
-                        resourceName: resource.name,
-                        kind: resource.kind,
-                        group: resource.group,
-                        version: resource.version,
+    return SectionCard(
+      title: 'Resources',
+      child: resources.isEmpty
+          ? const Text('No resources returned by the ArgoCD API.')
+          : Column(
+              children: resources.map((resource) {
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('${resource.kind} \u2022 ${resource.name}'),
+                  subtitle: Text(
+                    '${resource.namespace} \u2022 ${resource.status} \u2022 ${resource.health}',
+                  ),
+                  trailing: const ExcludeSemantics(
+                    child: Icon(Icons.chevron_right),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ManifestViewerScreen(
+                          controller: controller,
+                          applicationName: applicationName,
+                          namespace: resource.namespace,
+                          resourceName: resource.name,
+                          kind: resource.kind,
+                          group: resource.group,
+                          version: resource.version,
+                        ),
                       ),
-                    ),
-                  );
-                },
-              );
-            }),
-        ],
-      ),
+                    );
+                  },
+                );
+              }).toList(growable: false),
+            ),
     );
   }
 }
@@ -493,40 +477,25 @@ class _HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final currentEntry = history.isEmpty ? null : history.last;
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: theme.dividerColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            'Deployment history',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 16),
-          if (history.isEmpty)
-            const Text('No deployment history returned by the ArgoCD API.')
-          else
-            ...history.map(
-              (entry) => _HistoryEntryTile(
-                controller: controller,
-                applicationName: applicationName,
-                entry: entry,
-                isCurrent: identical(entry, currentEntry),
-                onRolledBack: onRolledBack,
-              ),
+    return SectionCard(
+      title: 'Deployment history',
+      child: history.isEmpty
+          ? const Text('No deployment history returned by the ArgoCD API.')
+          : Column(
+              children: history
+                  .map(
+                    (entry) => _HistoryEntryTile(
+                      controller: controller,
+                      applicationName: applicationName,
+                      entry: entry,
+                      isCurrent: identical(entry, currentEntry),
+                      onRolledBack: onRolledBack,
+                    ),
+                  )
+                  .toList(growable: false),
             ),
-        ],
-      ),
     );
   }
 }
@@ -551,15 +520,15 @@ class _HistoryEntryTile extends StatelessWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       title: Text(entry.revision),
-      subtitle: Text('ID ${entry.id} • ${entry.deployedAt}'),
+      subtitle: Text('ID ${entry.id} \u2022 ${entry.deployedAt}'),
       trailing: isCurrent
-          ? const _HistoryStatusChip(label: 'Current', color: Colors.teal)
+          ? const StatusChip(label: 'Current', color: AppColors.teal)
           : TextButton.icon(
               onPressed: () => _confirmRollback(context),
               icon: const Icon(Icons.restore),
               label: const Text('Rollback'),
               style: TextButton.styleFrom(
-                foregroundColor: Colors.amber.shade800,
+                foregroundColor: AppColors.amber,
               ),
             ),
       onTap: isCurrent ? null : () => _confirmRollback(context),
@@ -567,7 +536,7 @@ class _HistoryEntryTile extends StatelessWidget {
   }
 
   Future<void> _confirmRollback(BuildContext context) async {
-    final warningColor = Colors.amber.shade800;
+    final warningColor = AppColors.amber;
     final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
@@ -612,35 +581,6 @@ class _HistoryEntryTile extends StatelessWidget {
       }
       messenger.showSnackBar(SnackBar(content: Text(error.toString())));
     }
-  }
-}
-
-class _HistoryStatusChip extends StatelessWidget {
-  const _HistoryStatusChip({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(
-          alpha: theme.brightness == Brightness.dark ? 0.24 : 0.12,
-        ),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-          color: color,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
   }
 }
 

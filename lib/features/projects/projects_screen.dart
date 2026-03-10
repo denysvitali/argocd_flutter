@@ -1,6 +1,7 @@
 import 'package:argocd_flutter/core/models/argo_project.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
-import 'package:argocd_flutter/ui/error_retry_widget.dart';
+import 'package:argocd_flutter/ui/app_colors.dart';
+import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
 
 class ProjectsScreen extends StatefulWidget {
@@ -79,9 +80,12 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
             ),
             const SizedBox(height: 20),
             if (widget.controller.errorMessage != null)
-              ErrorRetryWidget(
-                message: widget.controller.errorMessage!,
-                onRetry: () => widget.controller.refreshProjects(),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Text(
+                  widget.controller.errorMessage!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
               ),
             if (widget.controller.loadingProjects &&
                 !widget.controller.hasLoadedProjects)
@@ -136,9 +140,9 @@ class _OverviewStrip extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: <Color>[
-            Color(0xFF10233D),
-            Color(0xFF14532D),
-            Color(0xFF14B8A6),
+            AppColors.gradientProjectStart,
+            AppColors.gradientProjectMid,
+            AppColors.teal,
           ],
         ),
         borderRadius: BorderRadius.circular(28),
@@ -159,7 +163,7 @@ class _OverviewStrip extends StatelessWidget {
                 ? 'Projects define repository and deployment boundaries.'
                 : 'Review RBAC scope, source repositories, and target clusters for ${session.username}.',
             style: theme.textTheme.bodyLarge?.copyWith(
-              color: const Color(0xFFDCFCE7),
+              color: AppColors.textOnDarkGreen,
             ),
           ),
           const SizedBox(height: 20),
@@ -196,7 +200,7 @@ class _ProjectCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: const Color(0xFFE2EAF3)),
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,11 +223,11 @@ class _ProjectCard extends StatelessWidget {
               spacing: 12,
               runSpacing: 12,
               children: <Widget>[
-                _FactBadge(
+                FactBadge(
                   icon: Icons.source_outlined,
                   label: '${project.sourceRepos.length} source repos',
                 ),
-                _FactBadge(
+                FactBadge(
                   icon: Icons.route_outlined,
                   label: '${project.destinations.length} destinations',
                 ),
@@ -231,34 +235,6 @@ class _ProjectCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _FactBadge extends StatelessWidget {
-  const _FactBadge({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(icon, size: 18),
-          const SizedBox(width: 8),
-          Text(label),
-        ],
       ),
     );
   }
@@ -272,7 +248,6 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final title = filtered
         ? 'No projects match this filter'
         : hasProjects
@@ -284,25 +259,7 @@ class _EmptyState extends StatelessWidget {
         ? 'Your RBAC scope may not expose any additional ArgoCD projects.'
         : 'Connect to ArgoCD, then pull to refresh once your RBAC scope has visible projects.';
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2EAF3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            title,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          Text(subtitle),
-        ],
-      ),
-    );
+    return EmptyStateCard(title: title, subtitle: subtitle);
   }
 }
 
@@ -337,7 +294,7 @@ class _MetricChip extends StatelessWidget {
             label,
             style: Theme.of(
               context,
-            ).textTheme.bodyMedium?.copyWith(color: const Color(0xFFDCFCE7)),
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textOnDarkGreen),
           ),
         ],
       ),

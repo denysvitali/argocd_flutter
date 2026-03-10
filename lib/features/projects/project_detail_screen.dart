@@ -1,5 +1,6 @@
 import 'package:argocd_flutter/core/models/argo_project.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
+import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
@@ -88,7 +89,7 @@ class _OverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _SectionCard(
+    return SectionCard(
       title: 'Overview',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -114,7 +115,7 @@ class _SourceRepositoriesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _SectionCard(
+    return SectionCard(
       title: 'Source Repositories',
       child: sourceRepos.isEmpty
           ? const Text('No source repositories returned by the ArgoCD API.')
@@ -140,7 +141,7 @@ class _DestinationsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _SectionCard(
+    return SectionCard(
       title: 'Destinations',
       child: destinations.isEmpty
           ? const Text('No destinations returned by the ArgoCD API.')
@@ -155,7 +156,7 @@ class _DestinationsCard extends StatelessWidget {
                             : destination.name,
                       ),
                       subtitle: Text(
-                        '${destination.server} • ${destination.namespace}',
+                        '${destination.server} \u2022 ${destination.namespace}',
                       ),
                     ),
                   )
@@ -172,7 +173,7 @@ class _ClusterResourcesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _SectionCard(
+    return SectionCard(
       title: 'Cluster Resources',
       child: resources.isEmpty
           ? const Text('No cluster resources returned by the ArgoCD API.')
@@ -187,40 +188,6 @@ class _ClusterResourcesCard extends StatelessWidget {
                   )
                   .toList(growable: false),
             ),
-    );
-  }
-}
-
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.title, required this.child});
-
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2EAF3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            title,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
     );
   }
 }

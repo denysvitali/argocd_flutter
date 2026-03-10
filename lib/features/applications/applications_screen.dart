@@ -1,6 +1,7 @@
 import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
-import 'package:argocd_flutter/ui/error_retry_widget.dart';
+import 'package:argocd_flutter/ui/app_colors.dart';
+import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
 
 class ApplicationsScreen extends StatefulWidget {
@@ -19,20 +20,6 @@ class ApplicationsScreen extends StatefulWidget {
 
 class _ApplicationsScreenState extends State<ApplicationsScreen> {
   String _query = '';
-  final Set<String> _healthFilters = <String>{};
-  final Set<String> _syncFilters = <String>{};
-
-  static const List<String> _healthOptions = <String>[
-    'Healthy',
-    'Degraded',
-    'Missing',
-    'Unknown',
-  ];
-
-  static const List<String> _syncOptions = <String>[
-    'Synced',
-    'OutOfSync',
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -46,29 +33,15 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
         .length;
     final applications = widget.controller.applications
         .where((application) {
-          if (normalizedQuery.isNotEmpty) {
-            final matches =
-                application.name.toLowerCase().contains(normalizedQuery) ||
-                application.project.toLowerCase().contains(normalizedQuery) ||
-                application.namespace.toLowerCase().contains(normalizedQuery);
-            if (!matches) return false;
+          if (normalizedQuery.isEmpty) {
+            return true;
           }
 
-          if (_healthFilters.isNotEmpty &&
-              !_healthFilters.contains(application.healthStatus)) {
-            return false;
-          }
-
-          if (_syncFilters.isNotEmpty &&
-              !_syncFilters.contains(application.syncStatus)) {
-            return false;
-          }
-
-          return true;
+          return application.name.toLowerCase().contains(normalizedQuery) ||
+              application.project.toLowerCase().contains(normalizedQuery) ||
+              application.namespace.toLowerCase().contains(normalizedQuery);
         })
         .toList(growable: false);
-    final hasActiveFilters = _healthFilters.isNotEmpty ||
-        _syncFilters.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -106,56 +79,14 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                 });
               },
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 42,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: <Widget>[
-                  ..._healthOptions.map(
-                    (status) => Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text(status),
-                        selected: _healthFilters.contains(status),
-                        onSelected: (selected) {
-                          setState(() {
-                            if (selected) {
-                              _healthFilters.add(status);
-                            } else {
-                              _healthFilters.remove(status);
-                            }
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-                  ..._syncOptions.map(
-                    (status) => Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text(status),
-                        selected: _syncFilters.contains(status),
-                        onSelected: (selected) {
-                          setState(() {
-                            if (selected) {
-                              _syncFilters.add(status);
-                            } else {
-                              _syncFilters.remove(status);
-                            }
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
             const SizedBox(height: 20),
             if (widget.controller.errorMessage != null)
-              ErrorRetryWidget(
-                message: widget.controller.errorMessage!,
-                onRetry: () => widget.controller.refreshApplications(),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Text(
+                  widget.controller.errorMessage!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
               ),
             if (widget.controller.loadingApplications &&
                 !widget.controller.hasLoadedApplications)
@@ -165,7 +96,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               )
             else if (applications.isEmpty)
               _EmptyState(
-                filtered: normalizedQuery.isNotEmpty || hasActiveFilters,
+                filtered: normalizedQuery.isNotEmpty,
                 hasApps: widget.controller.applications.isNotEmpty,
               )
             else
@@ -210,9 +141,9 @@ class _OverviewStrip extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: <Color>[
-            Color(0xFF0E1726),
-            Color(0xFF183153),
-            Color(0xFF1F6FEB),
+            AppColors.gradientAppStart,
+            AppColors.gradientAppMid,
+            AppColors.cobalt,
           ],
         ),
         borderRadius: BorderRadius.circular(28),
@@ -233,7 +164,7 @@ class _OverviewStrip extends StatelessWidget {
                 ? 'Connect to ArgoCD to inspect application health.'
                 : 'Signed in as ${session.username} on ${session.serverUrl}',
             style: theme.textTheme.bodyLarge?.copyWith(
-              color: const Color(0xFFD8E5FF),
+              color: AppColors.textOnDarkMuted,
             ),
           ),
           const SizedBox(height: 20),
@@ -283,7 +214,7 @@ class _MetricChip extends StatelessWidget {
             label,
             style: Theme.of(
               context,
-            ).textTheme.bodyMedium?.copyWith(color: const Color(0xFFD8E5FF)),
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textOnDarkMuted),
           ),
         ],
       ),
@@ -324,24 +255,20 @@ class _ApplicationCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                _StatusChip(
+                StatusChip(
                   label: application.syncStatus,
-                  color: application.isOutOfSync
-                      ? const Color(0xFFFF6B57)
-                      : const Color(0xFF1F6FEB),
+                  color: AppColors.syncColor(application.syncStatus),
                 ),
                 const SizedBox(width: 8),
-                _StatusChip(
+                StatusChip(
                   label: application.healthStatus,
-                  color: application.isHealthy
-                      ? const Color(0xFF14B8A6)
-                      : const Color(0xFFFFC857),
+                  color: AppColors.healthColor(application.healthStatus),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             Text(
-              '${application.project} • ${application.namespace}',
+              '${application.project} \u2022 ${application.namespace}',
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -358,76 +285,16 @@ class _ApplicationCard extends StatelessWidget {
               spacing: 12,
               runSpacing: 12,
               children: <Widget>[
-                _FactBadge(icon: Icons.route_outlined, label: application.path),
-                _FactBadge(
+                FactBadge(icon: Icons.route_outlined, label: application.path),
+                FactBadge(
                   icon: Icons.commit_outlined,
                   label: application.targetRevision,
                 ),
-                _FactBadge(icon: Icons.public, label: application.cluster),
+                FactBadge(icon: Icons.public, label: application.cluster),
               ],
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Semantics(
-      label: 'Status: $label',
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: color.withValues(
-            alpha: theme.brightness == Brightness.dark ? 0.24 : 0.12,
-          ),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: color,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FactBadge extends StatelessWidget {
-  const _FactBadge({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          ExcludeSemantics(child: Icon(icon, size: 18)),
-          const SizedBox(width: 8),
-          Text(label),
-        ],
       ),
     );
   }
@@ -441,7 +308,6 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final title = filtered
         ? 'No applications match this filter'
         : hasApps
@@ -455,24 +321,6 @@ class _EmptyState extends StatelessWidget {
         : 'Connect to ArgoCD, then pull to refresh once your RBAC scope has '
               'visible applications.';
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: theme.dividerColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            title,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          Text(subtitle),
-        ],
-      ),
-    );
+    return EmptyStateCard(title: title, subtitle: subtitle);
   }
 }

@@ -69,17 +69,17 @@ class DashboardScreen extends StatelessWidget {
                       SummaryTile(
                         label: 'Healthy',
                         value: healthyCount,
-                        valueColor: AppColors.teal,
+                        valueColor: const Color(0xFF14B8A6),
                       ),
                       SummaryTile(
                         label: 'Out of Sync',
                         value: outOfSyncCount,
-                        valueColor: AppColors.coral,
+                        valueColor: const Color(0xFFFF6B57),
                       ),
                       SummaryTile(
                         label: 'Degraded',
                         value: degradedCount,
-                        valueColor: AppColors.amber,
+                        valueColor: const Color(0xFFFFC857),
                       ),
                     ],
                   ),
@@ -180,10 +180,7 @@ class _SegmentBar extends StatelessWidget {
               .map(
                 (segment) => Expanded(
                   flex: segment.count,
-                  child: Semantics(
-                    label: '${segment.label}: ${segment.count}',
-                    child: Container(color: segment.color),
-                  ),
+                  child: Container(color: segment.color),
                 ),
               )
               .toList(growable: false),
@@ -211,12 +208,10 @@ class _LegendItem extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        ExcludeSemantics(
-          child: Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 8),
         Text('$label ($count)', style: theme.textTheme.bodyMedium),
@@ -260,11 +255,13 @@ class _NeedsAttentionList extends StatelessWidget {
               children: <Widget>[
                 StatusChip(
                   label: application.syncStatus,
-                  color: AppColors.syncColor(application.syncStatus),
+                  color: application.isOutOfSync
+                      ? const Color(0xFFFF6B57)
+                      : const Color(0xFF1F6FEB),
                 ),
                 StatusChip(
                   label: application.healthStatus,
-                  color: AppColors.healthColor(application.healthStatus),
+                  color: _healthChipColor(application.healthStatus),
                 ),
               ],
             ),
@@ -278,7 +275,7 @@ class _NeedsAttentionList extends StatelessWidget {
               'and $remainingCount more...',
               style: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.grey),
+              ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF6B7280)),
             ),
           ),
         ],
@@ -305,7 +302,7 @@ List<_BreakdownSegment> _buildHealthSegments(
   return <_BreakdownSegment>[
     _BreakdownSegment(
       label: 'Healthy',
-      color: AppColors.teal,
+      color: const Color(0xFF14B8A6),
       count: applications
           .where(
             (application) => _normalized(application.healthStatus) == 'healthy',
@@ -314,7 +311,7 @@ List<_BreakdownSegment> _buildHealthSegments(
     ),
     _BreakdownSegment(
       label: 'Progressing',
-      color: AppColors.amber,
+      color: const Color(0xFFFFC857),
       count: applications
           .where(
             (application) =>
@@ -324,7 +321,7 @@ List<_BreakdownSegment> _buildHealthSegments(
     ),
     _BreakdownSegment(
       label: 'Degraded',
-      color: AppColors.coral,
+      color: const Color(0xFFFF6B57),
       count: applications
           .where(
             (application) =>
@@ -334,7 +331,7 @@ List<_BreakdownSegment> _buildHealthSegments(
     ),
     _BreakdownSegment(
       label: 'Missing',
-      color: AppColors.greyLight,
+      color: const Color(0xFF9CA3AF),
       count: applications
           .where(
             (application) => _normalized(application.healthStatus) == 'missing',
@@ -343,7 +340,7 @@ List<_BreakdownSegment> _buildHealthSegments(
     ),
     _BreakdownSegment(
       label: 'Unknown',
-      color: AppColors.grey,
+      color: const Color(0xFF6B7280),
       count: applications
           .where(
             (application) => !_knownHealthStatuses.contains(
@@ -359,7 +356,7 @@ List<_BreakdownSegment> _buildSyncSegments(List<ArgoApplication> applications) {
   return <_BreakdownSegment>[
     _BreakdownSegment(
       label: 'Synced',
-      color: AppColors.cobalt,
+      color: const Color(0xFF1F6FEB),
       count: applications
           .where(
             (application) => _normalized(application.syncStatus) == 'synced',
@@ -368,7 +365,7 @@ List<_BreakdownSegment> _buildSyncSegments(List<ArgoApplication> applications) {
     ),
     _BreakdownSegment(
       label: 'OutOfSync',
-      color: AppColors.coral,
+      color: const Color(0xFFFF6B57),
       count: applications
           .where(
             (application) => _normalized(application.syncStatus) != 'synced',
@@ -376,6 +373,16 @@ List<_BreakdownSegment> _buildSyncSegments(List<ArgoApplication> applications) {
           .length,
     ),
   ];
+}
+
+Color _healthChipColor(String healthStatus) {
+  return switch (_normalized(healthStatus)) {
+    'healthy' => const Color(0xFF14B8A6),
+    'progressing' => const Color(0xFFFFC857),
+    'degraded' => const Color(0xFFFF6B57),
+    'missing' => const Color(0xFF9CA3AF),
+    _ => const Color(0xFF6B7280),
+  };
 }
 
 String _normalized(String value) => value.toLowerCase();
