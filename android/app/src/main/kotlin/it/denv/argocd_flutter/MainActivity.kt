@@ -1,4 +1,4 @@
-package com.example.argocd_flutter
+package it.denv.argocd_flutter
 
 import io.flutter.embedding.android.FlutterActivity
 
