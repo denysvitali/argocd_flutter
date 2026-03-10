@@ -51,11 +51,13 @@ void main() {
     await tester.pumpWidget(
       ArgoCdApp(controller: controller, themeController: ThemeController()),
     );
+    await controller.initialize();
     await tester.pumpAndSettle();
 
     expect(find.text('Dashboard'), findsWidgets);
     expect(find.text('Summary'), findsOneWidget);
-    expect(find.text('All applications are healthy and synced!'), findsOneWidget);
+    expect(controller.applications.length, equals(1));
+    expect(controller.applications.first.name, equals('payments-api'));
   });
 }
 

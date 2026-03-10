@@ -1,6 +1,8 @@
 import 'package:argocd_flutter/core/models/argo_project.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
+import 'package:argocd_flutter/ui/error_retry_widget.dart';
+import 'package:argocd_flutter/ui/last_updated_text.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
 
@@ -54,6 +56,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: <Widget>[
+            LastUpdatedText(timestamp: widget.controller.lastRefreshedAt),
             _OverviewStrip(
               controller: widget.controller,
               totalProjects: allProjects.length,
@@ -80,12 +83,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
             ),
             const SizedBox(height: 20),
             if (widget.controller.errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Text(
-                  widget.controller.errorMessage!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
+              ErrorRetryWidget(
+                message: widget.controller.errorMessage!,
+                onRetry: () => widget.controller.refreshProjects(),
               ),
             if (widget.controller.loadingProjects &&
                 !widget.controller.hasLoadedProjects)

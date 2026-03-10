@@ -1,6 +1,8 @@
 import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
+import 'package:argocd_flutter/ui/error_retry_widget.dart';
+import 'package:argocd_flutter/ui/last_updated_text.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
 
@@ -61,6 +63,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: <Widget>[
+            LastUpdatedText(timestamp: widget.controller.lastRefreshedAt),
             _OverviewStrip(
               controller: widget.controller,
               totalApplications: allApplications.length,
@@ -81,12 +84,9 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
             ),
             const SizedBox(height: 20),
             if (widget.controller.errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Text(
-                  widget.controller.errorMessage!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
+              ErrorRetryWidget(
+                message: widget.controller.errorMessage!,
+                onRetry: () => widget.controller.refreshApplications(),
               ),
             if (widget.controller.loadingApplications &&
                 !widget.controller.hasLoadedApplications)
