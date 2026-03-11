@@ -175,7 +175,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               unhealthyCount: unhealthyCount,
               outOfSyncCount: outOfSyncCount,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             _SearchBar(
               controller: _searchController,
               onChanged: (value) {
@@ -191,7 +191,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               },
               showClear: _query.isNotEmpty,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             _FilterChips(
               activeFilter: _activeFilter,
               counts: filterCounts,
@@ -201,7 +201,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                 });
               },
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Row(
               children: <Widget>[
                 Expanded(
@@ -234,7 +234,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             if (widget.controller.errorMessage != null)
               ErrorRetryWidget(
                 message: widget.controller.errorMessage!,
@@ -258,7 +258,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
             else
               ...applications.map(
                 (application) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.only(bottom: 10),
                   child: _ApplicationCard(
                     application: application,
                     onTap: () => widget.onOpenApplication(application.name),
@@ -321,7 +321,7 @@ class _FilterChips extends StatelessWidget {
         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
       ),
       side: BorderSide(color: isSelected ? AppColors.cobalt : AppColors.border),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       visualDensity: VisualDensity.compact,
     );
   }
@@ -394,15 +394,8 @@ class _SearchBar extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.inputFill(theme),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: outlineColor),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: AppColors.surfaceShadow(theme, alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: TextField(
         controller: controller,
@@ -455,117 +448,69 @@ class _OverviewStrip extends StatelessWidget {
     final session = controller.session;
 
     return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            AppColors.gradientAppStart,
-            AppColors.gradientAppMid,
-            AppColors.cobalt,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  'Application control plane',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '$outOfSyncCount drifted • $unhealthyCount unhealthy',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            session == null
-                ? 'Connect to ArgoCD to inspect application health.'
-                : '${session.username} on ${session.serverUrl}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.textOnDarkMuted,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: <Widget>[
-              _MetricChip(label: 'Applications', value: '$totalApplications'),
-              _MetricChip(label: 'Out of sync', value: '$outOfSyncCount'),
-              _MetricChip(label: 'Unhealthy', value: '$unhealthyCount'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MetricChip extends StatelessWidget {
-  const _MetricChip({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+        color: AppColors.headerDark,
+        borderRadius: BorderRadius.circular(8),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: <Widget>[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  'Application control plane',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  session == null
+                      ? 'Connect to ArgoCD to inspect application health.'
+                      : '${session.username} on ${session.serverUrl}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.textOnDarkMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
           Text(
-            value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            '$totalApplications apps',
+            style: theme.textTheme.labelSmall?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(width: 10),
           Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: AppColors.textOnDarkMuted),
+            '$outOfSyncCount drifted',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: outOfSyncCount > 0 ? AppColors.amber : AppColors.textOnDarkMuted,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            '$unhealthyCount unhealthy',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: unhealthyCount > 0 ? AppColors.coral : AppColors.textOnDarkMuted,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
     );
   }
 }
+
 
 IconData _healthIcon(String status) {
   return switch (status.toLowerCase()) {
@@ -606,23 +551,23 @@ class _ApplicationCard extends StatelessWidget {
 
     return Material(
       color: theme.colorScheme.surface,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(6),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(6),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.dividerColor),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(6),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(6),
             child: Container(
               decoration: BoxDecoration(
-                border: Border(left: BorderSide(color: healthColor, width: 4)),
+                border: Border(left: BorderSide(color: healthColor, width: 3)),
               ),
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
@@ -657,10 +602,10 @@ class _ApplicationCard extends StatelessWidget {
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Wrap(
                     spacing: 6,
-                    runSpacing: 6,
+                    runSpacing: 4,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: <Widget>[
                       StatusChip(
@@ -686,10 +631,10 @@ class _ApplicationCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Wrap(
                     spacing: 6,
-                    runSpacing: 6,
+                    runSpacing: 4,
                     children: <Widget>[
                       _ColoredFactBadge(
                         icon: Icons.route_outlined,
@@ -769,23 +714,23 @@ class _ApplicationGridCard extends StatelessWidget {
 
     return Material(
       color: theme.colorScheme.surface,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(6),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(6),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.dividerColor),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(6),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(6),
             child: Container(
               decoration: BoxDecoration(
-                border: Border(left: BorderSide(color: healthColor, width: 4)),
+                border: Border(left: BorderSide(color: healthColor, width: 3)),
               ),
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
@@ -806,7 +751,7 @@ class _ApplicationGridCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Row(
                     children: <Widget>[
                       Icon(
@@ -823,7 +768,7 @@ class _ApplicationGridCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Row(
                     children: <Widget>[
                       Icon(
@@ -910,10 +855,10 @@ class _ColoredFactBadge extends StatelessWidget {
     final color = _factBadgeColor(icon);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(color: color.withValues(alpha: 0.16)),
       ),
       child: Row(
@@ -967,28 +912,28 @@ class _EmptyState extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
         children: <Widget>[
-          Icon(icon, size: 44, color: AppColors.greyLight),
-          const SizedBox(height: 12),
+          Icon(icon, size: 36, color: AppColors.greyLight),
+          const SizedBox(height: 8),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: theme.textTheme.titleMedium?.copyWith(
+            style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.grey),
+            style: theme.textTheme.bodySmall?.copyWith(color: AppColors.grey),
           ),
         ],
       ),
@@ -1014,7 +959,7 @@ class _LoadingSkeleton extends StatelessWidget {
               Expanded(child: _SkeletonCard(delay: 120, compact: true)),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -1030,7 +975,7 @@ class _LoadingSkeleton extends StatelessWidget {
     return Column(
       children: List<Widget>.generate(3, (index) {
         return Padding(
-          padding: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.only(bottom: 10),
           child: _SkeletonCard(delay: index * 120, compact: false),
         );
       }),
@@ -1087,10 +1032,10 @@ class _SkeletonCardState extends State<_SkeletonCard>
       builder: (context, child) {
         if (widget.compact) {
           return Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(6),
               border: Border.all(color: theme.dividerColor),
             ),
             child: Column(
@@ -1132,16 +1077,16 @@ class _SkeletonCardState extends State<_SkeletonCard>
                   children: <Widget>[
                     _SkeletonLine(
                       width: 60,
-                      height: 28,
+                      height: 22,
                       alpha: _animation.value,
-                      borderRadius: 999,
+                      borderRadius: 4,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     _SkeletonLine(
                       width: 60,
-                      height: 28,
+                      height: 22,
                       alpha: _animation.value,
-                      borderRadius: 999,
+                      borderRadius: 4,
                     ),
                   ],
                 ),
@@ -1153,84 +1098,84 @@ class _SkeletonCardState extends State<_SkeletonCard>
         return Container(
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(6),
             border: Border.all(color: theme.dividerColor),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(6),
             child: Container(
               decoration: BoxDecoration(
                 border: Border(
-                  left: BorderSide(color: skeletonColor, width: 4),
+                  left: BorderSide(color: skeletonColor, width: 3),
                 ),
               ),
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   _SkeletonLine(
                     width: 180,
-                    height: 20,
-                    alpha: _animation.value,
-                  ),
-                  const SizedBox(height: 8),
-                  _SkeletonLine(
-                    width: 220,
-                    height: 14,
+                    height: 16,
                     alpha: _animation.value,
                   ),
                   const SizedBox(height: 6),
                   _SkeletonLine(
-                    width: 280,
-                    height: 14,
+                    width: 220,
+                    height: 12,
                     alpha: _animation.value,
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 4),
+                  _SkeletonLine(
+                    width: 280,
+                    height: 12,
+                    alpha: _animation.value,
+                  ),
+                  const SizedBox(height: 10),
                   Row(
                     children: <Widget>[
                       _SkeletonLine(
-                        width: 72,
-                        height: 32,
+                        width: 64,
+                        height: 22,
                         alpha: _animation.value,
-                        borderRadius: 999,
+                        borderRadius: 4,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       _SkeletonLine(
-                        width: 72,
-                        height: 32,
+                        width: 64,
+                        height: 22,
                         alpha: _animation.value,
-                        borderRadius: 999,
+                        borderRadius: 4,
                       ),
                       const Spacer(),
                       _SkeletonLine(
-                        width: 60,
-                        height: 14,
+                        width: 50,
+                        height: 12,
                         alpha: _animation.value,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 8),
                   Row(
                     children: <Widget>[
                       _SkeletonLine(
-                        width: 80,
-                        height: 34,
+                        width: 72,
+                        height: 22,
                         alpha: _animation.value,
-                        borderRadius: 16,
+                        borderRadius: 4,
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       _SkeletonLine(
-                        width: 80,
-                        height: 34,
+                        width: 72,
+                        height: 22,
                         alpha: _animation.value,
-                        borderRadius: 16,
+                        borderRadius: 4,
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       _SkeletonLine(
-                        width: 80,
-                        height: 34,
+                        width: 72,
+                        height: 22,
                         alpha: _animation.value,
-                        borderRadius: 16,
+                        borderRadius: 4,
                       ),
                     ],
                   ),
@@ -1249,7 +1194,7 @@ class _SkeletonLine extends StatelessWidget {
     required this.width,
     required this.height,
     required this.alpha,
-    this.borderRadius = 8,
+    this.borderRadius = 4,
   });
 
   final double width;
