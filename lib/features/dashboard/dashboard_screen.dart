@@ -93,7 +93,7 @@ class DashboardScreen extends StatelessWidget {
             outOfSyncCount: 0,
             degradedCount: 0,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           _EmptyDashboard(),
           if (controller.errorMessage != null)
             Padding(
@@ -118,9 +118,9 @@ class DashboardScreen extends StatelessWidget {
           outOfSyncCount: outOfSyncCount,
           degradedCount: degradedCount,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         _SectionHeader(title: 'Health Breakdown'),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         SectionCard(
           title: null,
           child: _CompactBreakdownSection(
@@ -128,9 +128,9 @@ class DashboardScreen extends StatelessWidget {
             total: totalApps,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         _SectionHeader(title: 'Sync Status'),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         SectionCard(
           title: null,
           child: _CompactBreakdownSection(
@@ -138,9 +138,9 @@ class DashboardScreen extends StatelessWidget {
             total: totalApps,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         _SectionHeader(title: 'Needs Attention'),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         SectionCard(
           title: null,
           child: _NeedsAttentionList(
@@ -148,9 +148,9 @@ class DashboardScreen extends StatelessWidget {
             onOpenApplication: onOpenApplication,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         _SectionHeader(title: 'Recent Activity'),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         SectionCard(
           title: null,
           child: _RecentActivityTimeline(
@@ -160,7 +160,7 @@ class DashboardScreen extends StatelessWidget {
         ),
         if (controller.errorMessage != null)
           Padding(
-            padding: const EdgeInsets.only(top: 12),
+            padding: const EdgeInsets.only(top: 16),
             child: ErrorRetryWidget(
               message: controller.errorMessage!,
               onRetry: () => controller.refreshApplications(),
@@ -168,10 +168,10 @@ class DashboardScreen extends StatelessWidget {
           ),
         if (controller.loadingApplications &&
             !controller.hasLoadedApplications) ...<Widget>[
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           const Center(child: CircularProgressIndicator()),
         ],
-        const SizedBox(height: 8),
+        const SizedBox(height: 16),
       ],
     );
   }
@@ -190,13 +190,26 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Text(
-      title,
-      style: theme.textTheme.titleSmall?.copyWith(
-        fontWeight: FontWeight.w700,
-        color: AppColors.grey,
-        letterSpacing: 0.2,
-      ),
+    return Row(
+      children: <Widget>[
+        Container(
+          width: 3,
+          height: 16,
+          decoration: BoxDecoration(
+            color: AppColors.cobalt,
+            borderRadius: BorderRadius.circular(1.5),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: AppColors.mutedText(theme),
+            letterSpacing: 0.2,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -221,8 +234,9 @@ class _EmptyDashboard extends StatelessWidget {
         children: <Widget>[
           Icon(
             Icons.cloud_queue_rounded,
-            size: 32,
+            size: 48,
             color: AppColors.greyLight,
+            semanticLabel: 'No applications',
           ),
           const SizedBox(height: 10),
           Text(
@@ -236,9 +250,7 @@ class _EmptyDashboard extends StatelessWidget {
             'Your ArgoCD server has no applications yet.\n'
             'Deploy an application to see it here.',
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.grey,
-            ),
+            style: theme.textTheme.bodySmall?.copyWith(color: AppColors.grey),
           ),
         ],
       ),
@@ -290,7 +302,9 @@ class _HeroBanner extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          Row(
+          Wrap(
+            spacing: 0,
+            runSpacing: 10,
             children: <Widget>[
               _inlineMetric(theme, label: 'Total', value: '$totalApps'),
               _divider(),
@@ -322,23 +336,30 @@ class _HeroBanner extends StatelessWidget {
     required String value,
     Color? highlight,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          value,
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: highlight ?? Colors.white,
-            fontWeight: FontWeight.w700,
+    return Semantics(
+      label: '$label: $value',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          ExcludeSemantics(
+            child: Text(
+              value,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: highlight ?? Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
-        ),
-        Text(
-          label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: AppColors.textOnDarkMuted,
+          ExcludeSemantics(
+            child: Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.textOnDarkMuted,
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -357,10 +378,7 @@ class _HeroBanner extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _CompactBreakdownSection extends StatelessWidget {
-  const _CompactBreakdownSection({
-    required this.segments,
-    required this.total,
-  });
+  const _CompactBreakdownSection({required this.segments, required this.total});
 
   final List<_BreakdownSegment> segments;
   final int total;
@@ -371,7 +389,7 @@ class _CompactBreakdownSection extends StatelessWidget {
       children: segments
           .map(
             (segment) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 5),
+              padding: const EdgeInsets.symmetric(vertical: 6),
               child: _BreakdownRow(
                 color: segment.color,
                 label: segment.label,
@@ -403,53 +421,59 @@ class _BreakdownRow extends StatelessWidget {
     final theme = Theme.of(context);
     final percentage = total > 0 ? (count / total * 100) : 0.0;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            ExcludeSemantics(
-              child: Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                label,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+    return Semantics(
+      label: '$label: $count of $total, ${percentage.round()} percent',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              ExcludeSemantics(
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
                 ),
               ),
-            ),
-            Text(
-              '$count',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w700,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '${percentage.round()}%',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.greyLight,
+              Text(
+                '$count',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: total == 0 ? 0 : count / total,
-            minHeight: 4,
-            color: color,
-            backgroundColor: color.withValues(alpha: 0.14),
+              const SizedBox(width: 8),
+              Text(
+                '${percentage.round()}%',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.greyLight,
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: total == 0 ? 0 : count / total,
+              minHeight: 6,
+              color: color,
+              backgroundColor: color.withValues(alpha: 0.14),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -472,11 +496,7 @@ class _NeedsAttentionList extends StatelessWidget {
     if (applications.isEmpty) {
       return Row(
         children: <Widget>[
-          Icon(
-            Icons.check_circle_rounded,
-            color: AppColors.teal,
-            size: 18,
-          ),
+          Icon(Icons.check_circle_rounded, color: AppColors.teal, size: 18),
           const SizedBox(width: 8),
           const Expanded(
             child: Text('All applications are healthy and synced!'),
@@ -514,10 +534,7 @@ class _NeedsAttentionList extends StatelessWidget {
 }
 
 class _AttentionItem extends StatelessWidget {
-  const _AttentionItem({
-    required this.application,
-    required this.onTap,
-  });
+  const _AttentionItem({required this.application, required this.onTap});
 
   final ArgoApplication application;
   final VoidCallback onTap;
@@ -543,53 +560,69 @@ class _AttentionItem extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: _severityColor().withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(6),
-            border: Border(
-              left: BorderSide(
-                color: _severityColor(),
-                width: 3,
-              ),
-            ),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: Text(
-                      application.name,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  StatusChip(
-                    label: application.syncStatus,
-                    color: AppColors.syncColor(application.syncStatus),
-                  ),
-                  const SizedBox(width: 6),
-                  StatusChip(
-                    label: application.healthStatus,
-                    color: AppColors.healthColor(application.healthStatus),
-                  ),
+      child: Semantics(
+        label:
+            'Application ${application.name}, ${_attentionReason(application)}',
+        button: true,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(6),
+          child: Ink(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: <Color>[
+                  _severityColor().withValues(alpha: 0.10),
+                  _severityColor().withValues(alpha: 0.03),
                 ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                '${application.project} / ${application.namespace} • ${_attentionReason(application)}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.grey,
-                ),
+              borderRadius: BorderRadius.circular(6),
+              border: Border(
+                left: BorderSide(color: _severityColor(), width: 3),
               ),
-            ],
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: _severityColor().withValues(alpha: 0.08),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Text(
+                        application.name,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    StatusChip(
+                      label: application.syncStatus,
+                      color: AppColors.syncColor(application.syncStatus),
+                    ),
+                    const SizedBox(width: 6),
+                    StatusChip(
+                      label: application.healthStatus,
+                      color: AppColors.healthColor(application.healthStatus),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${application.project} / ${application.namespace} • ${_attentionReason(application)}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.grey,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -615,16 +648,13 @@ class _RecentActivityTimeline extends StatelessWidget {
     if (applications.isEmpty) {
       return Row(
         children: <Widget>[
-          Icon(
-            Icons.history_rounded,
-            color: AppColors.greyLight,
-          ),
+          Icon(Icons.history_rounded, color: AppColors.greyLight),
           const SizedBox(width: 12),
           Text(
             'No recent sync activity.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.grey,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.grey),
           ),
         ],
       );
@@ -682,73 +712,72 @@ class _TimelineEntry extends StatelessWidget {
                 ),
                 if (!isLast)
                   Expanded(
-                    child: Container(
-                      width: 1,
-                      color: AppColors.border,
-                    ),
+                    child: Container(width: 1, color: AppColors.outline(theme)),
                   ),
               ],
             ),
           ),
           Expanded(
-            child: InkWell(
-              onTap: onTap,
-              borderRadius: BorderRadius.circular(4),
-              child: Padding(
-                padding: const EdgeInsets.only(
-                  left: 8,
-                  bottom: 12,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      application.name,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${application.project} / ${application.namespace}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.grey,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 6,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: <Widget>[
-                        StatusChip(
-                          label: application.syncStatus,
-                          color: AppColors.syncColor(application.syncStatus),
+            child: Semantics(
+              label:
+                  'Application ${application.name}, ${application.syncStatus}',
+              button: true,
+              child: InkWell(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(4),
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8, bottom: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        application.name,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
                         ),
-                        if (application.history.isNotEmpty)
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${application.project} / ${application.namespace}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: <Widget>[
+                          StatusChip(
+                            label: application.syncStatus,
+                            color: AppColors.syncColor(application.syncStatus),
+                          ),
+                          if (application.history.isNotEmpty)
+                            Text(
+                              'rev ${_shortRevision(application.history.first.revision)}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.grey,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           Text(
-                            'rev ${_shortRevision(application.history.first.revision)}',
+                            application.operationPhase,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: AppColors.grey,
-                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                        Text(
-                          application.operationPhase,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.grey,
-                          ),
-                        ),
-                        if (syncTime != null && syncTime.isNotEmpty)
-                          Text(
-                            _formatSyncTime(syncTime),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.greyLight,
+                          if (syncTime != null && syncTime.isNotEmpty)
+                            Text(
+                              _formatSyncTime(syncTime),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.greyLight,
+                              ),
                             ),
-                          ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -909,9 +938,7 @@ const Set<String> _knownHealthStatuses = <String>{
   'missing',
 };
 
-List<ArgoApplication> _buildRecentlySynced(
-  List<ArgoApplication> applications,
-) {
+List<ArgoApplication> _buildRecentlySynced(List<ArgoApplication> applications) {
   final withSync = applications
       .where(
         (application) =>
