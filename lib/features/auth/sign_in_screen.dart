@@ -58,87 +58,69 @@ class _SignInScreenState extends State<SignInScreen> {
     final certificateStatus = widget.controller.certificateStatus;
     final errorMessage = widget.controller.errorMessage;
     final showError = errorMessage != null && errorMessage != _dismissedError;
-    final pageGradient = LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: isDark
-          ? <Color>[
-              AppColors.ink,
-              AppColors.darkSurface,
-              AppColors.gradientAppMid,
-            ]
-          : <Color>[AppColors.canvas, AppColors.blueLight, AppColors.peach],
-    );
-    final heroColor = isDark ? colorScheme.surfaceContainerHigh : AppColors.ink;
+    final pageBgColor = isDark ? AppColors.ink : AppColors.canvas;
+    final heroColor = isDark
+        ? colorScheme.surfaceContainerHigh
+        : AppColors.headerDark;
     final heroTitleColor = isDark ? colorScheme.onSurface : Colors.white;
     final heroBodyColor = isDark
         ? colorScheme.onSurfaceVariant
         : AppColors.textOnDarkMuted;
 
     return Scaffold(
-      body: DecoratedBox(
-        decoration: BoxDecoration(gradient: pageGradient),
+      body: ColoredBox(
+        color: pageBgColor,
         child: SafeArea(
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 840),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
                     // Logo / branding area
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(28),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(28),
+                        borderRadius: BorderRadius.circular(8),
                         color: heroColor,
                       ),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          Container(
-                            width: 72,
-                            height: 72,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppColors.cobalt.withValues(alpha: 0.2),
-                            ),
-                            child: const Icon(
-                              Icons.cloud_sync_outlined,
-                              size: 36,
-                              color: AppColors.cobalt,
-                            ),
+                          Icon(
+                            Icons.cloud_sync_outlined,
+                            size: 28,
+                            color: AppColors.cobalt,
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 12),
                           Text(
                             'ArgoCD Flutter',
-                            style: theme.textTheme.displaySmall?.copyWith(
+                            style: theme.textTheme.headlineSmall?.copyWith(
                               color: heroTitleColor,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 6),
                           Text(
-                            'Sign in to your ArgoCD control plane, persist '
-                            'your session locally, and inspect application '
-                            'health from the same shell.',
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.titleMedium?.copyWith(
+                            'Sign in to manage your ArgoCD control plane.',
+                            style: theme.textTheme.bodyMedium?.copyWith(
                               color: heroBodyColor,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     // Error banner
                     AnimatedSize(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeInOut,
                       child: showError
                           ? Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
+                              padding: const EdgeInsets.only(bottom: 12),
                               child: _ErrorBanner(
                                 message: errorMessage,
                                 onDismiss: () {
@@ -154,10 +136,10 @@ class _SignInScreenState extends State<SignInScreen> {
                     // Form card
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(24),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(28),
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: theme.dividerColor),
                       ),
                       child: Form(
@@ -167,11 +149,11 @@ class _SignInScreenState extends State<SignInScreen> {
                           children: <Widget>[
                             Text(
                               'Connect to ArgoCD',
-                              style: theme.textTheme.headlineSmall?.copyWith(
+                              style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 16),
                             TextFormField(
                               controller: _serverController,
                               decoration: InputDecoration(
@@ -239,12 +221,12 @@ class _SignInScreenState extends State<SignInScreen> {
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 14),
                             if (certificateStatus != null)
                               _CertificateBanner(
                                 message: certificateStatus.message,
                               ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 14),
                             Wrap(
                               spacing: 12,
                               runSpacing: 12,
@@ -462,7 +444,7 @@ class _ErrorBanner extends StatelessWidget {
 
     return Material(
       color: theme.colorScheme.errorContainer,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(6),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
@@ -507,10 +489,10 @@ class _CertificateBanner extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
