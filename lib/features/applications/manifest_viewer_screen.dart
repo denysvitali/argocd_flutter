@@ -2,241 +2,20 @@ import 'dart:convert';
 
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
+import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Converts a decoded JSON value to a YAML-formatted string.
-String jsonToYaml(dynamic value, {int indent = 0}) {
-  final buffer = StringBuffer();
-  _writeYamlValue(buffer, value, indent: indent, isTopLevel: true);
-  return buffer.toString();
-}
+export 'package:argocd_flutter/ui/shared_widgets.dart'
+    show
+        YamlToken,
+        YamlTokenType,
+        jsonToYaml,
+        needsYamlQuoting,
+        tokenizeYamlLine,
+        yamlTokenColor;
 
-void _writeYamlValue(
-  StringBuffer buffer,
-  dynamic value, {
-  required int indent,
-  bool isTopLevel = false,
-}) {
-  final prefix = ' ' * indent;
-
-  if (value is Map<String, dynamic>) {
-    if (value.isEmpty) {
-      buffer.writeln('{}');
-      return;
-    }
-    if (!isTopLevel) {
-      buffer.writeln();
-    }
-    final entries = value.entries.toList();
-    for (var i = 0; i < entries.length; i++) {
-      final entry = entries[i];
-      buffer.write('$prefix${entry.key}:');
-      if (entry.value is Map<String, dynamic> || entry.value is List) {
-        final isEmpty = (entry.value is Map && (entry.value as Map).isEmpty) ||
-            (entry.value is List && (entry.value as List).isEmpty);
-        if (isEmpty) {
-          buffer.write(' ');
-        }
-        _writeYamlValue(buffer, entry.value, indent: indent + 2);
-      } else {
-        buffer.write(' ');
-        _writeYamlScalar(buffer, entry.value);
-        buffer.writeln();
-      }
-    }
-  } else if (value is List) {
-    if (value.isEmpty) {
-      buffer.writeln('[]');
-      return;
-    }
-    buffer.writeln();
-    for (final item in value) {
-      if (item is Map<String, dynamic>) {
-        if (item.isEmpty) {
-          buffer.writeln('$prefix- {}');
-          continue;
-        }
-        final entries = item.entries.toList();
-        // First entry goes on the same line as the dash
-        buffer.write('$prefix- ${entries.first.key}:');
-        if (entries.first.value is Map<String, dynamic> ||
-            entries.first.value is List) {
-          _writeYamlValue(
-            buffer,
-            entries.first.value,
-            indent: indent + 4,
-          );
-        } else {
-          buffer.write(' ');
-          _writeYamlScalar(buffer, entries.first.value);
-          buffer.writeln();
-        }
-        // Remaining entries indented under the dash
-        for (var i = 1; i < entries.length; i++) {
-          buffer.write('$prefix  ${entries[i].key}:');
-          if (entries[i].value is Map<String, dynamic> ||
-              entries[i].value is List) {
-            _writeYamlValue(
-              buffer,
-              entries[i].value,
-              indent: indent + 4,
-            );
-          } else {
-            buffer.write(' ');
-            _writeYamlScalar(buffer, entries[i].value);
-            buffer.writeln();
-          }
-        }
-      } else if (item is List) {
-        buffer.write('$prefix-');
-        _writeYamlValue(buffer, item, indent: indent + 2);
-      } else {
-        buffer.write('$prefix- ');
-        _writeYamlScalar(buffer, item);
-        buffer.writeln();
-      }
-    }
-  } else {
-    _writeYamlScalar(buffer, value);
-    buffer.writeln();
-  }
-}
-
-void _writeYamlScalar(StringBuffer buffer, dynamic value) {
-  if (value == null) {
-    buffer.write('null');
-  } else if (value is bool) {
-    buffer.write(value ? 'true' : 'false');
-  } else if (value is num) {
-    buffer.write(value);
-  } else {
-    final str = value.toString();
-    if (_needsQuoting(str)) {
-      buffer.write("'${str.replaceAll("'", "''")}'");
-    } else {
-      buffer.write(str);
-    }
-  }
-}
-
-bool _needsQuoting(String str) {
-  if (str.isEmpty) return true;
-  if (str.contains('\n') || str.contains(':') || str.contains('#')) return true;
-  if (str.startsWith(' ') || str.endsWith(' ')) return true;
-  if (str.startsWith('{') || str.startsWith('[')) return true;
-  if (str.startsWith('"') || str.startsWith("'")) return true;
-  // Quote values that look like booleans, null, or numbers
-  final lower = str.toLowerCase();
-  if (lower == 'true' || lower == 'false' || lower == 'null') return true;
-  if (num.tryParse(str) != null) return true;
-  return false;
-}
-
-/// Identifies the type of a YAML token for syntax highlighting.
-enum YamlTokenType { key, stringValue, numberValue, boolNullValue, listDash }
-
-/// A single syntax-highlighted span in a YAML line.
-class YamlToken {
-  const YamlToken(this.text, this.type);
-
-  final String text;
-  final YamlTokenType? type;
-}
-
-/// Tokenises a single line of YAML for syntax highlighting.
-List<YamlToken> tokenizeYamlLine(String line) {
-  final tokens = <YamlToken>[];
-
-  if (line.trimLeft().startsWith('- ') || line.trimLeft() == '-') {
-    final dashIndex = line.indexOf('-');
-    if (dashIndex > 0) {
-      tokens.add(YamlToken(line.substring(0, dashIndex), null));
-    }
-    tokens.add(const YamlToken('-', YamlTokenType.listDash));
-    final rest = line.substring(dashIndex + 1);
-    if (rest.isNotEmpty) {
-      tokens.addAll(_tokenizeKeyValue(rest));
-    }
-    return tokens;
-  }
-
-  tokens.addAll(_tokenizeKeyValue(line));
-  return tokens;
-}
-
-List<YamlToken> _tokenizeKeyValue(String text) {
-  final tokens = <YamlToken>[];
-  // Look for a key: value pattern
-  final colonIndex = text.indexOf(':');
-  if (colonIndex > 0) {
-    final beforeColon = text.substring(0, colonIndex);
-    // Only treat as key if the part before colon is a simple identifier
-    // (possibly with leading whitespace)
-    if (beforeColon.trimLeft().isNotEmpty &&
-        !beforeColon.trimLeft().startsWith("'") &&
-        !beforeColon.trimLeft().startsWith('"')) {
-      tokens.add(YamlToken(beforeColon, YamlTokenType.key));
-      tokens.add(const YamlToken(':', YamlTokenType.key));
-      final afterColon = text.substring(colonIndex + 1);
-      if (afterColon.isNotEmpty) {
-        tokens.addAll(_tokenizeValue(afterColon));
-      }
-      return tokens;
-    }
-  }
-  // No key found, treat as a value
-  tokens.addAll(_tokenizeValue(text));
-  return tokens;
-}
-
-List<YamlToken> _tokenizeValue(String text) {
-  if (text.trim().isEmpty) {
-    return <YamlToken>[YamlToken(text, null)];
-  }
-
-  final trimmed = text.trim();
-  final leadingSpace = text.substring(0, text.length - text.trimLeft().length);
-
-  if (trimmed == 'null') {
-    return <YamlToken>[
-      if (leadingSpace.isNotEmpty) YamlToken(leadingSpace, null),
-      const YamlToken('null', YamlTokenType.boolNullValue),
-    ];
-  }
-  if (trimmed == 'true' || trimmed == 'false') {
-    return <YamlToken>[
-      if (leadingSpace.isNotEmpty) YamlToken(leadingSpace, null),
-      YamlToken(trimmed, YamlTokenType.numberValue),
-    ];
-  }
-  if (num.tryParse(trimmed) != null) {
-    return <YamlToken>[
-      if (leadingSpace.isNotEmpty) YamlToken(leadingSpace, null),
-      YamlToken(trimmed, YamlTokenType.numberValue),
-    ];
-  }
-  if (trimmed == '{}' || trimmed == '[]') {
-    return <YamlToken>[YamlToken(text, null)];
-  }
-
-  return <YamlToken>[
-    if (leadingSpace.isNotEmpty) YamlToken(leadingSpace, null),
-    YamlToken(trimmed, YamlTokenType.stringValue),
-  ];
-}
-
-/// Returns the color for a given YAML token type.
-Color yamlTokenColor(YamlTokenType? type) {
-  return switch (type) {
-    YamlTokenType.key => AppColors.cobalt,
-    YamlTokenType.stringValue => AppColors.teal,
-    YamlTokenType.numberValue => AppColors.amber,
-    YamlTokenType.boolNullValue => AppColors.grey,
-    YamlTokenType.listDash => AppColors.coral,
-    null => AppColors.border,
-  };
-}
+enum _ManifestViewMode { yaml, json, diff }
 
 class ManifestViewerScreen extends StatefulWidget {
   const ManifestViewerScreen({
@@ -263,12 +42,22 @@ class ManifestViewerScreen extends StatefulWidget {
 }
 
 class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
+  static const int _searchContextRadius = 2;
+
   late Future<String> _future;
-  bool _showRawJson = false;
-  bool _showSearch = false;
-  String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _verticalScrollController = ScrollController();
+  final ScrollController _horizontalScrollController = ScrollController();
   final Map<String, bool> _expandedSections = <String, bool>{};
+  final Map<String, GlobalKey> _lineKeys = <String, GlobalKey>{};
+
+  _ManifestViewMode _viewMode = _ManifestViewMode.yaml;
+  _ManifestViewMode _lastNonDiffMode = _ManifestViewMode.yaml;
+  bool _showSearch = false;
+  bool _wrapLines = false;
+  String _searchQuery = '';
+  int _currentMatchIndex = 0;
+  List<int> _activeMatches = const <int>[];
 
   @override
   void initState() {
@@ -279,6 +68,8 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _verticalScrollController.dispose();
+    _horizontalScrollController.dispose();
     super.dispose();
   }
 
@@ -290,32 +81,43 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
         actions: <Widget>[
           IconButton(
             tooltip: 'Search',
+            onPressed: _toggleSearch,
+            icon: const Icon(Icons.search),
+          ),
+          IconButton(
+            tooltip: _wrapLines ? 'Disable word wrap' : 'Enable word wrap',
             onPressed: () {
               setState(() {
-                _showSearch = !_showSearch;
-                if (!_showSearch) {
-                  _searchQuery = '';
-                  _searchController.clear();
-                }
+                _wrapLines = !_wrapLines;
               });
             },
-            icon: const Icon(Icons.search),
+            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
           FutureBuilder<String>(
             future: _future,
             builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
               return IconButton(
-                tooltip: _showRawJson ? 'Show YAML' : 'Show JSON',
-                onPressed: snapshot.hasData
-                    ? () {
-                        setState(() {
-                          _showRawJson = !_showRawJson;
-                        });
-                      }
-                    : null,
+                tooltip: _viewMode == _ManifestViewMode.json
+                    ? 'Show YAML'
+                    : 'Show JSON',
+                onPressed: snapshot.hasData ? _toggleJsonYamlMode : null,
                 icon: Icon(
-                  _showRawJson ? Icons.data_object : Icons.code,
+                  _viewMode == _ManifestViewMode.json
+                      ? Icons.data_object
+                      : Icons.code,
                 ),
+              );
+            },
+          ),
+          FutureBuilder<String>(
+            future: _future,
+            builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+              return IconButton(
+                tooltip: _viewMode == _ManifestViewMode.diff
+                    ? 'Hide diff'
+                    : 'Show diff',
+                onPressed: snapshot.hasData ? _toggleDiffMode : null,
+                icon: const Icon(Icons.compare_arrows),
               );
             },
           ),
@@ -340,54 +142,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       ),
       body: Column(
         children: <Widget>[
-          if (_showSearch)
-            Container(
-              color: AppColors.darkSurface,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: TextField(
-                controller: _searchController,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: 'Search manifest...',
-                  hintStyle: const TextStyle(color: AppColors.grey),
-                  prefixIcon: const Icon(Icons.search, color: AppColors.grey),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, color: AppColors.grey),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {
-                              _searchQuery = '';
-                            });
-                          },
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: AppColors.ink,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.darkBorder),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.darkBorder),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.cobalt),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                ),
-                onChanged: (String value) {
-                  setState(() {
-                    _searchQuery = value;
-                  });
-                },
-              ),
-            ),
+          if (_showSearch) _buildSearchBar(),
           Expanded(
             child: FutureBuilder<String>(
               future: _future,
@@ -419,12 +174,25 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                 }
 
                 final manifest = snapshot.requireData;
+                final document = _buildDocumentBundle(manifest);
+                final viewData = _activeViewData(document);
+                _activeMatches = viewData.matches;
+                _syncCurrentMatch(viewData.matches.length);
 
-                if (_showRawJson) {
-                  return _buildRawJsonView(manifest);
-                }
-
-                return _buildYamlView(manifest);
+                return AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 240),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  child: Container(
+                    key: ValueKey<String>(_viewMode.name),
+                    color: AppColors.ink,
+                    child: switch (_viewMode) {
+                      _ManifestViewMode.json => _buildJsonView(viewData),
+                      _ManifestViewMode.yaml => _buildYamlView(document, viewData),
+                      _ManifestViewMode.diff => _buildDiffView(document, viewData),
+                    },
+                  ),
+                );
               },
             ),
           ),
@@ -433,229 +201,356 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     );
   }
 
-  Widget _buildRawJsonView(String manifest) {
-    String formatted;
-    try {
-      final decoded = jsonDecode(manifest);
-      formatted = const JsonEncoder.withIndent('  ').convert(decoded);
-    } catch (_) {
-      formatted = manifest;
-    }
-
-    final lines = formatted.split('\n');
-    final filteredIndices = _getFilteredLineIndices(lines);
+  Widget _buildSearchBar() {
+    final matchCount = _activeMatchCount;
+    final currentLabel = matchCount == 0 ? '0/0' : '${_currentMatchIndex + 1}/$matchCount';
 
     return Container(
-      width: double.infinity,
-      height: double.infinity,
-      color: AppColors.ink,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              _buildLineNumbers(lines.length, filteredIndices),
-              const SizedBox(width: 12),
-              SelectableText(
-                filteredIndices != null
-                    ? filteredIndices
-                        .map((int i) => lines[i])
-                        .join('\n')
-                    : formatted,
-                style: const TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 13,
-                  color: AppColors.border,
-                  height: 1.5,
+      color: AppColors.darkSurface,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Search manifest...',
+                hintStyle: const TextStyle(color: AppColors.grey),
+                prefixIcon: const Icon(Icons.search, color: AppColors.grey),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: AppColors.grey),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchQuery = '';
+                            _currentMatchIndex = 0;
+                          });
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: AppColors.ink,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: AppColors.darkBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: AppColors.darkBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: AppColors.cobalt),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
                 ),
               ),
-            ],
+              onChanged: (String value) {
+                setState(() {
+                  _searchQuery = value;
+                  _currentMatchIndex = 0;
+                });
+                _scheduleEnsureCurrentMatch();
+              },
+            ),
           ),
+          const SizedBox(width: 12),
+          Text(
+            currentLabel,
+            style: const TextStyle(
+              color: AppColors.border,
+              fontFamily: 'monospace',
+              fontSize: 13,
+            ),
+          ),
+          IconButton(
+            tooltip: 'Previous match',
+            onPressed: matchCount == 0 ? null : _goToPreviousMatch,
+            icon: const Icon(Icons.keyboard_arrow_up),
+            color: AppColors.border,
+          ),
+          IconButton(
+            tooltip: 'Next match',
+            onPressed: matchCount == 0 ? null : _goToNextMatch,
+            icon: const Icon(Icons.keyboard_arrow_down),
+            color: AppColors.border,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildJsonView(_ManifestViewData viewData) {
+    return _buildScrollableSurface(
+      lineCount: viewData.lines.length,
+      matches: viewData.matches,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            for (var i = 0; i < viewData.lines.length; i++)
+              _buildPlainLine(
+                keyId: '${_viewMode.name}-$i',
+                lineNumber: i + 1,
+                line: viewData.lines[i],
+                isMatch: viewData.matches.contains(i),
+                isCurrentMatch:
+                    viewData.matches.isNotEmpty &&
+                    viewData.matches[_currentMatchIndex] == i,
+              ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildYamlView(String manifest) {
-    Map<String, dynamic> parsed;
-    try {
-      final decoded = jsonDecode(manifest);
-      if (decoded is Map<String, dynamic>) {
-        parsed = decoded;
-      } else {
-        // Not a JSON object, show as raw
-        return _buildRawJsonView(manifest);
-      }
-    } catch (_) {
-      return _buildRawJsonView(manifest);
-    }
-
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      color: AppColors.ink,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(0),
-        itemCount: parsed.keys.length,
-        itemBuilder: (BuildContext context, int index) {
-          final key = parsed.keys.elementAt(index);
-          final value = parsed[key];
-          return _buildCollapsibleSection(key, value);
-        },
+  Widget _buildYamlView(
+    _ManifestDocumentBundle document,
+    _ManifestViewData viewData,
+  ) {
+    return _buildScrollableSurface(
+      lineCount: document.yamlLines.length,
+      matches: viewData.matches,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          for (final section in document.sections)
+            _buildSection(document, section, viewData),
+        ],
       ),
     );
   }
 
-  Widget _buildCollapsibleSection(String key, dynamic value) {
-    final isExpandable = value is Map<String, dynamic> || value is List;
-    final isExpanded = _expandedSections[key] ?? true;
-
-    if (!isExpandable) {
-      // Simple key-value — render as a single highlighted line
-      final yamlLine = '$key: ${_scalarToYaml(value)}';
-      if (_searchQuery.isNotEmpty &&
-          !yamlLine.toLowerCase().contains(_searchQuery.toLowerCase())) {
-        return const SizedBox.shrink();
-      }
-      final lineNumber = 1; // Standalone line
-      return Container(
-        color: AppColors.ink,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            SizedBox(
-              width: 40,
-              child: Text(
-                '$lineNumber',
-                style: const TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 13,
-                  color: AppColors.grey,
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.right,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildHighlightedLine(yamlLine),
-            ),
-          ],
+  Widget _buildDiffView(
+    _ManifestDocumentBundle document,
+    _ManifestViewData viewData,
+  ) {
+    if (document.diff == null) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'Desired/live diff is not available for this manifest response.',
+            style: TextStyle(color: AppColors.border),
+            textAlign: TextAlign.center,
+          ),
         ),
       );
     }
 
-    final yamlContent = jsonToYaml(<String, dynamic>{key: value});
-    final yamlLines = yamlContent.split('\n');
-    // Remove trailing empty line from yaml output
-    if (yamlLines.isNotEmpty && yamlLines.last.isEmpty) {
-      yamlLines.removeLast();
-    }
+    final diff = document.diff!;
+    return _buildScrollableSurface(
+      lineCount: diff.lines.length,
+      matches: viewData.matches,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            for (var i = 0; i < diff.lines.length; i++)
+              _buildDiffLine(
+                keyId: '${_viewMode.name}-$i',
+                lineNumber: i + 1,
+                line: diff.lines[i],
+                isMatch: viewData.matches.contains(i),
+                isCurrentMatch:
+                    viewData.matches.isNotEmpty &&
+                    viewData.matches[_currentMatchIndex] == i,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 
-    final filteredIndices = _searchQuery.isNotEmpty
-        ? <int>[
-            for (var i = 0; i < yamlLines.length; i++)
-              if (yamlLines[i]
-                  .toLowerCase()
-                  .contains(_searchQuery.toLowerCase()))
-                i,
-          ]
-        : null;
+  Widget _buildScrollableSurface({
+    required int lineCount,
+    required List<int> matches,
+    required Widget child,
+  }) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        Widget content = SingleChildScrollView(
+          controller: _verticalScrollController,
+          padding: const EdgeInsets.only(right: 18),
+          child: child,
+        );
 
-    if (_searchQuery.isNotEmpty &&
-        filteredIndices != null &&
-        filteredIndices.isEmpty) {
+        if (!_wrapLines) {
+          content = SingleChildScrollView(
+            controller: _horizontalScrollController,
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth - 18),
+              child: content,
+            ),
+          );
+        }
+
+        return Stack(
+          children: <Widget>[
+            Positioned.fill(child: content),
+            Positioned(
+              top: 0,
+              right: 0,
+              bottom: 0,
+              child: _MiniMap(
+                lineCount: lineCount,
+                matches: matches,
+                currentMatchLine: matches.isEmpty ? null : matches[_currentMatchIndex],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSection(
+    _ManifestDocumentBundle document,
+    _YamlSection section,
+    _ManifestViewData viewData,
+  ) {
+    final hasMatches =
+        section.matchingLineIndices(document.yamlLines, viewData.query).isNotEmpty;
+    if (viewData.query.isNotEmpty && !hasMatches) {
       return const SizedBox.shrink();
     }
 
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        key: PageStorageKey<String>(key),
-        initiallyExpanded: isExpanded,
-        onExpansionChanged: (bool expanded) {
-          setState(() {
-            _expandedSections[key] = expanded;
-          });
-        },
-        tilePadding: const EdgeInsets.symmetric(horizontal: 16),
-        childrenPadding: EdgeInsets.zero,
-        collapsedIconColor: AppColors.grey,
-        iconColor: AppColors.cobalt,
-        title: Text(
-          key,
-          style: const TextStyle(
-            fontFamily: 'monospace',
-            fontSize: 14,
-            color: AppColors.cobalt,
-            fontWeight: FontWeight.bold,
-            height: 1.5,
-          ),
+    final userExpanded = _expandedSections[section.key] ?? true;
+    final isExpanded = viewData.query.isNotEmpty ? true : userExpanded;
+    final visibleLines = section.visibleLineIndices(
+      yamlLines: document.yamlLines,
+      query: viewData.query,
+      contextRadius: _searchContextRadius,
+    );
+
+    return Container(
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: AppColors.darkBorder),
         ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.only(bottom: 8),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          InkWell(
+            onTap: section.expandable
+                ? () {
+                    setState(() {
+                      _expandedSections[section.key] = !userExpanded;
+                    });
+                  }
+                : null,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
                 children: <Widget>[
-                  for (var i = 0; i < yamlLines.length; i++)
-                    if (filteredIndices == null || filteredIndices.contains(i))
-                      _buildNumberedLine(i + 1, yamlLines[i]),
+                  Icon(
+                    section.expandable
+                        ? (isExpanded
+                              ? Icons.keyboard_arrow_down
+                              : Icons.keyboard_arrow_right)
+                        : Icons.drag_handle,
+                    size: 18,
+                    color: section.expandable
+                        ? AppColors.cobalt
+                        : AppColors.greyLight,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    section.key,
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 14,
+                      color: AppColors.cobalt,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildLineCountBadge(section.lineCount),
                 ],
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNumberedLine(int lineNumber, String line) {
-    final isHighlighted = _searchQuery.isNotEmpty &&
-        line.toLowerCase().contains(_searchQuery.toLowerCase());
-
-    return Container(
-      color: isHighlighted
-          ? AppColors.cobalt.withValues(alpha: 0.15)
-          : null,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          SizedBox(
-            width: 40,
-            child: Text(
-              '$lineNumber',
-              style: const TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 13,
-                color: AppColors.grey,
-                height: 1.5,
+          AnimatedCrossFade(
+            firstCurve: Curves.easeOutCubic,
+            secondCurve: Curves.easeInCubic,
+            sizeCurve: Curves.easeInOutCubic,
+            duration: const Duration(milliseconds: 220),
+            crossFadeState: isExpanded
+                ? CrossFadeState.showFirst
+                : CrossFadeState.showSecond,
+            firstChild: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  for (final globalIndex in visibleLines)
+                    _buildYamlLine(
+                      keyId: 'yaml-$globalIndex',
+                      lineNumber: globalIndex + 1,
+                      line: document.yamlLines[globalIndex],
+                      isMatch: viewData.matches.contains(globalIndex),
+                      isCurrentMatch:
+                          viewData.matches.isNotEmpty &&
+                          viewData.matches[_currentMatchIndex] == globalIndex,
+                    ),
+                ],
               ),
-              textAlign: TextAlign.right,
             ),
+            secondChild: const SizedBox.shrink(),
           ),
-          const SizedBox(width: 12),
-          _buildHighlightedLine(line),
         ],
       ),
     );
   }
 
-  Widget _buildHighlightedLine(String line) {
+  Widget _buildLineCountBadge(int lineCount) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.darkSurface,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.darkBorder),
+      ),
+      child: Text(
+        '$lineCount ${lineCount == 1 ? 'line' : 'lines'}',
+        style: const TextStyle(
+          color: AppColors.border,
+          fontSize: 12,
+          fontFamily: 'monospace',
+        ),
+      ),
+    );
+  }
+
+  Widget _buildYamlLine({
+    required String keyId,
+    required int lineNumber,
+    required String line,
+    required bool isMatch,
+    required bool isCurrentMatch,
+  }) {
     final tokens = tokenizeYamlLine(line);
-    return Text.rich(
-      TextSpan(
-        children: <InlineSpan>[
+    return _buildLineFrame(
+      keyId: keyId,
+      lineNumber: lineNumber,
+      isMatch: isMatch,
+      isCurrentMatch: isCurrentMatch,
+      child: Wrap(
+        spacing: 0,
+        runSpacing: 0,
+        children: <Widget>[
           for (final token in tokens)
-            TextSpan(
-              text: token.text,
+            Text(
+              token.text,
+              softWrap: _wrapLines,
               style: TextStyle(
                 fontFamily: 'monospace',
                 fontSize: 13,
@@ -668,48 +563,336 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     );
   }
 
-  Widget _buildLineNumbers(int totalLines, List<int>? filteredIndices) {
-    final indices = filteredIndices ?? List<int>.generate(totalLines, (int i) => i);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: <Widget>[
-        for (final i in indices)
+  Widget _buildPlainLine({
+    required String keyId,
+    required int lineNumber,
+    required String line,
+    required bool isMatch,
+    required bool isCurrentMatch,
+  }) {
+    return _buildLineFrame(
+      keyId: keyId,
+      lineNumber: lineNumber,
+      isMatch: isMatch,
+      isCurrentMatch: isCurrentMatch,
+      child: Text(
+        line,
+        softWrap: _wrapLines,
+        style: const TextStyle(
+          fontFamily: 'monospace',
+          fontSize: 13,
+          color: AppColors.border,
+          height: 1.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDiffLine({
+    required String keyId,
+    required int lineNumber,
+    required _DiffLine line,
+    required bool isMatch,
+    required bool isCurrentMatch,
+  }) {
+    final lineColor = switch (line.kind) {
+      _DiffKind.added => AppColors.teal,
+      _DiffKind.removed => AppColors.coral,
+      _DiffKind.changed => AppColors.amber,
+      _DiffKind.unchanged => AppColors.border,
+    };
+
+    return _buildLineFrame(
+      keyId: keyId,
+      lineNumber: lineNumber,
+      isMatch: isMatch,
+      isCurrentMatch: isCurrentMatch,
+      child: Text(
+        '${line.prefix} ${line.text}',
+        softWrap: _wrapLines,
+        style: TextStyle(
+          fontFamily: 'monospace',
+          fontSize: 13,
+          color: lineColor,
+          height: 1.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLineFrame({
+    required String keyId,
+    required int lineNumber,
+    required bool isMatch,
+    required bool isCurrentMatch,
+    required Widget child,
+  }) {
+    final key = _lineKeys.putIfAbsent(keyId, GlobalKey.new);
+
+    return Container(
+      key: key,
+      color: isCurrentMatch
+          ? AppColors.amber.withValues(alpha: 0.18)
+          : isMatch
+          ? AppColors.cobalt.withValues(alpha: 0.14)
+          : null,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      child: Row(
+        mainAxisSize: _wrapLines ? MainAxisSize.max : MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
           SizedBox(
-            width: 40,
-            height: 19.5, // matches line height of 13 * 1.5
+            width: 48,
             child: Text(
-              '${i + 1}',
+              '$lineNumber',
+              textAlign: TextAlign.right,
               style: const TextStyle(
                 fontFamily: 'monospace',
                 fontSize: 13,
                 color: AppColors.grey,
                 height: 1.5,
               ),
-              textAlign: TextAlign.right,
             ),
           ),
-      ],
+          const SizedBox(width: 12),
+          if (_wrapLines) Expanded(child: child) else child,
+        ],
+      ),
     );
   }
 
-  List<int>? _getFilteredLineIndices(List<String> lines) {
-    if (_searchQuery.isEmpty) return null;
-    final query = _searchQuery.toLowerCase();
+  _ManifestDocumentBundle _buildDocumentBundle(String manifest) {
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(manifest);
+    } catch (_) {
+      return _ManifestDocumentBundle(
+        yamlLines: manifest.split('\n'),
+        yamlSections: const <_YamlSection>[],
+        jsonLines: manifest.split('\n'),
+        diff: null,
+      );
+    }
+
+    String formattedJson;
+    try {
+      formattedJson = const JsonEncoder.withIndent('  ').convert(decoded);
+    } catch (_) {
+      formattedJson = manifest;
+    }
+
+    final jsonLines = formattedJson.split('\n');
+
+    if (decoded is! Map<String, dynamic>) {
+      return _ManifestDocumentBundle(
+        yamlLines: jsonLines,
+        yamlSections: const <_YamlSection>[],
+        jsonLines: jsonLines,
+        diff: null,
+      );
+    }
+
+    final yamlText = jsonToYaml(decoded);
+    final yamlLines = _trimTrailingEmptyLine(yamlText.split('\n'));
+    final sections = _buildSections(decoded);
+
+    return _ManifestDocumentBundle(
+      yamlLines: yamlLines,
+      yamlSections: sections,
+      jsonLines: jsonLines,
+      diff: _extractDiffDocument(decoded),
+    );
+  }
+
+  _DiffDocument? _extractDiffDocument(Map<String, dynamic> decoded) {
+    final desired = _extractManifestText(decoded['desiredManifest'] ?? decoded['desired']);
+    final live = _extractManifestText(decoded['liveManifest'] ?? decoded['live']);
+    if (desired == null || live == null) {
+      return null;
+    }
+    return _DiffDocument(_buildDiffLines(desired, live));
+  }
+
+  String? _extractManifestText(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is String) {
+      return value;
+    }
+    if (value is Map<String, dynamic> || value is List) {
+      try {
+        return jsonToYaml(value);
+      } catch (_) {
+        return value.toString();
+      }
+    }
+    return value.toString();
+  }
+
+  List<_YamlSection> _buildSections(Map<String, dynamic> decoded) {
+    final sections = <_YamlSection>[];
+    var currentLine = 0;
+
+    for (final entry in decoded.entries) {
+      final yamlText = jsonToYaml(<String, dynamic>{entry.key: entry.value});
+      final lines = _trimTrailingEmptyLine(yamlText.split('\n'));
+      sections.add(
+        _YamlSection(
+          key: entry.key,
+          startLine: currentLine,
+          endLine: currentLine + lines.length - 1,
+          expandable: entry.value is Map<String, dynamic> || entry.value is List,
+        ),
+      );
+      currentLine += lines.length;
+    }
+
+    return sections;
+  }
+
+  _ManifestViewData _activeViewData(_ManifestDocumentBundle document) {
+    final query = _searchQuery.trim().toLowerCase();
+    return switch (_viewMode) {
+      _ManifestViewMode.yaml => _ManifestViewData(
+        lines: document.yamlLines,
+        matches: _matchIndices(document.yamlLines, query),
+        query: query,
+      ),
+      _ManifestViewMode.json => _ManifestViewData(
+        lines: document.jsonLines,
+        matches: _matchIndices(document.jsonLines, query),
+        query: query,
+      ),
+      _ManifestViewMode.diff => _ManifestViewData(
+        lines: document.diff?.lines.map((line) => line.text).toList(growable: false) ??
+            const <String>[],
+        matches: _matchIndices(
+          document.diff?.lines
+                  .map((line) => '${line.prefix} ${line.text}')
+                  .toList(growable: false) ??
+              const <String>[],
+          query,
+        ),
+        query: query,
+      ),
+    };
+  }
+
+  List<int> _matchIndices(List<String> lines, String query) {
+    if (query.isEmpty) {
+      return const <int>[];
+    }
     return <int>[
       for (var i = 0; i < lines.length; i++)
         if (lines[i].toLowerCase().contains(query)) i,
     ];
   }
 
-  String _scalarToYaml(dynamic value) {
-    if (value == null) return 'null';
-    if (value is bool) return value ? 'true' : 'false';
-    if (value is num) return '$value';
-    final str = value.toString();
-    if (_needsQuoting(str)) {
-      return "'${str.replaceAll("'", "''")}'";
+  int get _activeMatchCount {
+    if (_searchQuery.trim().isEmpty) {
+      return 0;
     }
-    return str;
+    return _activeMatches.length;
+  }
+
+  void _syncCurrentMatch(int matchCount) {
+    if (matchCount == 0) {
+      _currentMatchIndex = 0;
+      return;
+    }
+    if (_currentMatchIndex >= matchCount) {
+      _currentMatchIndex = matchCount - 1;
+    }
+  }
+
+  void _scheduleEnsureCurrentMatch() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _ensureCurrentMatchVisible();
+    });
+  }
+
+  void _ensureCurrentMatchVisible() {
+    if (_searchQuery.trim().isEmpty || _activeMatches.isEmpty) {
+      return;
+    }
+    final lineIndex = _activeMatches[_currentMatchIndex];
+    final keyId = _viewMode == _ManifestViewMode.yaml
+        ? 'yaml-$lineIndex'
+        : '${_viewMode.name}-$lineIndex';
+    final targetKey = _lineKeys[keyId];
+    final context = targetKey?.currentContext;
+    if (context == null) {
+      return;
+    }
+    Scrollable.ensureVisible(
+      context,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      alignment: 0.2,
+    );
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _showSearch = !_showSearch;
+      if (!_showSearch) {
+        _searchQuery = '';
+        _searchController.clear();
+        _currentMatchIndex = 0;
+      }
+    });
+  }
+
+  void _toggleJsonYamlMode() {
+    setState(() {
+      if (_viewMode == _ManifestViewMode.diff) {
+        _viewMode = _lastNonDiffMode;
+      } else {
+        _viewMode = _viewMode == _ManifestViewMode.json
+            ? _ManifestViewMode.yaml
+            : _ManifestViewMode.json;
+        _lastNonDiffMode = _viewMode;
+      }
+    });
+    _scheduleEnsureCurrentMatch();
+  }
+
+  void _toggleDiffMode() {
+    setState(() {
+      if (_viewMode == _ManifestViewMode.diff) {
+        _viewMode = _lastNonDiffMode;
+      } else {
+        _lastNonDiffMode = _viewMode;
+        _viewMode = _ManifestViewMode.diff;
+      }
+    });
+    _scheduleEnsureCurrentMatch();
+  }
+
+  void _goToPreviousMatch() {
+    if (_activeMatches.isEmpty) {
+      return;
+    }
+    setState(() {
+      _currentMatchIndex =
+          (_currentMatchIndex - 1 + _activeMatches.length) %
+          _activeMatches.length;
+    });
+    _scheduleEnsureCurrentMatch();
+  }
+
+  void _goToNextMatch() {
+    if (_activeMatches.isEmpty) {
+      return;
+    }
+    setState(() {
+      _currentMatchIndex = (_currentMatchIndex + 1) % _activeMatches.length;
+    });
+    _scheduleEnsureCurrentMatch();
   }
 
   Future<String> _loadManifest() {
@@ -726,28 +909,40 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
   void _refreshManifest() {
     setState(() {
       _future = _loadManifest();
+      _currentMatchIndex = 0;
+      _lineKeys.clear();
     });
   }
 
   Future<void> _copyManifest(String manifest) async {
-    var textToCopy = manifest;
-    if (_showRawJson) {
-      try {
-        final decoded = jsonDecode(manifest);
-        textToCopy = const JsonEncoder.withIndent('  ').convert(decoded);
-      } catch (_) {
-        // Keep original manifest
-      }
-    } else {
-      try {
-        final decoded = jsonDecode(manifest);
-        if (decoded is Map<String, dynamic>) {
-          textToCopy = jsonToYaml(decoded);
+    String textToCopy;
+    switch (_viewMode) {
+      case _ManifestViewMode.json:
+        try {
+          final decoded = jsonDecode(manifest);
+          textToCopy = const JsonEncoder.withIndent('  ').convert(decoded);
+        } catch (_) {
+          textToCopy = manifest;
         }
-      } catch (_) {
-        // Keep original manifest
-      }
+        break;
+      case _ManifestViewMode.yaml:
+        try {
+          final decoded = jsonDecode(manifest);
+          textToCopy = decoded is Map<String, dynamic> ? jsonToYaml(decoded) : manifest;
+        } catch (_) {
+          textToCopy = manifest;
+        }
+        break;
+      case _ManifestViewMode.diff:
+        final document = _buildDocumentBundle(manifest);
+        textToCopy = document.diff == null
+            ? manifest
+            : document.diff!.lines
+                  .map((line) => '${line.prefix} ${line.text}')
+                  .join('\n');
+        break;
     }
+
     await Clipboard.setData(ClipboardData(text: textToCopy));
     if (!mounted) {
       return;
@@ -755,5 +950,197 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Copied to clipboard')));
+  }
+}
+
+List<String> _trimTrailingEmptyLine(List<String> lines) {
+  if (lines.isNotEmpty && lines.last.isEmpty) {
+    return lines.sublist(0, lines.length - 1);
+  }
+  return lines;
+}
+
+class _ManifestDocumentBundle {
+  const _ManifestDocumentBundle({
+    required this.yamlLines,
+    required List<_YamlSection> yamlSections,
+    required this.jsonLines,
+    required this.diff,
+  }) : sections = yamlSections;
+
+  final List<String> yamlLines;
+  final List<_YamlSection> sections;
+  final List<String> jsonLines;
+  final _DiffDocument? diff;
+}
+
+class _ManifestViewData {
+  const _ManifestViewData({
+    required this.lines,
+    required this.matches,
+    required this.query,
+  });
+
+  final List<String> lines;
+  final List<int> matches;
+  final String query;
+}
+
+class _YamlSection {
+  const _YamlSection({
+    required this.key,
+    required this.startLine,
+    required this.endLine,
+    required this.expandable,
+  });
+
+  final String key;
+  final int startLine;
+  final int endLine;
+  final bool expandable;
+
+  int get lineCount => endLine - startLine + 1;
+
+  List<int> matchingLineIndices(List<String> yamlLines, String query) {
+    if (query.isEmpty) {
+      return const <int>[];
+    }
+    return <int>[
+      for (var i = startLine; i <= endLine; i++)
+        if (yamlLines[i].toLowerCase().contains(query)) i,
+    ];
+  }
+
+  List<int> visibleLineIndices({
+    required List<String> yamlLines,
+    required String query,
+    required int contextRadius,
+  }) {
+    if (query.isEmpty) {
+      return <int>[for (var i = startLine; i <= endLine; i++) i];
+    }
+
+    final indices = <int>{};
+    for (final match in matchingLineIndices(yamlLines, query)) {
+      final first = match - contextRadius < startLine
+          ? startLine
+          : match - contextRadius;
+      final last = match + contextRadius > endLine ? endLine : match + contextRadius;
+      for (var i = first; i <= last; i++) {
+        indices.add(i);
+      }
+    }
+
+    final sorted = indices.toList()..sort();
+    return sorted;
+  }
+}
+
+class _DiffDocument {
+  const _DiffDocument(this.lines);
+
+  final List<_DiffLine> lines;
+}
+
+enum _DiffKind { unchanged, added, removed, changed }
+
+class _DiffLine {
+  const _DiffLine({
+    required this.prefix,
+    required this.text,
+    required this.kind,
+  });
+
+  final String prefix;
+  final String text;
+  final _DiffKind kind;
+}
+
+List<_DiffLine> _buildDiffLines(String desiredText, String liveText) {
+  final desiredLines = _trimTrailingEmptyLine(desiredText.split('\n'));
+  final liveLines = _trimTrailingEmptyLine(liveText.split('\n'));
+  final maxLines = desiredLines.length > liveLines.length
+      ? desiredLines.length
+      : liveLines.length;
+  final lines = <_DiffLine>[];
+
+  for (var i = 0; i < maxLines; i++) {
+    final desired = i < desiredLines.length ? desiredLines[i] : null;
+    final live = i < liveLines.length ? liveLines[i] : null;
+
+    if (desired == live && desired != null) {
+      lines.add(_DiffLine(prefix: ' ', text: desired, kind: _DiffKind.unchanged));
+      continue;
+    }
+    if (desired == null && live != null) {
+      lines.add(_DiffLine(prefix: '+', text: live, kind: _DiffKind.added));
+      continue;
+    }
+    if (live == null && desired != null) {
+      lines.add(_DiffLine(prefix: '-', text: desired, kind: _DiffKind.removed));
+      continue;
+    }
+    if (desired != null) {
+      lines.add(_DiffLine(prefix: '-', text: desired, kind: _DiffKind.removed));
+    }
+    if (live != null) {
+      lines.add(_DiffLine(prefix: '+', text: live, kind: _DiffKind.added));
+    }
+  }
+
+  return lines;
+}
+
+class _MiniMap extends StatelessWidget {
+  const _MiniMap({
+    required this.lineCount,
+    required this.matches,
+    required this.currentMatchLine,
+  });
+
+  final int lineCount;
+  final List<int> matches;
+  final int? currentMatchLine;
+
+  @override
+  Widget build(BuildContext context) {
+    if (lineCount <= 0) {
+      return const SizedBox(width: 10);
+    }
+
+    return SizedBox(
+      width: 10,
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          final height = constraints.maxHeight;
+          return DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.darkSurface.withValues(alpha: 0.9),
+              border: Border.all(color: AppColors.darkBorder),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Stack(
+              children: <Widget>[
+                for (final match in matches)
+                  Positioned(
+                    left: 1,
+                    right: 1,
+                    top: (match / lineCount) * (height - 6),
+                    child: Container(
+                      height: currentMatchLine == match ? 6 : 4,
+                      decoration: BoxDecoration(
+                        color: currentMatchLine == match
+                            ? AppColors.amber
+                            : AppColors.cobalt,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 }

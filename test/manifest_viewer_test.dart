@@ -148,7 +148,26 @@ void main() {
       final tokens = tokenizeYamlLine('enabled: true');
       final valueToken = tokens.last;
       expect(valueToken.text, 'true');
-      expect(valueToken.type, YamlTokenType.numberValue);
+      expect(valueToken.type, YamlTokenType.boolNullValue);
+    });
+
+    test('does not split URLs at colons inside the value', () {
+      final tokens = tokenizeYamlLine('repo: https://github.com/argoproj/argo-cd');
+      expect(tokens.length, 4);
+      expect(tokens[0].text, 'repo');
+      expect(tokens[0].type, YamlTokenType.key);
+      expect(tokens.last.text, 'https://github.com/argoproj/argo-cd');
+      expect(tokens.last.type, YamlTokenType.stringValue);
+    });
+
+    test('tokenizes multiline scalar marker and content as string values', () {
+      final markerTokens = tokenizeYamlLine('description: |');
+      expect(markerTokens.last.text, '|');
+      expect(markerTokens.last.type, YamlTokenType.stringValue);
+
+      final contentTokens = tokenizeYamlLine('  first line');
+      expect(contentTokens.last.text, 'first line');
+      expect(contentTokens.last.type, YamlTokenType.stringValue);
     });
 
     test('tokenizes null value', () {
@@ -216,9 +235,10 @@ void main() {
       expect(find.text('Service: my-svc'), findsOneWidget);
 
       // Should show top-level keys as collapsible sections
-      expect(find.text('metadata'), findsOneWidget);
-      expect(find.text('spec'), findsOneWidget);
-      expect(find.text('status'), findsOneWidget);
+      expect(find.text('metadata'), findsWidgets);
+      expect(find.text('spec'), findsWidgets);
+      expect(find.text('status'), findsWidgets);
+      expect(find.textContaining('lines'), findsWidgets);
     });
 
     testWidgets('toggles between YAML and JSON view', (
@@ -229,7 +249,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Initially in YAML mode - shows collapsible sections
-      expect(find.text('metadata'), findsOneWidget);
+      expect(find.text('metadata'), findsWidgets);
 
       // Find and tap the toggle button (code icon for YAML mode)
       final toggleButton = find.byIcon(Icons.code);
@@ -260,7 +280,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // The spec section should still be visible since it contains ClusterIP
-      expect(find.text('spec'), findsOneWidget);
+      expect(find.text('spec'), findsWidgets);
+      expect(find.byIcon(Icons.keyboard_arrow_up), findsWidgets);
+      expect(find.byIcon(Icons.keyboard_arrow_down), findsWidgets);
     });
 
     testWidgets('shows loading state', (WidgetTester tester) async {
@@ -332,7 +354,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // After settling, should be back to YAML view
-      expect(find.text('metadata'), findsOneWidget);
+      expect(find.text('metadata'), findsWidgets);
     });
 
     testWidgets('collapsing a section hides its content', (
@@ -343,14 +365,14 @@ void main() {
       await tester.pumpAndSettle();
 
       // metadata section should be expanded initially
-      expect(find.text('metadata'), findsOneWidget);
+      expect(find.text('metadata'), findsWidgets);
 
       // Tap to collapse the metadata section
-      await tester.tap(find.text('metadata'));
+      await tester.tap(find.text('metadata').first);
       await tester.pumpAndSettle();
 
       // The section header should still be visible
-      expect(find.text('metadata'), findsOneWidget);
+      expect(find.text('metadata'), findsWidgets);
     });
   });
 }
