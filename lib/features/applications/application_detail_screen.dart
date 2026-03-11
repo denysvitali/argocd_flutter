@@ -290,7 +290,7 @@ class _DetailBody extends StatelessWidget {
             headerSliverBuilder: (context, innerBoxIsScrolled) {
               return <Widget>[
                 SliverAppBar(
-                  expandedHeight: 220,
+                  expandedHeight: 180,
                   pinned: true,
                   forceElevated: innerBoxIsScrolled,
                   flexibleSpace: FlexibleSpaceBar(
@@ -368,11 +368,7 @@ class _HeroHeader extends StatelessWidget {
         bottom: 56,
       ),
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: <Color>[AppColors.gradientAppStart, AppColors.gradientAppMid],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: AppColors.headerDark,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -523,8 +519,8 @@ class _StatusIndicator extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Container(
-          width: 10,
-          height: 10,
+          width: 8,
+          height: 8,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 8),
@@ -615,7 +611,7 @@ class _ResourceTreeCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(8),
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
@@ -627,10 +623,10 @@ class _ResourceTreeCard extends StatelessWidget {
           );
         },
         child: Ink(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: theme.dividerColor),
           ),
           child: Row(
@@ -640,7 +636,7 @@ class _ResourceTreeCard extends StatelessWidget {
                 height: 48,
                 decoration: BoxDecoration(
                   color: AppColors.cobaltLight,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: const ExcludeSemantics(
                   child: Icon(Icons.account_tree, color: AppColors.cobalt),
@@ -741,7 +737,7 @@ class _ResourceCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
@@ -761,7 +757,7 @@ class _ResourceCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: kindColor.withValues(alpha: 0.3)),
           ),
           child: Row(
@@ -771,7 +767,7 @@ class _ResourceCard extends StatelessWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   color: kindColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Icon(kindIcon, color: kindColor, size: 22),
               ),
@@ -789,7 +785,7 @@ class _ResourceCard extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: kindColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: BorderRadius.circular(3),
                           ),
                           child: Text(
                             resource.kind,
@@ -948,15 +944,15 @@ class _TimelineEntry extends StatelessWidget {
               children: <Widget>[
                 const SizedBox(height: 4),
                 Container(
-                  width: 14,
-                  height: 14,
+                  width: 10,
+                  height: 10,
                   decoration: BoxDecoration(
                     color: dotColor,
                     shape: BoxShape.circle,
                     border: isCurrent
                         ? Border.all(
                             color: dotColor.withValues(alpha: 0.4),
-                            width: 3,
+                            width: 2,
                           )
                         : null,
                   ),
@@ -975,7 +971,7 @@ class _TimelineEntry extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isCurrent
                       ? AppColors.teal.withValues(alpha: 0.3)
@@ -1141,8 +1137,8 @@ class _BottomActionBar extends StatelessWidget {
       padding: EdgeInsets.only(
         left: 16,
         right: 16,
-        top: 12,
-        bottom: 12 + MediaQuery.of(context).padding.bottom,
+        top: 8,
+        bottom: 8 + MediaQuery.of(context).padding.bottom,
       ),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
@@ -1202,7 +1198,7 @@ class _DetailPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(4),
       ),
       child: Text('$label: $value'),
     );
@@ -1218,7 +1214,7 @@ class _LabeledText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[

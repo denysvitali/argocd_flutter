@@ -21,7 +21,7 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(14),
         children: <Widget>[
           _SectionCard(
             title: 'Appearance',
@@ -30,7 +30,7 @@ class SettingsScreen extends StatelessWidget {
               _ThemePicker(themeController: themeController),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           _SectionCard(
             title: 'Connection',
             icon: Icons.cloud_outlined,
@@ -58,7 +58,7 @@ class SettingsScreen extends StatelessWidget {
                     session == null ? 'No active session' : 'Authenticated',
                 trailing: _ConnectionDot(connected: session != null),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
@@ -88,7 +88,7 @@ class SettingsScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           _SectionCard(
             title: 'Certificates',
             icon: Icons.verified_user_outlined,
@@ -110,7 +110,7 @@ class SettingsScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           _SectionCard(
             title: 'Actions',
             icon: Icons.bolt_outlined,
@@ -132,7 +132,7 @@ class SettingsScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           _SectionCard(
             title: 'About',
             icon: Icons.info_outline,
@@ -348,19 +348,19 @@ class _ThemeCard extends StatelessWidget {
       curve: Curves.easeInOut,
       child: Material(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(6),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(6),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeInOut,
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(6),
               border: Border.all(
                 color: borderColor,
-                width: selected ? 2 : 1,
+                width: 1,
               ),
             ),
             child: Column(
@@ -411,10 +411,10 @@ class _SectionCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
@@ -436,7 +436,7 @@ class _SectionCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           ...children,
         ],
       ),
@@ -477,8 +477,8 @@ class _ConnectionDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 12,
-      height: 12,
+      width: 10,
+      height: 10,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: connected ? AppColors.teal : AppColors.coral,
