@@ -720,7 +720,7 @@ class _ResourceCard extends StatelessWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   color: kindColor.withValues(alpha: AppOpacity.medium),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: AppRadius.base,
                 ),
                 child: Icon(kindIcon, color: kindColor, size: 22),
               ),
