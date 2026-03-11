@@ -1,4 +1,5 @@
 import 'package:argocd_flutter/ui/app_colors.dart';
+import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:flutter/material.dart';
 
 const EdgeInsets kPagePadding = EdgeInsets.fromLTRB(14, 10, 14, 16);
@@ -367,7 +368,7 @@ class StatusChip extends StatelessWidget {
           color: color.withValues(
             alpha: theme.brightness == Brightness.dark ? 0.20 : 0.10,
           ),
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: AppRadius.sm,
         ),
         child: Text(
           label,
@@ -396,7 +397,7 @@ class SectionCard extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: AppRadius.base,
         border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
@@ -437,7 +438,7 @@ class EmptyStateCard extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: AppRadius.base,
         border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
@@ -482,7 +483,7 @@ class SummaryTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: AppRadius.base,
         border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
@@ -523,7 +524,7 @@ class FactBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: AppRadius.sm,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -552,7 +553,7 @@ class DetailPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: AppRadius.sm,
       ),
       child: Text('$label: $value'),
     );
@@ -670,7 +671,7 @@ class IconBadge extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         color: backgroundColor ?? color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: AppRadius.base,
       ),
       child: Icon(icon, color: color, size: iconSize),
     );
