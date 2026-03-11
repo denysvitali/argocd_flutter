@@ -1,41 +1,31 @@
-import 'package:argocd_flutter/core/models/app_session.dart';
-import 'package:argocd_flutter/core/models/argo_application.dart';
-import 'package:argocd_flutter/core/models/argo_project.dart';
-import 'package:argocd_flutter/core/models/argo_resource_node.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
-import 'package:argocd_flutter/core/services/argocd_api.dart';
 import 'package:argocd_flutter/core/services/certificate_provider.dart';
-import 'package:argocd_flutter/core/services/session_storage.dart';
 import 'package:argocd_flutter/core/services/theme_controller.dart';
 import 'package:argocd_flutter/features/auth/sign_in_screen.dart';
 import 'package:argocd_flutter/features/settings/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-void main() {
-  const testSession = AppSession(
-    serverUrl: 'https://argocd.example.com',
-    username: 'admin',
-    token: 'test-token',
-  );
+import 'test_helpers.dart';
 
-  AppController createAuthenticatedController() {
-    final storage = _MemorySessionStorage()..seedSession(testSession);
+void main() {
+  AppController createLocalAuthenticatedController() {
+    final storage = MemorySessionStorage()..seedSession(testSession);
     return AppController(
       storage: storage,
-      api: _FakeArgoCdApi.withSeedData(),
+      api: FakeArgoCdApi.withSeedData(),
       certificateProvider: const CertificateProvider(),
     );
   }
 
   AppController createUnauthenticatedController({String lastServerUrl = ''}) {
-    final storage = _MemorySessionStorage();
+    final storage = MemorySessionStorage();
     if (lastServerUrl.isNotEmpty) {
       storage.seedServerUrl(lastServerUrl);
     }
     return AppController(
       storage: storage,
-      api: _FakeArgoCdApi(),
+      api: FakeArgoCdApi(),
       certificateProvider: const CertificateProvider(),
     );
   }
@@ -74,7 +64,7 @@ void main() {
     testWidgets('renders top sections (Appearance and Connection)', (
       WidgetTester tester,
     ) async {
-      final controller = createAuthenticatedController();
+      final controller = createLocalAuthenticatedController();
       await controller.initialize();
       final themeController = ThemeController();
 
@@ -90,7 +80,7 @@ void main() {
     testWidgets('renders connection info with server and username', (
       WidgetTester tester,
     ) async {
-      final controller = createAuthenticatedController();
+      final controller = createLocalAuthenticatedController();
       await controller.initialize();
       final themeController = ThemeController();
 
@@ -107,7 +97,7 @@ void main() {
     testWidgets('theme picker shows system, light, and dark options', (
       WidgetTester tester,
     ) async {
-      final controller = createAuthenticatedController();
+      final controller = createLocalAuthenticatedController();
       await controller.initialize();
       final themeController = ThemeController();
 
@@ -124,7 +114,7 @@ void main() {
     testWidgets('tapping theme card changes theme mode', (
       WidgetTester tester,
     ) async {
-      final controller = createAuthenticatedController();
+      final controller = createLocalAuthenticatedController();
       await controller.initialize();
       final themeController = ThemeController();
       expect(themeController.themeMode, ThemeMode.system);
@@ -146,7 +136,7 @@ void main() {
     testWidgets('sign-out button shows confirmation dialog', (
       WidgetTester tester,
     ) async {
-      final controller = createAuthenticatedController();
+      final controller = createLocalAuthenticatedController();
       await controller.initialize();
       final themeController = ThemeController();
 
@@ -181,7 +171,7 @@ void main() {
     testWidgets('cancel on sign-out dialog does not sign out', (
       WidgetTester tester,
     ) async {
-      final controller = createAuthenticatedController();
+      final controller = createLocalAuthenticatedController();
       await controller.initialize();
       final themeController = ThemeController();
 
@@ -211,7 +201,7 @@ void main() {
     testWidgets('about section shows version info', (
       WidgetTester tester,
     ) async {
-      final controller = createAuthenticatedController();
+      final controller = createLocalAuthenticatedController();
       await controller.initialize();
       final themeController = ThemeController();
 
@@ -362,183 +352,4 @@ void main() {
       expect(find.byIcon(Icons.cloud_sync_outlined), findsOneWidget);
     });
   });
-}
-
-// ---------------------------------------------------------------------------
-// Test doubles
-// ---------------------------------------------------------------------------
-
-class _MemorySessionStorage implements SessionStorage {
-  AppSession? _session;
-  String? _serverUrl;
-
-  @override
-  Future<void> clearSession() async {
-    _session = null;
-  }
-
-  @override
-  Future<String?> loadLastServerUrl() async => _serverUrl;
-
-  @override
-  Future<AppSession?> loadSession() async => _session;
-
-  @override
-  Future<void> saveLastServerUrl(String serverUrl) async {
-    _serverUrl = serverUrl;
-  }
-
-  @override
-  Future<void> saveSession(AppSession session) async {
-    _session = session;
-    _serverUrl = session.serverUrl;
-  }
-
-  void seedSession(AppSession session) {
-    _session = session;
-    _serverUrl = session.serverUrl;
-  }
-
-  void seedServerUrl(String serverUrl) {
-    _serverUrl = serverUrl;
-  }
-}
-
-class _FakeArgoCdApi implements ArgoCdApi {
-  _FakeArgoCdApi({
-    List<ArgoApplication> applications = const <ArgoApplication>[],
-    List<ArgoProject> projects = const <ArgoProject>[],
-  }) : _applications = applications,
-       _projects = projects;
-
-  _FakeArgoCdApi.withSeedData()
-    : _applications = const <ArgoApplication>[
-        ArgoApplication(
-          name: 'payments-api',
-          project: 'platform',
-          namespace: 'payments',
-          cluster: 'https://kubernetes.default.svc',
-          repoUrl: 'https://github.com/example/platform',
-          path: 'apps/payments-api',
-          targetRevision: 'main',
-          syncStatus: 'Synced',
-          healthStatus: 'Healthy',
-          operationPhase: 'Succeeded',
-          lastSyncedAt: '2026-03-10T10:00:00Z',
-          resources: <ArgoResource>[],
-          history: <ArgoHistoryEntry>[],
-        ),
-      ],
-      _projects = const <ArgoProject>[
-        ArgoProject(
-          name: 'platform',
-          description: 'Platform services',
-          sourceRepos: <String>['https://github.com/example/platform'],
-          destinations: <ArgoProjectDestination>[
-            ArgoProjectDestination(
-              server: 'https://kubernetes.default.svc',
-              namespace: 'payments',
-              name: 'in-cluster',
-            ),
-          ],
-          clusterResourceWhitelist: <ArgoProjectClusterResource>[],
-        ),
-      ];
-
-  final List<ArgoApplication> _applications;
-  final List<ArgoProject> _projects;
-
-  @override
-  Future<ArgoApplication> fetchApplication(
-    AppSession session,
-    String applicationName, {
-    bool refresh = false,
-  }) async {
-    return _applications.firstWhere(
-      (application) => application.name == applicationName,
-    );
-  }
-
-  @override
-  Future<List<ArgoApplication>> fetchApplications(AppSession session) async {
-    return _applications;
-  }
-
-  @override
-  Future<ArgoProject> fetchProject(
-    AppSession session,
-    String projectName,
-  ) async {
-    return _projects.firstWhere((project) => project.name == projectName);
-  }
-
-  @override
-  Future<List<ArgoProject>> fetchProjects(AppSession session) async {
-    return _projects;
-  }
-
-  @override
-  Future<List<ArgoResourceNode>> fetchResourceTree(
-    AppSession session,
-    String applicationName,
-  ) async {
-    return const <ArgoResourceNode>[];
-  }
-
-  @override
-  Future<String> fetchResourceLogs(
-    AppSession session, {
-    required String applicationName,
-    required String namespace,
-    required String podName,
-    String? containerName,
-    int tailLines = 500,
-  }) async {
-    return '';
-  }
-
-  @override
-  Future<void> deleteApplication(
-    AppSession session,
-    String applicationName, {
-    bool cascade = true,
-  }) async {}
-
-  @override
-  Future<void> rollbackApplication(
-    AppSession session,
-    String applicationName,
-    int historyId,
-  ) async {}
-
-  @override
-  Future<AppSession> signIn({
-    required String serverUrl,
-    required String username,
-    required String password,
-  }) async {
-    return AppSession(serverUrl: serverUrl, username: username, token: 'token');
-  }
-
-  @override
-  Future<void> syncApplication(
-    AppSession session,
-    String applicationName,
-  ) async {}
-
-  @override
-  Future<String> fetchResourceManifest(
-    AppSession session, {
-    required String applicationName,
-    required String namespace,
-    required String resourceName,
-    required String kind,
-    required String group,
-    required String version,
-  }) async {
-    return '';
-  }
-
-  @override
-  Future<void> verifyServer(String serverUrl) async {}
 }

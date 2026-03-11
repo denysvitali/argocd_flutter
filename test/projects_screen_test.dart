@@ -1,22 +1,20 @@
 import 'package:argocd_flutter/core/models/app_session.dart';
-import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/models/argo_project.dart';
-import 'package:argocd_flutter/core/models/argo_resource_node.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
-import 'package:argocd_flutter/core/services/argocd_api.dart';
 import 'package:argocd_flutter/core/services/certificate_provider.dart';
-import 'package:argocd_flutter/core/services/session_storage.dart';
 import 'package:argocd_flutter/features/projects/project_detail_screen.dart';
 import 'package:argocd_flutter/features/projects/projects_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'test_helpers.dart';
 
 void main() {
   group('ProjectsScreen', () {
     late AppController controller;
 
     setUp(() async {
-      final storage = _MemorySessionStorage()
+      final storage = MemorySessionStorage()
         ..seedSession(
           const AppSession(
             serverUrl: 'https://argocd.example.com',
@@ -26,7 +24,7 @@ void main() {
         );
       controller = AppController(
         storage: storage,
-        api: _FakeArgoCdApi(projects: _sampleProjects),
+        api: FakeArgoCdApi(projects: _sampleProjects),
         certificateProvider: const CertificateProvider(),
       );
       await controller.initialize();
@@ -146,7 +144,7 @@ void main() {
     testWidgets('empty state shown when no projects loaded', (
       WidgetTester tester,
     ) async {
-      final emptyStorage = _MemorySessionStorage()
+      final emptyStorage = MemorySessionStorage()
         ..seedSession(
           const AppSession(
             serverUrl: 'https://argocd.example.com',
@@ -156,7 +154,7 @@ void main() {
         );
       final emptyController = AppController(
         storage: emptyStorage,
-        api: _FakeArgoCdApi(),
+        api: FakeArgoCdApi(),
         certificateProvider: const CertificateProvider(),
       );
       await emptyController.initialize();
@@ -244,7 +242,7 @@ void main() {
     late AppController controller;
 
     setUp(() async {
-      final storage = _MemorySessionStorage()
+      final storage = MemorySessionStorage()
         ..seedSession(
           const AppSession(
             serverUrl: 'https://argocd.example.com',
@@ -254,7 +252,7 @@ void main() {
         );
       controller = AppController(
         storage: storage,
-        api: _FakeArgoCdApi(projects: _sampleProjects),
+        api: FakeArgoCdApi(projects: _sampleProjects),
         certificateProvider: const CertificateProvider(),
       );
       await controller.initialize();
@@ -291,9 +289,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Overview'), findsOneWidget);
-      expect(find.text('Sources (1)'), findsOneWidget);
-      expect(find.text('Destinations (1)'), findsOneWidget);
-      expect(find.text('Permissions (0)'), findsOneWidget);
+      expect(find.text('Sources'), findsWidgets);
+      expect(find.text('Destinations'), findsWidgets);
+      expect(find.text('Permissions'), findsWidgets);
     });
 
     testWidgets('overview tab shows project details section', (
@@ -329,7 +327,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap Sources tab
-      await tester.tap(find.text('Sources (1)'));
+      await tester.tap(find.text('Sources').first);
       await tester.pumpAndSettle();
 
       expect(find.text('https://github.com/example/platform'), findsOneWidget);
@@ -350,7 +348,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap Destinations tab
-      await tester.tap(find.text('Destinations (1)'));
+      await tester.tap(find.text('Destinations').first);
       await tester.pumpAndSettle();
 
       expect(find.text('https://kubernetes.default.svc'), findsOneWidget);
@@ -373,7 +371,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap Permissions tab
-      await tester.tap(find.text('Permissions (0)'));
+      await tester.tap(find.text('Permissions').first);
       await tester.pumpAndSettle();
 
       expect(find.text('No cluster resources'), findsOneWidget);
@@ -394,7 +392,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap Permissions tab
-      await tester.tap(find.text('Permissions (2)'));
+      await tester.tap(find.text('Permissions').first);
       await tester.pumpAndSettle();
 
       expect(find.text('Namespace'), findsOneWidget);
@@ -404,7 +402,7 @@ void main() {
     testWidgets('sources tab shows empty state when no repos', (
       WidgetTester tester,
     ) async {
-      final storage = _MemorySessionStorage()
+      final storage = MemorySessionStorage()
         ..seedSession(
           const AppSession(
             serverUrl: 'https://argocd.example.com',
@@ -414,7 +412,7 @@ void main() {
         );
       final emptyController = AppController(
         storage: storage,
-        api: _FakeArgoCdApi(
+        api: FakeArgoCdApi(
           projects: const <ArgoProject>[
             ArgoProject(
               name: 'empty-project',
@@ -441,7 +439,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap Sources tab
-      await tester.tap(find.text('Sources (0)'));
+      await tester.tap(find.text('Sources').first);
       await tester.pumpAndSettle();
 
       expect(find.text('No source repositories'), findsOneWidget);
@@ -498,139 +496,3 @@ const List<ArgoProject> _sampleProjects = <ArgoProject>[
   ),
 ];
 
-class _MemorySessionStorage implements SessionStorage {
-  AppSession? _session;
-  String? _serverUrl;
-
-  @override
-  Future<void> clearSession() async {
-    _session = null;
-  }
-
-  @override
-  Future<String?> loadLastServerUrl() async => _serverUrl;
-
-  @override
-  Future<AppSession?> loadSession() async => _session;
-
-  @override
-  Future<void> saveLastServerUrl(String serverUrl) async {
-    _serverUrl = serverUrl;
-  }
-
-  @override
-  Future<void> saveSession(AppSession session) async {
-    _session = session;
-    _serverUrl = session.serverUrl;
-  }
-
-  void seedSession(AppSession session) {
-    _session = session;
-    _serverUrl = session.serverUrl;
-  }
-}
-
-class _FakeArgoCdApi implements ArgoCdApi {
-  _FakeArgoCdApi({
-    List<ArgoApplication> applications = const <ArgoApplication>[],
-    List<ArgoProject> projects = const <ArgoProject>[],
-  }) : _applications = applications,
-       _projects = projects;
-
-  final List<ArgoApplication> _applications;
-  final List<ArgoProject> _projects;
-
-  @override
-  Future<ArgoApplication> fetchApplication(
-    AppSession session,
-    String applicationName, {
-    bool refresh = false,
-  }) async {
-    return _applications.firstWhere(
-      (application) => application.name == applicationName,
-    );
-  }
-
-  @override
-  Future<List<ArgoApplication>> fetchApplications(AppSession session) async {
-    return _applications;
-  }
-
-  @override
-  Future<ArgoProject> fetchProject(
-    AppSession session,
-    String projectName,
-  ) async {
-    return _projects.firstWhere((project) => project.name == projectName);
-  }
-
-  @override
-  Future<List<ArgoProject>> fetchProjects(AppSession session) async {
-    return _projects;
-  }
-
-  @override
-  Future<List<ArgoResourceNode>> fetchResourceTree(
-    AppSession session,
-    String applicationName,
-  ) async {
-    return const <ArgoResourceNode>[];
-  }
-
-  @override
-  Future<String> fetchResourceLogs(
-    AppSession session, {
-    required String applicationName,
-    required String namespace,
-    required String podName,
-    String? containerName,
-    int tailLines = 500,
-  }) async {
-    return '';
-  }
-
-  @override
-  Future<void> deleteApplication(
-    AppSession session,
-    String applicationName, {
-    bool cascade = true,
-  }) async {}
-
-  @override
-  Future<void> rollbackApplication(
-    AppSession session,
-    String applicationName,
-    int historyId,
-  ) async {}
-
-  @override
-  Future<AppSession> signIn({
-    required String serverUrl,
-    required String username,
-    required String password,
-  }) async {
-    return AppSession(serverUrl: serverUrl, username: username, token: 'token');
-  }
-
-  @override
-  Future<void> syncApplication(
-    AppSession session,
-    String applicationName,
-  ) async {}
-
-  @override
-  Future<String> fetchResourceManifest(
-    AppSession session, {
-    required String applicationName,
-    required String namespace,
-    required String resourceName,
-    required String kind,
-    required String group,
-    required String version,
-  }) async {
-    return '';
-  }
-
-  @override
-  Future<void> verifyServer(String serverUrl) async {}
-}

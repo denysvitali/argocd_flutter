@@ -1,16 +1,14 @@
 import 'dart:convert';
 
 import 'package:argocd_flutter/core/models/app_session.dart';
-import 'package:argocd_flutter/core/models/argo_application.dart';
-import 'package:argocd_flutter/core/models/argo_project.dart';
-import 'package:argocd_flutter/core/models/argo_resource_node.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/core/services/argocd_api.dart';
 import 'package:argocd_flutter/core/services/certificate_provider.dart';
-import 'package:argocd_flutter/core/services/session_storage.dart';
 import 'package:argocd_flutter/features/applications/manifest_viewer_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'test_helpers.dart';
 
 const String _sampleManifest =
     '{'
@@ -219,7 +217,7 @@ void main() {
     late AppController controller;
 
     setUp(() {
-      final storage = _MemorySessionStorage()
+      final storage = MemorySessionStorage()
         ..seedSession(
           const AppSession(
             serverUrl: 'https://argocd.example.com',
@@ -229,7 +227,7 @@ void main() {
         );
       controller = AppController(
         storage: storage,
-        api: _FakeArgoCdApi(manifest: _sampleManifest),
+        api: FakeArgoCdApi(manifestToReturn: _sampleManifest),
         certificateProvider: const CertificateProvider(),
       );
     });
@@ -336,7 +334,7 @@ void main() {
     testWidgets('shows error state with retry button', (
       WidgetTester tester,
     ) async {
-      final storage = _MemorySessionStorage()
+      final storage = MemorySessionStorage()
         ..seedSession(
           const AppSession(
             serverUrl: 'https://argocd.example.com',
@@ -346,7 +344,9 @@ void main() {
         );
       final errorController = AppController(
         storage: storage,
-        api: _FakeArgoCdApi(shouldFail: true),
+        api: FakeArgoCdApi(
+          fetchManifestError: const ArgoCdException('Failed to load manifest'),
+        ),
         certificateProvider: const CertificateProvider(),
       );
       await errorController.initialize();
@@ -417,136 +417,3 @@ void main() {
   });
 }
 
-class _MemorySessionStorage implements SessionStorage {
-  AppSession? _session;
-  String? _serverUrl;
-
-  @override
-  Future<void> clearSession() async {
-    _session = null;
-  }
-
-  @override
-  Future<String?> loadLastServerUrl() async => _serverUrl;
-
-  @override
-  Future<AppSession?> loadSession() async => _session;
-
-  @override
-  Future<void> saveLastServerUrl(String serverUrl) async {
-    _serverUrl = serverUrl;
-  }
-
-  @override
-  Future<void> saveSession(AppSession session) async {
-    _session = session;
-    _serverUrl = session.serverUrl;
-  }
-
-  void seedSession(AppSession session) {
-    _session = session;
-    _serverUrl = session.serverUrl;
-  }
-}
-
-class _FakeArgoCdApi implements ArgoCdApi {
-  _FakeArgoCdApi({this.manifest = '', this.shouldFail = false});
-
-  final String manifest;
-  final bool shouldFail;
-
-  @override
-  Future<String> fetchResourceManifest(
-    AppSession session, {
-    required String applicationName,
-    required String namespace,
-    required String resourceName,
-    required String kind,
-    required String group,
-    required String version,
-  }) async {
-    if (shouldFail) {
-      throw const ArgoCdException('Failed to load manifest');
-    }
-    return manifest;
-  }
-
-  @override
-  Future<List<ArgoApplication>> fetchApplications(AppSession session) async {
-    return const <ArgoApplication>[];
-  }
-
-  @override
-  Future<ArgoApplication> fetchApplication(
-    AppSession session,
-    String applicationName, {
-    bool refresh = false,
-  }) async {
-    throw const ArgoCdException('Not implemented');
-  }
-
-  @override
-  Future<List<ArgoProject>> fetchProjects(AppSession session) async {
-    return const <ArgoProject>[];
-  }
-
-  @override
-  Future<ArgoProject> fetchProject(
-    AppSession session,
-    String projectName,
-  ) async {
-    throw const ArgoCdException('Not implemented');
-  }
-
-  @override
-  Future<List<ArgoResourceNode>> fetchResourceTree(
-    AppSession session,
-    String applicationName,
-  ) async {
-    return const <ArgoResourceNode>[];
-  }
-
-  @override
-  Future<String> fetchResourceLogs(
-    AppSession session, {
-    required String applicationName,
-    required String namespace,
-    required String podName,
-    String? containerName,
-    int tailLines = 500,
-  }) async {
-    return '';
-  }
-
-  @override
-  Future<void> syncApplication(
-    AppSession session,
-    String applicationName,
-  ) async {}
-
-  @override
-  Future<void> rollbackApplication(
-    AppSession session,
-    String applicationName,
-    int historyId,
-  ) async {}
-
-  @override
-  Future<void> deleteApplication(
-    AppSession session,
-    String applicationName, {
-    bool cascade = true,
-  }) async {}
-
-  @override
-  Future<AppSession> signIn({
-    required String serverUrl,
-    required String username,
-    required String password,
-  }) async {
-    return AppSession(serverUrl: serverUrl, username: username, token: 'token');
-  }
-
-  @override
-  Future<void> verifyServer(String serverUrl) async {}
-}
