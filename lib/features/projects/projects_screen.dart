@@ -75,12 +75,17 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       _ProjectFilter.all => projects,
       _ProjectFilter.multiDestination =>
         projects.where((project) => project.destinations.length > 1).toList(),
-      _ProjectFilter.wildcardRepo => projects
-          .where((project) => project.sourceRepos.any((repo) => repo.contains('*')))
-          .toList(),
-      _ProjectFilter.clusterScoped => projects
-          .where((project) => project.clusterResourceWhitelist.isNotEmpty)
-          .toList(),
+      _ProjectFilter.wildcardRepo =>
+        projects
+            .where(
+              (project) =>
+                  project.sourceRepos.any((repo) => repo.contains('*')),
+            )
+            .toList(),
+      _ProjectFilter.clusterScoped =>
+        projects
+            .where((project) => project.clusterResourceWhitelist.isNotEmpty)
+            .toList(),
     };
   }
 
@@ -101,8 +106,12 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               ) ||
               project.destinations.any(
                 (destination) =>
-                    destination.server.toLowerCase().contains(normalizedQuery) ||
-                    destination.namespace.toLowerCase().contains(normalizedQuery) ||
+                    destination.server.toLowerCase().contains(
+                      normalizedQuery,
+                    ) ||
+                    destination.namespace.toLowerCase().contains(
+                      normalizedQuery,
+                    ) ||
                     destination.name.toLowerCase().contains(normalizedQuery),
               );
         })
@@ -115,7 +124,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           .where((project) => project.destinations.length > 1)
           .length,
       _ProjectFilter.wildcardRepo: filtered
-          .where((project) => project.sourceRepos.any((repo) => repo.contains('*')))
+          .where(
+            (project) => project.sourceRepos.any((repo) => repo.contains('*')),
+          )
           .length,
       _ProjectFilter.clusterScoped: filtered
           .where((project) => project.clusterResourceWhitelist.isNotEmpty)
@@ -188,7 +199,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                     ),
                   ),
                 ),
-                if (normalizedQuery.isNotEmpty || _activeFilter != _ProjectFilter.all)
+                if (normalizedQuery.isNotEmpty ||
+                    _activeFilter != _ProjectFilter.all)
                   TextButton(
                     onPressed: () {
                       _searchController.clear();
@@ -262,37 +274,42 @@ class _SearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final outlineColor = AppColors.outline(theme);
+    final mutedColor = AppColors.mutedText(theme);
+
     return Material(
       elevation: 1,
-      shadowColor: AppColors.cobalt.withValues(alpha: 0.08),
+      shadowColor: AppColors.surfaceShadow(theme),
       borderRadius: BorderRadius.circular(14),
       child: TextField(
         controller: controller,
         onChanged: onChanged,
         decoration: InputDecoration(
           hintText: 'Search project, description, repo, namespace, cluster',
-          prefixIcon: const Icon(Icons.search, color: AppColors.grey),
+          hintStyle: theme.textTheme.bodyMedium?.copyWith(color: mutedColor),
+          prefixIcon: Icon(Icons.search, color: mutedColor),
           suffixIcon: showClear
               ? IconButton(
                   icon: const Icon(Icons.close, size: 20),
                   onPressed: onClear,
                   tooltip: 'Clear filter',
-                  color: AppColors.grey,
+                  color: mutedColor,
                 )
               : null,
           filled: true,
-          fillColor: Theme.of(context).colorScheme.surface,
+          fillColor: AppColors.inputFill(theme),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 20,
             vertical: 12,
           ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: AppColors.border),
+            borderSide: BorderSide(color: outlineColor),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: AppColors.border),
+            borderSide: BorderSide(color: outlineColor),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
@@ -321,19 +338,20 @@ class _ProjectFilterChips extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: <Widget>[
-          _buildChip('All', _ProjectFilter.all),
+          _buildChip(context, 'All', _ProjectFilter.all),
           const SizedBox(width: 8),
-          _buildChip('Multi-dest', _ProjectFilter.multiDestination),
+          _buildChip(context, 'Multi-dest', _ProjectFilter.multiDestination),
           const SizedBox(width: 8),
-          _buildChip('Wildcard repo', _ProjectFilter.wildcardRepo),
+          _buildChip(context, 'Wildcard repo', _ProjectFilter.wildcardRepo),
           const SizedBox(width: 8),
-          _buildChip('Cluster rules', _ProjectFilter.clusterScoped),
+          _buildChip(context, 'Cluster rules', _ProjectFilter.clusterScoped),
         ],
       ),
     );
   }
 
-  Widget _buildChip(String label, _ProjectFilter filter) {
+  Widget _buildChip(BuildContext context, String label, _ProjectFilter filter) {
+    final theme = Theme.of(context);
     final selected = activeFilter == filter;
     return FilterChip(
       label: Text('$label ${counts[filter] ?? 0}'),
@@ -346,17 +364,16 @@ class _ProjectFilterChips extends StatelessWidget {
         color: selected ? AppColors.teal : AppColors.grey,
         fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
       ),
-      side: BorderSide(color: selected ? AppColors.teal : AppColors.border),
+      side: BorderSide(
+        color: selected ? AppColors.teal : AppColors.outline(theme),
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     );
   }
 }
 
 class _ProjectSortDropdown extends StatelessWidget {
-  const _ProjectSortDropdown({
-    required this.value,
-    required this.onChanged,
-  });
+  const _ProjectSortDropdown({required this.value, required this.onChanged});
 
   final _SortOption value;
   final ValueChanged<_SortOption> onChanged;
@@ -373,10 +390,7 @@ class _ProjectSortDropdown extends StatelessWidget {
           fontWeight: FontWeight.w600,
         ),
         items: const <DropdownMenuItem<_SortOption>>[
-          DropdownMenuItem(
-            value: _SortOption.name,
-            child: Text('Name'),
-          ),
+          DropdownMenuItem(value: _SortOption.name, child: Text('Name')),
           DropdownMenuItem(
             value: _SortOption.destinations,
             child: Text('Destinations'),
@@ -527,6 +541,8 @@ class _ProjectCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accent = _accentColor();
+    final outlineColor = AppColors.outline(theme);
+    final mutedColor = AppColors.mutedText(theme);
 
     return InkWell(
       onTap: onTap,
@@ -537,7 +553,7 @@ class _ProjectCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: outlineColor),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -564,11 +580,7 @@ class _ProjectCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Icon(
-                    Icons.chevron_right,
-                    color: AppColors.greyLight,
-                    size: 20,
-                  ),
+                  Icon(Icons.chevron_right, color: mutedColor, size: 20),
                 ],
               ),
               if (project.description.isNotEmpty) ...<Widget>[
@@ -584,9 +596,7 @@ class _ProjectCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 'Repos: ${_projectRepoPreview(project)}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.grey,
-                ),
+                style: theme.textTheme.bodySmall?.copyWith(color: mutedColor),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -682,11 +692,7 @@ class _CountBadge extends StatelessWidget {
 }
 
 class _HighlightedText extends StatelessWidget {
-  const _HighlightedText({
-    required this.text,
-    required this.query,
-    this.style,
-  });
+  const _HighlightedText({required this.text, required this.query, this.style});
 
   final String text;
   final String query;
@@ -727,7 +733,9 @@ class _HighlightedText extends StatelessWidget {
       start = index + query.length;
     }
 
-    return RichText(text: TextSpan(style: style, children: spans));
+    return RichText(
+      text: TextSpan(style: style, children: spans),
+    );
   }
 }
 
@@ -742,18 +750,18 @@ class _EmptyState extends StatelessWidget {
     final icon = filtered
         ? Icons.search_off
         : hasProjects
-            ? Icons.visibility_off_outlined
-            : Icons.folder_off_outlined;
+        ? Icons.visibility_off_outlined
+        : Icons.folder_off_outlined;
     final title = filtered
         ? 'No projects match this filter'
         : hasProjects
-            ? 'No projects visible'
-            : 'No projects loaded';
+        ? 'No projects visible'
+        : 'No projects loaded';
     final subtitle = filtered
         ? 'Clear or change the filter to see more projects.'
         : hasProjects
-            ? 'Your RBAC scope may not expose any additional ArgoCD projects.'
-            : 'Connect to ArgoCD, then pull to refresh once your RBAC scope has visible projects.';
+        ? 'Your RBAC scope may not expose any additional ArgoCD projects.'
+        : 'Connect to ArgoCD, then pull to refresh once your RBAC scope has visible projects.';
 
     return Padding(
       padding: const EdgeInsets.only(top: 20),

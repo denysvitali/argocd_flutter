@@ -17,6 +17,15 @@ export 'package:argocd_flutter/ui/shared_widgets.dart'
 
 enum _ManifestViewMode { yaml, json, diff }
 
+enum _ManifestAction {
+  wrap,
+  toggleFormat,
+  toggleDiff,
+  toggleSections,
+  copy,
+  refresh,
+}
+
 class ManifestViewerScreen extends StatefulWidget {
   const ManifestViewerScreen({
     super.key,
@@ -50,6 +59,10 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
   final ScrollController _horizontalScrollController = ScrollController();
   final Map<String, bool> _expandedSections = <String, bool>{};
   final Map<String, GlobalKey> _lineKeys = <String, GlobalKey>{};
+  final Map<_ManifestViewMode, double> _verticalOffsets =
+      <_ManifestViewMode, double>{};
+  final Map<_ManifestViewMode, double> _horizontalOffsets =
+      <_ManifestViewMode, double>{};
 
   _ManifestViewMode _viewMode = _ManifestViewMode.yaml;
   _ManifestViewMode _lastNonDiffMode = _ManifestViewMode.yaml;
@@ -75,69 +88,240 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final compactActions = MediaQuery.sizeOf(context).width < 420;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.kind}: ${widget.resourceName}'),
+        title: Text(
+          compactActions
+              ? widget.resourceName
+              : '${widget.kind}: ${widget.resourceName}',
+        ),
         actions: <Widget>[
+          FutureBuilder<String>(
+            future: _future,
+            builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+              if (!snapshot.hasData) {
+                return const SizedBox.shrink();
+              }
+
+              final document = _buildDocumentBundle(snapshot.requireData);
+              final lineCount = switch (_viewMode) {
+                _ManifestViewMode.yaml => document.yamlLines.length,
+                _ManifestViewMode.json => document.jsonLines.length,
+                _ManifestViewMode.diff => document.diff?.lines.length ?? 0,
+              };
+              final hasExpandableSections = document.sections.any(
+                (_YamlSection section) => section.expandable,
+              );
+              final allExpanded = _allExpandableSectionsExpanded(document);
+
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  if (!compactActions)
+                    Container(
+                      margin: const EdgeInsets.only(right: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(
+                              alpha: theme.brightness == Brightness.dark
+                                  ? 0.55
+                                  : 0.9,
+                            ),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        'Lines: $lineCount',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  if (!compactActions)
+                    IconButton(
+                      tooltip: allExpanded
+                          ? 'Collapse all sections'
+                          : 'Expand all sections',
+                      onPressed:
+                          _viewMode == _ManifestViewMode.yaml &&
+                              snapshot.hasData &&
+                              hasExpandableSections
+                          ? () => _toggleAllSections(document)
+                          : null,
+                      icon: Icon(
+                        allExpanded ? Icons.unfold_less : Icons.unfold_more,
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           IconButton(
             tooltip: 'Search',
             onPressed: _toggleSearch,
             icon: const Icon(Icons.search),
           ),
-          IconButton(
-            tooltip: _wrapLines ? 'Disable word wrap' : 'Enable word wrap',
-            onPressed: () {
-              setState(() {
-                _wrapLines = !_wrapLines;
-              });
-            },
-            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
-          ),
-          FutureBuilder<String>(
-            future: _future,
-            builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
-              return IconButton(
-                tooltip: _viewMode == _ManifestViewMode.json
-                    ? 'Show YAML'
-                    : 'Show JSON',
-                onPressed: snapshot.hasData ? _toggleJsonYamlMode : null,
-                icon: Icon(
-                  _viewMode == _ManifestViewMode.json
-                      ? Icons.data_object
-                      : Icons.code,
-                ),
-              );
-            },
-          ),
-          FutureBuilder<String>(
-            future: _future,
-            builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
-              return IconButton(
-                tooltip: _viewMode == _ManifestViewMode.diff
-                    ? 'Hide diff'
-                    : 'Show diff',
-                onPressed: snapshot.hasData ? _toggleDiffMode : null,
-                icon: const Icon(Icons.compare_arrows),
-              );
-            },
-          ),
-          FutureBuilder<String>(
-            future: _future,
-            builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
-              return IconButton(
-                tooltip: 'Copy',
-                onPressed: snapshot.hasData
-                    ? () => _copyManifest(snapshot.requireData)
-                    : null,
-                icon: const Icon(Icons.copy),
-              );
-            },
-          ),
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed: _refreshManifest,
-            icon: const Icon(Icons.refresh),
-          ),
+          if (compactActions)
+            FutureBuilder<String>(
+              future: _future,
+              builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+                final document = snapshot.hasData
+                    ? _buildDocumentBundle(snapshot.requireData)
+                    : null;
+                final hasExpandableSections =
+                    document?.sections.any(
+                      (_YamlSection section) => section.expandable,
+                    ) ??
+                    false;
+                final allExpanded = document == null
+                    ? false
+                    : _allExpandableSectionsExpanded(document);
+
+                return PopupMenuButton<_ManifestAction>(
+                  tooltip: 'More actions',
+                  itemBuilder: (BuildContext context) {
+                    return <PopupMenuEntry<_ManifestAction>>[
+                      if (snapshot.hasData)
+                        CheckedPopupMenuItem<_ManifestAction>(
+                          value: _ManifestAction.wrap,
+                          checked: _wrapLines,
+                          child: Text(
+                            _wrapLines
+                                ? 'Disable word wrap'
+                                : 'Enable word wrap',
+                          ),
+                        ),
+                      if (snapshot.hasData)
+                        PopupMenuItem<_ManifestAction>(
+                          value: _ManifestAction.toggleFormat,
+                          child: Text(
+                            _viewMode == _ManifestViewMode.json
+                                ? 'Show YAML'
+                                : 'Show JSON',
+                          ),
+                        ),
+                      if (snapshot.hasData)
+                        PopupMenuItem<_ManifestAction>(
+                          value: _ManifestAction.toggleDiff,
+                          child: Text(
+                            _viewMode == _ManifestViewMode.diff
+                                ? 'Hide diff'
+                                : 'Show diff',
+                          ),
+                        ),
+                      if (hasExpandableSections)
+                        PopupMenuItem<_ManifestAction>(
+                          value: _ManifestAction.toggleSections,
+                          child: Text(
+                            allExpanded
+                                ? 'Collapse all sections'
+                                : 'Expand all sections',
+                          ),
+                        ),
+                      if (snapshot.hasData)
+                        const PopupMenuItem<_ManifestAction>(
+                          value: _ManifestAction.copy,
+                          child: Text('Copy'),
+                        ),
+                      const PopupMenuItem<_ManifestAction>(
+                        value: _ManifestAction.refresh,
+                        child: Text('Refresh'),
+                      ),
+                    ];
+                  },
+                  onSelected: (_ManifestAction action) {
+                    switch (action) {
+                      case _ManifestAction.wrap:
+                        setState(() {
+                          _wrapLines = !_wrapLines;
+                        });
+                      case _ManifestAction.toggleFormat:
+                        if (snapshot.hasData) {
+                          _toggleJsonYamlMode();
+                        }
+                      case _ManifestAction.toggleDiff:
+                        if (snapshot.hasData) {
+                          _toggleDiffMode();
+                        }
+                      case _ManifestAction.toggleSections:
+                        if (document != null) {
+                          _toggleAllSections(document);
+                        }
+                      case _ManifestAction.copy:
+                        if (snapshot.hasData) {
+                          _copyManifest(snapshot.requireData);
+                        }
+                      case _ManifestAction.refresh:
+                        _refreshManifest();
+                    }
+                  },
+                );
+              },
+            )
+          else ...<Widget>[
+            IconButton(
+              tooltip: _wrapLines ? 'Disable word wrap' : 'Enable word wrap',
+              onPressed: () {
+                setState(() {
+                  _wrapLines = !_wrapLines;
+                });
+              },
+              icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
+            ),
+            FutureBuilder<String>(
+              future: _future,
+              builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+                return IconButton(
+                  tooltip: _viewMode == _ManifestViewMode.json
+                      ? 'Show YAML'
+                      : 'Show JSON',
+                  onPressed: snapshot.hasData ? _toggleJsonYamlMode : null,
+                  icon: Icon(
+                    _viewMode == _ManifestViewMode.json
+                        ? Icons.data_object
+                        : Icons.code,
+                  ),
+                );
+              },
+            ),
+            FutureBuilder<String>(
+              future: _future,
+              builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+                return IconButton(
+                  tooltip: _viewMode == _ManifestViewMode.diff
+                      ? 'Hide diff'
+                      : 'Show diff',
+                  onPressed: snapshot.hasData ? _toggleDiffMode : null,
+                  icon: const Icon(Icons.compare_arrows),
+                );
+              },
+            ),
+            FutureBuilder<String>(
+              future: _future,
+              builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+                return IconButton(
+                  tooltip: 'Copy',
+                  onPressed: snapshot.hasData
+                      ? () => _copyManifest(snapshot.requireData)
+                      : null,
+                  icon: const Icon(Icons.copy),
+                );
+              },
+            ),
+            IconButton(
+              tooltip: 'Refresh',
+              onPressed: _refreshManifest,
+              icon: const Icon(Icons.refresh),
+            ),
+          ],
         ],
       ),
       body: Column(
@@ -185,11 +369,17 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                   switchOutCurve: Curves.easeInCubic,
                   child: Container(
                     key: ValueKey<String>(_viewMode.name),
-                    color: AppColors.ink,
+                    color: theme.colorScheme.surface,
                     child: switch (_viewMode) {
                       _ManifestViewMode.json => _buildJsonView(viewData),
-                      _ManifestViewMode.yaml => _buildYamlView(document, viewData),
-                      _ManifestViewMode.diff => _buildDiffView(document, viewData),
+                      _ManifestViewMode.yaml => _buildYamlView(
+                        document,
+                        viewData,
+                      ),
+                      _ManifestViewMode.diff => _buildDiffView(
+                        document,
+                        viewData,
+                      ),
                     },
                   ),
                 );
@@ -202,25 +392,39 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
   }
 
   Widget _buildSearchBar() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final matchCount = _activeMatchCount;
-    final currentLabel = matchCount == 0 ? '0/0' : '${_currentMatchIndex + 1}/$matchCount';
+    final currentLabel = matchCount == 0
+        ? '0/0'
+        : '${_currentMatchIndex + 1}/$matchCount';
 
     return Container(
-      color: AppColors.darkSurface,
+      color: colorScheme.surfaceContainerHighest.withValues(
+        alpha: theme.brightness == Brightness.dark ? 0.65 : 0.9,
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: <Widget>[
           Expanded(
             child: TextField(
               controller: _searchController,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
+              style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Search manifest...',
-                hintStyle: const TextStyle(color: AppColors.grey),
-                prefixIcon: const Icon(Icons.search, color: AppColors.grey),
+                hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: colorScheme.onSurfaceVariant,
+                ),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, color: AppColors.grey),
+                        icon: Icon(
+                          Icons.clear,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                         onPressed: () {
                           _searchController.clear();
                           setState(() {
@@ -231,18 +435,18 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                       )
                     : null,
                 filled: true,
-                fillColor: AppColors.ink,
+                fillColor: colorScheme.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.darkBorder),
+                  borderSide: BorderSide(color: colorScheme.outlineVariant),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.darkBorder),
+                  borderSide: BorderSide(color: colorScheme.outlineVariant),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.cobalt),
+                  borderSide: BorderSide(color: colorScheme.primary),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -261,8 +465,8 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
           const SizedBox(width: 12),
           Text(
             currentLabel,
-            style: const TextStyle(
-              color: AppColors.border,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
               fontFamily: 'monospace',
               fontSize: 13,
             ),
@@ -271,13 +475,13 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
             tooltip: 'Previous match',
             onPressed: matchCount == 0 ? null : _goToPreviousMatch,
             icon: const Icon(Icons.keyboard_arrow_up),
-            color: AppColors.border,
+            color: colorScheme.onSurfaceVariant,
           ),
           IconButton(
             tooltip: 'Next match',
             onPressed: matchCount == 0 ? null : _goToNextMatch,
             icon: const Icon(Icons.keyboard_arrow_down),
-            color: AppColors.border,
+            color: colorScheme.onSurfaceVariant,
           ),
         ],
       ),
@@ -313,15 +517,40 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     _ManifestDocumentBundle document,
     _ManifestViewData viewData,
   ) {
+    final visibleLineIndices = _visibleLineIndices(
+      lines: document.yamlLines,
+      query: viewData.query,
+      contextRadius: _searchContextRadius,
+    );
+
     return _buildScrollableSurface(
       lineCount: document.yamlLines.length,
       matches: viewData.matches,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          for (final section in document.sections)
-            _buildSection(document, section, viewData),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 20, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            for (var i = 0; i < document.sections.length; i++) ...<Widget>[
+              _buildSection(
+                document,
+                document.sections[i],
+                viewData,
+                visibleLineIndices,
+              ),
+              if (i != document.sections.length - 1)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Divider(
+                    height: 1,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outlineVariant.withValues(alpha: 0.7),
+                  ),
+                ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -331,12 +560,13 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     _ManifestViewData viewData,
   ) {
     if (document.diff == null) {
-      return const Center(
+      final theme = Theme.of(context);
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           child: Text(
             'Desired/live diff is not available for this manifest response.',
-            style: TextStyle(color: AppColors.border),
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
         ),
@@ -402,7 +632,9 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
               child: _MiniMap(
                 lineCount: lineCount,
                 matches: matches,
-                currentMatchLine: matches.isEmpty ? null : matches[_currentMatchIndex],
+                currentMatchLine: matches.isEmpty
+                    ? null
+                    : matches[_currentMatchIndex],
               ),
             ),
           ],
@@ -415,25 +647,33 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     _ManifestDocumentBundle document,
     _YamlSection section,
     _ManifestViewData viewData,
+    Set<int> visibleLineIndices,
   ) {
-    final hasMatches =
-        section.matchingLineIndices(document.yamlLines, viewData.query).isNotEmpty;
-    if (viewData.query.isNotEmpty && !hasMatches) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final visibleLines = section.visibleLineIndices(
+      visibleDocumentLines: visibleLineIndices,
+      query: viewData.query,
+    );
+
+    if (viewData.query.isNotEmpty &&
+        visibleLines.isEmpty &&
+        !visibleLineIndices.contains(section.startLine)) {
       return const SizedBox.shrink();
     }
 
     final userExpanded = _expandedSections[section.key] ?? true;
     final isExpanded = viewData.query.isNotEmpty ? true : userExpanded;
-    final visibleLines = section.visibleLineIndices(
-      yamlLines: document.yamlLines,
-      query: viewData.query,
-      contextRadius: _searchContextRadius,
-    );
 
     return Container(
-      decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: AppColors.darkBorder),
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(
+          alpha: theme.brightness == Brightness.dark ? 0.28 : 0.5,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.65),
         ),
       ),
       child: Column(
@@ -450,6 +690,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   Icon(
                     section.expandable
@@ -459,19 +700,35 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                         : Icons.drag_handle,
                     size: 18,
                     color: section.expandable
-                        ? AppColors.cobalt
-                        : AppColors.greyLight,
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     section.key,
-                    style: const TextStyle(
+                    style: theme.textTheme.titleSmall?.copyWith(
                       fontFamily: 'monospace',
                       fontSize: 14,
-                      color: AppColors.cobalt,
-                      fontWeight: FontWeight.bold,
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
+                  if (section.summaryText
+                      case final String summaryText) ...<Widget>[
+                    const SizedBox(width: 10),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 320),
+                      child: Text(
+                        summaryText,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontFamily: 'monospace',
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ] else
+                    const SizedBox(width: 12),
                   const SizedBox(width: 8),
                   _buildLineCountBadge(section.lineCount),
                 ],
@@ -483,28 +740,24 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
             secondCurve: Curves.easeInCubic,
             sizeCurve: Curves.easeInOutCubic,
             duration: const Duration(milliseconds: 220),
-            crossFadeState: isExpanded
+            crossFadeState: isExpanded && section.expandable
                 ? CrossFadeState.showFirst
                 : CrossFadeState.showSecond,
             firstChild: Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  for (final globalIndex in visibleLines)
-                    _buildYamlLine(
-                      keyId: 'yaml-$globalIndex',
-                      lineNumber: globalIndex + 1,
-                      line: document.yamlLines[globalIndex],
-                      isMatch: viewData.matches.contains(globalIndex),
-                      isCurrentMatch:
-                          viewData.matches.isNotEmpty &&
-                          viewData.matches[_currentMatchIndex] == globalIndex,
-                    ),
-                ],
+              padding: EdgeInsets.zero,
+              child: _buildExpandableSectionBody(
+                document: document,
+                section: section,
+                viewData: viewData,
+                visibleLines: visibleLines,
               ),
             ),
-            secondChild: const SizedBox.shrink(),
+            secondChild: section.expandable
+                ? const SizedBox.shrink()
+                : Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
+                    child: _buildScalarSectionLine(document, section, viewData),
+                  ),
           ),
         ],
       ),
@@ -512,17 +765,22 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
   }
 
   Widget _buildLineCountBadge(int lineCount) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.darkSurface,
+        color: colorScheme.surface.withValues(
+          alpha: theme.brightness == Brightness.dark ? 0.8 : 0.95,
+        ),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.darkBorder),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Text(
         '$lineCount ${lineCount == 1 ? 'line' : 'lines'}',
-        style: const TextStyle(
-          color: AppColors.border,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: colorScheme.onSurfaceVariant,
           fontSize: 12,
           fontFamily: 'monospace',
         ),
@@ -537,6 +795,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     required bool isMatch,
     required bool isCurrentMatch,
   }) {
+    final theme = Theme.of(context);
     final tokens = tokenizeYamlLine(line);
     return _buildLineFrame(
       keyId: keyId,
@@ -554,7 +813,9 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
               style: TextStyle(
                 fontFamily: 'monospace',
                 fontSize: 13,
-                color: yamlTokenColor(token.type),
+                color: yamlTokenColor(token.type).withValues(
+                  alpha: theme.brightness == Brightness.dark ? 1 : 0.92,
+                ),
                 height: 1.5,
               ),
             ),
@@ -570,6 +831,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     required bool isMatch,
     required bool isCurrentMatch,
   }) {
+    final theme = Theme.of(context);
     return _buildLineFrame(
       keyId: keyId,
       lineNumber: lineNumber,
@@ -578,10 +840,10 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       child: Text(
         line,
         softWrap: _wrapLines,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: 'monospace',
           fontSize: 13,
-          color: AppColors.border,
+          color: theme.colorScheme.onSurface,
           height: 1.5,
         ),
       ),
@@ -595,11 +857,12 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     required bool isMatch,
     required bool isCurrentMatch,
   }) {
+    final theme = Theme.of(context);
     final lineColor = switch (line.kind) {
       _DiffKind.added => AppColors.teal,
       _DiffKind.removed => AppColors.coral,
       _DiffKind.changed => AppColors.amber,
-      _DiffKind.unchanged => AppColors.border,
+      _DiffKind.unchanged => theme.colorScheme.onSurface,
     };
 
     return _buildLineFrame(
@@ -627,16 +890,22 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     required bool isCurrentMatch,
     required Widget child,
   }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final key = _lineKeys.putIfAbsent(keyId, GlobalKey.new);
 
     return Container(
       key: key,
       color: isCurrentMatch
-          ? AppColors.amber.withValues(alpha: 0.18)
+          ? AppColors.amber.withValues(
+              alpha: theme.brightness == Brightness.dark ? 0.22 : 0.28,
+            )
           : isMatch
-          ? AppColors.cobalt.withValues(alpha: 0.14)
+          ? colorScheme.primary.withValues(
+              alpha: theme.brightness == Brightness.dark ? 0.16 : 0.12,
+            )
           : null,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(
         mainAxisSize: _wrapLines ? MainAxisSize.max : MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -646,10 +915,10 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
             child: Text(
               '$lineNumber',
               textAlign: TextAlign.right,
-              style: const TextStyle(
+              style: theme.textTheme.bodySmall?.copyWith(
                 fontFamily: 'monospace',
                 fontSize: 13,
-                color: AppColors.grey,
+                color: colorScheme.onSurfaceVariant,
                 height: 1.5,
               ),
             ),
@@ -694,7 +963,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
 
     final yamlText = jsonToYaml(decoded);
     final yamlLines = _trimTrailingEmptyLine(yamlText.split('\n'));
-    final sections = _buildSections(decoded);
+    final sections = _buildSections(decoded, yamlLines);
 
     return _ManifestDocumentBundle(
       yamlLines: yamlLines,
@@ -705,8 +974,12 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
   }
 
   _DiffDocument? _extractDiffDocument(Map<String, dynamic> decoded) {
-    final desired = _extractManifestText(decoded['desiredManifest'] ?? decoded['desired']);
-    final live = _extractManifestText(decoded['liveManifest'] ?? decoded['live']);
+    final desired = _extractManifestText(
+      decoded['desiredManifest'] ?? decoded['desired'],
+    );
+    final live = _extractManifestText(
+      decoded['liveManifest'] ?? decoded['live'],
+    );
     if (desired == null || live == null) {
       return null;
     }
@@ -730,19 +1003,28 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     return value.toString();
   }
 
-  List<_YamlSection> _buildSections(Map<String, dynamic> decoded) {
+  List<_YamlSection> _buildSections(
+    Map<String, dynamic> decoded,
+    List<String> yamlLines,
+  ) {
     final sections = <_YamlSection>[];
     var currentLine = 0;
 
     for (final entry in decoded.entries) {
       final yamlText = jsonToYaml(<String, dynamic>{entry.key: entry.value});
       final lines = _trimTrailingEmptyLine(yamlText.split('\n'));
+      final summaryText = _buildSectionSummary(
+        entry.value,
+        yamlLines[currentLine],
+      );
       sections.add(
         _YamlSection(
           key: entry.key,
           startLine: currentLine,
           endLine: currentLine + lines.length - 1,
-          expandable: entry.value is Map<String, dynamic> || entry.value is List,
+          expandable:
+              entry.value is Map<String, dynamic> || entry.value is List,
+          summaryText: summaryText,
         ),
       );
       currentLine += lines.length;
@@ -765,7 +1047,10 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
         query: query,
       ),
       _ManifestViewMode.diff => _ManifestViewData(
-        lines: document.diff?.lines.map((line) => line.text).toList(growable: false) ??
+        lines:
+            document.diff?.lines
+                .map((line) => line.text)
+                .toList(growable: false) ??
             const <String>[],
         matches: _matchIndices(
           document.diff?.lines
@@ -787,6 +1072,162 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       for (var i = 0; i < lines.length; i++)
         if (lines[i].toLowerCase().contains(query)) i,
     ];
+  }
+
+  Set<int> _visibleLineIndices({
+    required List<String> lines,
+    required String query,
+    required int contextRadius,
+  }) {
+    if (query.isEmpty) {
+      return <int>{for (var i = 0; i < lines.length; i++) i};
+    }
+
+    final indices = <int>{};
+    for (final match in _matchIndices(lines, query)) {
+      final first = match - contextRadius < 0 ? 0 : match - contextRadius;
+      final last = match + contextRadius >= lines.length
+          ? lines.length - 1
+          : match + contextRadius;
+      for (var i = first; i <= last; i++) {
+        indices.add(i);
+      }
+    }
+    return indices;
+  }
+
+  Widget _buildExpandableSectionBody({
+    required _ManifestDocumentBundle document,
+    required _YamlSection section,
+    required _ManifestViewData viewData,
+    required List<int> visibleLines,
+  }) {
+    final contentLines = visibleLines
+        .where((int index) => index > section.startLine)
+        .toList(growable: false);
+    if (contentLines.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final widgets = <Widget>[];
+    for (var i = 0; i < contentLines.length; i++) {
+      final globalIndex = contentLines[i];
+      widgets.add(
+        _buildYamlLine(
+          keyId: 'yaml-$globalIndex',
+          lineNumber: globalIndex + 1,
+          line: document.yamlLines[globalIndex],
+          isMatch: viewData.matches.contains(globalIndex),
+          isCurrentMatch:
+              viewData.matches.isNotEmpty &&
+              viewData.matches[_currentMatchIndex] == globalIndex,
+        ),
+      );
+      if (i == contentLines.length - 1) {
+        continue;
+      }
+      final nextIndex = contentLines[i + 1];
+      if (nextIndex - globalIndex > 1) {
+        widgets.add(
+          _buildGapIndicator(
+            hiddenLineCount: nextIndex - globalIndex - 1,
+            startLine: globalIndex + 2,
+            endLine: nextIndex,
+          ),
+        );
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: widgets,
+      ),
+    );
+  }
+
+  Widget _buildScalarSectionLine(
+    _ManifestDocumentBundle document,
+    _YamlSection section,
+    _ManifestViewData viewData,
+  ) {
+    final lineText = document.yamlLines[section.startLine];
+    final valueText = _scalarValueForLine(lineText);
+    return _buildYamlLine(
+      keyId: 'yaml-${section.startLine}',
+      lineNumber: section.startLine + 1,
+      line: valueText,
+      isMatch: viewData.matches.contains(section.startLine),
+      isCurrentMatch:
+          viewData.matches.isNotEmpty &&
+          viewData.matches[_currentMatchIndex] == section.startLine,
+    );
+  }
+
+  Widget _buildGapIndicator({
+    required int hiddenLineCount,
+    required int startLine,
+    required int endLine,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Text(
+        '... $hiddenLineCount lines hidden between $startLine and $endLine ...',
+        style: theme.textTheme.labelSmall?.copyWith(
+          fontFamily: 'monospace',
+          color: colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+
+  String _scalarValueForLine(String line) {
+    final colonIndex = line.indexOf(':');
+    if (colonIndex == -1 || colonIndex + 1 >= line.length) {
+      return line;
+    }
+    return line.substring(colonIndex + 1).trimLeft();
+  }
+
+  String? _buildSectionSummary(dynamic value, String yamlLine) {
+    if (value is Map && value.isEmpty) {
+      return '{}';
+    }
+    if (value is List && value.isEmpty) {
+      return '[]';
+    }
+    if (value is Map<String, dynamic> || value is List) {
+      return null;
+    }
+    return _scalarValueForLine(yamlLine);
+  }
+
+  bool _allExpandableSectionsExpanded(_ManifestDocumentBundle document) {
+    final expandableSections = document.sections.where(
+      (_YamlSection section) => section.expandable,
+    );
+    if (expandableSections.isEmpty) {
+      return true;
+    }
+    return expandableSections.every(
+      (_YamlSection section) => _expandedSections[section.key] ?? true,
+    );
+  }
+
+  void _toggleAllSections(_ManifestDocumentBundle document) {
+    final nextExpanded = !_allExpandableSectionsExpanded(document);
+    setState(() {
+      for (final section in document.sections) {
+        if (!section.expandable) {
+          continue;
+        }
+        _expandedSections[section.key] = nextExpanded;
+      }
+    });
   }
 
   int get _activeMatchCount {
@@ -848,6 +1289,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
   }
 
   void _toggleJsonYamlMode() {
+    _storeCurrentScrollOffsets();
     setState(() {
       if (_viewMode == _ManifestViewMode.diff) {
         _viewMode = _lastNonDiffMode;
@@ -858,10 +1300,11 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
         _lastNonDiffMode = _viewMode;
       }
     });
-    _scheduleEnsureCurrentMatch();
+    _restoreScrollOffsets();
   }
 
   void _toggleDiffMode() {
+    _storeCurrentScrollOffsets();
     setState(() {
       if (_viewMode == _ManifestViewMode.diff) {
         _viewMode = _lastNonDiffMode;
@@ -870,7 +1313,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
         _viewMode = _ManifestViewMode.diff;
       }
     });
-    _scheduleEnsureCurrentMatch();
+    _restoreScrollOffsets();
   }
 
   void _goToPreviousMatch() {
@@ -907,6 +1350,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
   }
 
   void _refreshManifest() {
+    _storeCurrentScrollOffsets();
     setState(() {
       _future = _loadManifest();
       _currentMatchIndex = 0;
@@ -928,7 +1372,9 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       case _ManifestViewMode.yaml:
         try {
           final decoded = jsonDecode(manifest);
-          textToCopy = decoded is Map<String, dynamic> ? jsonToYaml(decoded) : manifest;
+          textToCopy = decoded is Map<String, dynamic>
+              ? jsonToYaml(decoded)
+              : manifest;
         } catch (_) {
           textToCopy = manifest;
         }
@@ -950,6 +1396,42 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Copied to clipboard')));
+  }
+
+  void _storeCurrentScrollOffsets() {
+    if (_verticalScrollController.hasClients) {
+      _verticalOffsets[_viewMode] = _verticalScrollController.offset;
+    }
+    if (_horizontalScrollController.hasClients) {
+      _horizontalOffsets[_viewMode] = _horizontalScrollController.offset;
+    }
+  }
+
+  void _restoreScrollOffsets() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      final verticalOffset = _verticalOffsets[_viewMode];
+      if (verticalOffset != null && _verticalScrollController.hasClients) {
+        final maxScrollExtent =
+            _verticalScrollController.position.maxScrollExtent;
+        _verticalScrollController.jumpTo(
+          verticalOffset > maxScrollExtent ? maxScrollExtent : verticalOffset,
+        );
+      }
+      final horizontalOffset = _horizontalOffsets[_viewMode];
+      if (horizontalOffset != null && _horizontalScrollController.hasClients) {
+        final maxScrollExtent =
+            _horizontalScrollController.position.maxScrollExtent;
+        _horizontalScrollController.jumpTo(
+          horizontalOffset > maxScrollExtent
+              ? maxScrollExtent
+              : horizontalOffset,
+        );
+      }
+      _ensureCurrentMatchVisible();
+    });
   }
 }
 
@@ -992,47 +1474,30 @@ class _YamlSection {
     required this.startLine,
     required this.endLine,
     required this.expandable,
+    required this.summaryText,
   });
 
   final String key;
   final int startLine;
   final int endLine;
   final bool expandable;
+  final String? summaryText;
 
   int get lineCount => endLine - startLine + 1;
 
-  List<int> matchingLineIndices(List<String> yamlLines, String query) {
-    if (query.isEmpty) {
-      return const <int>[];
-    }
-    return <int>[
-      for (var i = startLine; i <= endLine; i++)
-        if (yamlLines[i].toLowerCase().contains(query)) i,
-    ];
-  }
-
   List<int> visibleLineIndices({
-    required List<String> yamlLines,
+    required Set<int> visibleDocumentLines,
     required String query,
-    required int contextRadius,
   }) {
+    final firstVisibleLine = expandable ? startLine + 1 : startLine;
     if (query.isEmpty) {
-      return <int>[for (var i = startLine; i <= endLine; i++) i];
+      return <int>[for (var i = firstVisibleLine; i <= endLine; i++) i];
     }
 
-    final indices = <int>{};
-    for (final match in matchingLineIndices(yamlLines, query)) {
-      final first = match - contextRadius < startLine
-          ? startLine
-          : match - contextRadius;
-      final last = match + contextRadius > endLine ? endLine : match + contextRadius;
-      for (var i = first; i <= last; i++) {
-        indices.add(i);
-      }
-    }
-
-    final sorted = indices.toList()..sort();
-    return sorted;
+    return <int>[
+      for (var i = firstVisibleLine; i <= endLine; i++)
+        if (visibleDocumentLines.contains(i)) i,
+    ];
   }
 }
 
@@ -1069,7 +1534,9 @@ List<_DiffLine> _buildDiffLines(String desiredText, String liveText) {
     final live = i < liveLines.length ? liveLines[i] : null;
 
     if (desired == live && desired != null) {
-      lines.add(_DiffLine(prefix: ' ', text: desired, kind: _DiffKind.unchanged));
+      lines.add(
+        _DiffLine(prefix: ' ', text: desired, kind: _DiffKind.unchanged),
+      );
       continue;
     }
     if (desired == null && live != null) {
@@ -1108,6 +1575,9 @@ class _MiniMap extends StatelessWidget {
       return const SizedBox(width: 10);
     }
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return SizedBox(
       width: 10,
       child: LayoutBuilder(
@@ -1115,8 +1585,10 @@ class _MiniMap extends StatelessWidget {
           final height = constraints.maxHeight;
           return DecoratedBox(
             decoration: BoxDecoration(
-              color: AppColors.darkSurface.withValues(alpha: 0.9),
-              border: Border.all(color: AppColors.darkBorder),
+              color: colorScheme.surfaceContainerHighest.withValues(
+                alpha: theme.brightness == Brightness.dark ? 0.9 : 0.95,
+              ),
+              border: Border.all(color: colorScheme.outlineVariant),
               borderRadius: BorderRadius.circular(999),
             ),
             child: Stack(

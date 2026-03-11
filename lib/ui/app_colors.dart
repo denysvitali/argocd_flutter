@@ -26,6 +26,30 @@ abstract final class AppColors {
   static const Color gradientProjectStart = Color(0xFF10233D);
   static const Color gradientProjectMid = Color(0xFF14532D);
 
+  static Color outline(ThemeData theme) {
+    return theme.brightness == Brightness.dark ? darkBorder : border;
+  }
+
+  static Color mutedText(ThemeData theme) {
+    return theme.colorScheme.onSurfaceVariant;
+  }
+
+  static Color inputFill(ThemeData theme) {
+    return theme.colorScheme.surface;
+  }
+
+  static Color surfaceShadow(ThemeData theme, {double alpha = 0.08}) {
+    final effectiveAlpha = theme.brightness == Brightness.dark
+        ? alpha * 2
+        : alpha;
+    return theme.colorScheme.shadow.withValues(alpha: effectiveAlpha);
+  }
+
+  static Color skeleton(ThemeData theme, {double alpha = 0.08}) {
+    final base = theme.brightness == Brightness.dark ? border : ink;
+    return base.withValues(alpha: alpha);
+  }
+
   static Color healthColor(String status) {
     return switch (status.toLowerCase()) {
       'healthy' => teal,

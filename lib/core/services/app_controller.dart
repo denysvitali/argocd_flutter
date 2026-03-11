@@ -240,7 +240,7 @@ class AppController extends ChangeNotifier {
     required String applicationName,
     required String namespace,
     required String podName,
-    required String containerName,
+    String? containerName,
     int tailLines = 500,
   }) async {
     final session = _session;

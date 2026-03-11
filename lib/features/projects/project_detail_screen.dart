@@ -107,10 +107,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           child: Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: ErrorRetryWidget(
-                message: error,
-                onRetry: _refresh,
-              ),
+              child: ErrorRetryWidget(message: error, onRetry: _refresh),
             ),
           ),
         ),
@@ -216,6 +213,8 @@ class _HeaderBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final outlineColor = AppColors.outline(theme);
+    final mutedColor = AppColors.mutedText(theme);
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -363,10 +362,7 @@ class _OverviewTab extends StatelessWidget {
                 title: 'Project Details',
               ),
               const SizedBox(height: 20),
-              _DetailRow(
-                label: 'Name',
-                value: project.name,
-              ),
+              _DetailRow(label: 'Name', value: project.name),
               const SizedBox(height: 12),
               _DetailRow(
                 label: 'Description',
@@ -431,10 +427,7 @@ class _DetailRow extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          value,
-          style: theme.textTheme.bodyLarge,
-        ),
+        Text(value, style: theme.textTheme.bodyLarge),
       ],
     );
   }
@@ -456,6 +449,8 @@ class _SourcesTab extends StatelessWidget {
     }
 
     final theme = Theme.of(context);
+    final outlineColor = AppColors.outline(theme);
+    final mutedColor = AppColors.mutedText(theme);
 
     return ListView.separated(
       padding: const EdgeInsets.all(20),
@@ -470,7 +465,7 @@ class _SourcesTab extends StatelessWidget {
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: outlineColor),
           ),
           child: Row(
             children: <Widget>[
@@ -495,10 +490,12 @@ class _SourcesTab extends StatelessWidget {
                       isWildcard ? 'All repositories (wildcard)' : repo,
                       style: theme.textTheme.bodyLarge?.copyWith(
                         color: AppColors.cobalt,
-                        decoration:
-                            isWildcard ? null : TextDecoration.underline,
-                        decorationColor:
-                            AppColors.cobalt.withValues(alpha: 0.4),
+                        decoration: isWildcard
+                            ? null
+                            : TextDecoration.underline,
+                        decorationColor: AppColors.cobalt.withValues(
+                          alpha: 0.4,
+                        ),
                       ),
                     ),
                     if (isWildcard)
@@ -507,7 +504,7 @@ class _SourcesTab extends StatelessWidget {
                         child: Text(
                           'Any source repository is allowed',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.grey,
+                            color: mutedColor,
                           ),
                         ),
                       ),
@@ -538,6 +535,8 @@ class _DestinationsTab extends StatelessWidget {
     }
 
     final theme = Theme.of(context);
+    final outlineColor = AppColors.outline(theme);
+    final mutedColor = AppColors.mutedText(theme);
 
     return ListView.separated(
       padding: const EdgeInsets.all(20),
@@ -551,7 +550,7 @@ class _DestinationsTab extends StatelessWidget {
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: outlineColor),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -587,17 +586,13 @@ class _DestinationsTab extends StatelessWidget {
                 ),
               Row(
                 children: <Widget>[
-                  const Icon(
-                    Icons.cloud_outlined,
-                    size: 16,
-                    color: AppColors.grey,
-                  ),
+                  Icon(Icons.cloud_outlined, size: 16, color: mutedColor),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       destination.server,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: AppColors.grey,
+                        color: mutedColor,
                       ),
                     ),
                   ),
@@ -608,17 +603,13 @@ class _DestinationsTab extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 6),
                   child: Row(
                     children: <Widget>[
-                      const Icon(
-                        Icons.folder_outlined,
-                        size: 16,
-                        color: AppColors.grey,
-                      ),
+                      Icon(Icons.folder_outlined, size: 16, color: mutedColor),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           destination.namespace,
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: AppColors.grey,
+                            color: mutedColor,
                           ),
                         ),
                       ),
@@ -674,54 +665,54 @@ class _PermissionsTab extends StatelessWidget {
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children: resources.map(
-                  (resource) {
-                    final kindColor = colorForResourceKind(resource.kind);
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: kindColor.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: kindColor.withValues(alpha: 0.2),
+                children: resources
+                    .map((resource) {
+                      final kindColor = colorForResourceKind(resource.kind);
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
                         ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          Icon(
-                            iconForResourceKind(resource.kind),
-                            size: 18,
-                            color: kindColor,
+                        decoration: BoxDecoration(
+                          color: kindColor.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: kindColor.withValues(alpha: 0.2),
                           ),
-                          const SizedBox(width: 8),
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(
-                                resource.kind.isEmpty ? '*' : resource.kind,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              if (resource.group.isNotEmpty)
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Icon(
+                              iconForResourceKind(resource.kind),
+                              size: 18,
+                              color: kindColor,
+                            ),
+                            const SizedBox(width: 8),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
                                 Text(
-                                  resource.group,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: AppColors.grey,
+                                  resource.kind.isEmpty ? '*' : resource.kind,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ).toList(growable: false),
+                                if (resource.group.isNotEmpty)
+                                  Text(
+                                    resource.group,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: AppColors.grey,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    })
+                    .toList(growable: false),
               ),
             ],
           ),

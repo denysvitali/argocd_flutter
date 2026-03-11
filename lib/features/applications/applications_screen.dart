@@ -45,18 +45,16 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
       ApplicationFilterChip.all => applications,
       ApplicationFilterChip.healthy =>
         applications.where((a) => a.isHealthy).toList(growable: false),
-      ApplicationFilterChip.degraded => applications
-          .where(
-            (a) => a.healthStatus.toLowerCase() == 'degraded',
-          )
-          .toList(growable: false),
+      ApplicationFilterChip.degraded =>
+        applications
+            .where((a) => a.healthStatus.toLowerCase() == 'degraded')
+            .toList(growable: false),
       ApplicationFilterChip.outOfSync =>
         applications.where((a) => a.isOutOfSync).toList(growable: false),
-      ApplicationFilterChip.progressing => applications
-          .where(
-            (a) => a.healthStatus.toLowerCase() == 'progressing',
-          )
-          .toList(growable: false),
+      ApplicationFilterChip.progressing =>
+        applications
+            .where((a) => a.healthStatus.toLowerCase() == 'progressing')
+            .toList(growable: false),
     };
   }
 
@@ -64,14 +62,17 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
     final sorted = List<ArgoApplication>.of(applications);
     sorted.sort((ArgoApplication a, ArgoApplication b) {
       return switch (_sortField) {
-        ApplicationSortField.name =>
-          a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        ApplicationSortField.name => a.name.toLowerCase().compareTo(
+          b.name.toLowerCase(),
+        ),
         ApplicationSortField.health =>
           _healthSortOrder(a.healthStatus) - _healthSortOrder(b.healthStatus),
-        ApplicationSortField.lastSynced =>
-          (b.lastSyncedAt ?? '').compareTo(a.lastSyncedAt ?? ''),
-        ApplicationSortField.project =>
-          a.project.toLowerCase().compareTo(b.project.toLowerCase()),
+        ApplicationSortField.lastSynced => (b.lastSyncedAt ?? '').compareTo(
+          a.lastSyncedAt ?? '',
+        ),
+        ApplicationSortField.project => a.project.toLowerCase().compareTo(
+          b.project.toLowerCase(),
+        ),
       };
     });
     return sorted;
@@ -91,13 +92,14 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
   Widget build(BuildContext context) {
     final normalizedQuery = _query.trim().toLowerCase();
     final allApplications = widget.controller.applications;
-    final unhealthyCount =
-        allApplications.where((application) => !application.isHealthy).length;
+    final unhealthyCount = allApplications
+        .where((application) => !application.isHealthy)
+        .length;
     final outOfSyncCount = allApplications
         .where((application) => application.isOutOfSync)
         .length;
-    final searchedApplications =
-        allApplications.where((application) {
+    final searchedApplications = allApplications
+        .where((application) {
           if (normalizedQuery.isEmpty) {
             return true;
           }
@@ -108,8 +110,11 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               application.cluster.toLowerCase().contains(normalizedQuery) ||
               application.repoUrl.toLowerCase().contains(normalizedQuery) ||
               application.path.toLowerCase().contains(normalizedQuery) ||
-              application.targetRevision.toLowerCase().contains(normalizedQuery);
-        }).toList(growable: false);
+              application.targetRevision.toLowerCase().contains(
+                normalizedQuery,
+              );
+        })
+        .toList(growable: false);
     final filteredApplications = _applyFilter(searchedApplications);
     final applications = _applySort(filteredApplications);
     final filterCounts = <ApplicationFilterChip, int>{
@@ -119,7 +124,8 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
           .length,
       ApplicationFilterChip.degraded: searchedApplications
           .where(
-            (application) => application.healthStatus.toLowerCase() == 'degraded',
+            (application) =>
+                application.healthStatus.toLowerCase() == 'degraded',
           )
           .length,
       ApplicationFilterChip.outOfSync: searchedApplications
@@ -239,7 +245,8 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               _LoadingSkeleton(isGrid: _isGridView)
             else if (applications.isEmpty)
               _EmptyState(
-                filtered: normalizedQuery.isNotEmpty ||
+                filtered:
+                    normalizedQuery.isNotEmpty ||
                     _activeFilter != ApplicationFilterChip.all,
                 hasApps: widget.controller.applications.isNotEmpty,
               )
@@ -288,17 +295,9 @@ class _FilterChips extends StatelessWidget {
           const SizedBox(width: 8),
           _buildChip(context, ApplicationFilterChip.degraded, 'Degraded'),
           const SizedBox(width: 8),
-          _buildChip(
-            context,
-            ApplicationFilterChip.outOfSync,
-            'Out of Sync',
-          ),
+          _buildChip(context, ApplicationFilterChip.outOfSync, 'Out of Sync'),
           const SizedBox(width: 8),
-          _buildChip(
-            context,
-            ApplicationFilterChip.progressing,
-            'Progressing',
-          ),
+          _buildChip(context, ApplicationFilterChip.progressing, 'Progressing'),
         ],
       ),
     );
@@ -321,12 +320,8 @@ class _FilterChips extends StatelessWidget {
         color: isSelected ? AppColors.cobalt : AppColors.grey,
         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
       ),
-      side: BorderSide(
-        color: isSelected ? AppColors.cobalt : AppColors.border,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      side: BorderSide(color: isSelected ? AppColors.cobalt : AppColors.border),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       visualDensity: VisualDensity.compact,
     );
   }
@@ -393,15 +388,17 @@ class _SearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final outlineColor = AppColors.outline(theme);
+    final mutedColor = AppColors.mutedText(theme);
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: AppColors.inputFill(theme),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: outlineColor),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: AppColors.ink.withValues(alpha: 0.04),
+            color: AppColors.surfaceShadow(theme, alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -412,12 +409,10 @@ class _SearchBar extends StatelessWidget {
         onChanged: onChanged,
         decoration: InputDecoration(
           hintText: 'Search name, project, namespace, repo, cluster, revision',
-          hintStyle: theme.textTheme.bodyMedium?.copyWith(
-            color: AppColors.greyLight,
-          ),
-          prefixIcon: const Padding(
-            padding: EdgeInsets.only(left: 16, right: 8),
-            child: Icon(Icons.search_rounded, color: AppColors.grey),
+          hintStyle: theme.textTheme.bodyMedium?.copyWith(color: mutedColor),
+          prefixIcon: Padding(
+            padding: const EdgeInsets.only(left: 16, right: 8),
+            child: Icon(Icons.search_rounded, color: mutedColor),
           ),
           prefixIconConstraints: const BoxConstraints(
             minWidth: 48,
@@ -426,7 +421,7 @@ class _SearchBar extends StatelessWidget {
           suffixIcon: showClear
               ? IconButton(
                   icon: const Icon(Icons.close_rounded, size: 20),
-                  color: AppColors.grey,
+                  color: mutedColor,
                   onPressed: onClear,
                 )
               : null,
@@ -488,7 +483,10 @@ class _OverviewStrip extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(999),
@@ -559,9 +557,9 @@ class _MetricChip extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textOnDarkMuted,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.textOnDarkMuted),
           ),
         ],
       ),
@@ -622,9 +620,7 @@ class _ApplicationCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             child: Container(
               decoration: BoxDecoration(
-                border: Border(
-                  left: BorderSide(color: healthColor, width: 4),
-                ),
+                border: Border(left: BorderSide(color: healthColor, width: 4)),
               ),
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
               child: Column(
@@ -761,10 +757,7 @@ class _ApplicationGrid extends StatelessWidget {
 }
 
 class _ApplicationGridCard extends StatelessWidget {
-  const _ApplicationGridCard({
-    required this.application,
-    required this.onTap,
-  });
+  const _ApplicationGridCard({required this.application, required this.onTap});
 
   final ArgoApplication application;
   final VoidCallback onTap;
@@ -790,9 +783,7 @@ class _ApplicationGridCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             child: Container(
               decoration: BoxDecoration(
-                border: Border(
-                  left: BorderSide(color: healthColor, width: 4),
-                ),
+                border: Border(left: BorderSide(color: healthColor, width: 4)),
               ),
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -894,7 +885,10 @@ String _repoHost(String repoUrl) {
 }
 
 String _pathLabel(String path) {
-  final segments = path.split('/').where((segment) => segment.isNotEmpty).toList();
+  final segments = path
+      .split('/')
+      .where((segment) => segment.isNotEmpty)
+      .toList();
   if (segments.length <= 2) {
     return path;
   }
@@ -994,9 +988,7 @@ class _EmptyState extends StatelessWidget {
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.grey,
-            ),
+            style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.grey),
           ),
         ],
       ),
@@ -1068,9 +1060,10 @@ class _SkeletonCardState extends State<_SkeletonCard>
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     );
-    _animation = Tween<double>(begin: 0.04, end: 0.1).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _animation = Tween<double>(
+      begin: 0.04,
+      end: 0.1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
     Future<void>.delayed(Duration(milliseconds: widget.delay), () {
       if (mounted) {
         _controller.repeat(reverse: true);
@@ -1087,6 +1080,7 @@ class _SkeletonCardState extends State<_SkeletonCard>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final skeletonColor = AppColors.skeleton(theme, alpha: _animation.value);
 
     return AnimatedBuilder(
       animation: _animation,
@@ -1108,7 +1102,7 @@ class _SkeletonCardState extends State<_SkeletonCard>
                       width: 4,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: AppColors.ink.withValues(alpha: _animation.value),
+                        color: skeletonColor,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -1167,10 +1161,7 @@ class _SkeletonCardState extends State<_SkeletonCard>
             child: Container(
               decoration: BoxDecoration(
                 border: Border(
-                  left: BorderSide(
-                    color: AppColors.ink.withValues(alpha: _animation.value),
-                    width: 4,
-                  ),
+                  left: BorderSide(color: skeletonColor, width: 4),
                 ),
               ),
               padding: const EdgeInsets.all(20),
@@ -1268,11 +1259,13 @@ class _SkeletonLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: AppColors.ink.withValues(alpha: alpha),
+        color: AppColors.skeleton(theme, alpha: alpha),
         borderRadius: BorderRadius.circular(borderRadius),
       ),
     );

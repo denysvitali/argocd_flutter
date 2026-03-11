@@ -10,14 +10,14 @@ class LogViewerScreen extends StatefulWidget {
     required this.applicationName,
     required this.namespace,
     required this.podName,
-    required this.containerName,
+    this.containerName,
   });
 
   final AppController controller;
   final String applicationName;
   final String namespace;
   final String podName;
-  final String containerName;
+  final String? containerName;
 
   @override
   State<LogViewerScreen> createState() => _LogViewerScreenState();
@@ -35,9 +35,20 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final backgroundColor = isDark
+        ? colorScheme.surfaceContainerHighest
+        : colorScheme.surface;
+    final logColor = isDark ? AppColors.teal : colorScheme.primary;
+    final title = widget.containerName == null || widget.containerName!.isEmpty
+        ? widget.podName
+        : '${widget.podName}/${widget.containerName}';
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.podName}/${widget.containerName}'),
+        title: Text(title),
         actions: <Widget>[
           IconButton(
             tooltip: 'Refresh',
@@ -54,7 +65,7 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        color: AppColors.ink,
+        color: backgroundColor,
         child: FutureBuilder<String>(
           future: _future,
           builder: (context, snapshot) {
@@ -71,7 +82,9 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
                     children: <Widget>[
                       Text(
                         snapshot.error.toString(),
-                        style: const TextStyle(color: Colors.white),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.error,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
@@ -90,10 +103,10 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
               padding: const EdgeInsets.all(16),
               child: SelectableText(
                 logs.isEmpty ? 'No logs returned.' : logs,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 13,
-                  color: AppColors.teal,
+                  color: logColor,
                 ),
               ),
             );

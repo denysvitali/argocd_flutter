@@ -319,10 +319,7 @@ class _DetailBody extends StatelessWidget {
             body: TabBarView(
               controller: tabController,
               children: <Widget>[
-                _OverviewTab(
-                  controller: controller,
-                  application: application,
-                ),
+                _OverviewTab(controller: controller, application: application),
                 _ResourcesTab(
                   controller: controller,
                   applicationName: application.name,
@@ -372,10 +369,7 @@ class _HeroHeader extends StatelessWidget {
       ),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: <Color>[
-            AppColors.gradientAppStart,
-            AppColors.gradientAppMid,
-          ],
+          colors: <Color>[AppColors.gradientAppStart, AppColors.gradientAppMid],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -416,7 +410,8 @@ class _HeroHeader extends StatelessWidget {
               ),
               if (application.lastSyncedAt != null)
                 StatusChip(
-                  label: 'Synced ${_formatRelativeTime(application.lastSyncedAt!)}',
+                  label:
+                      'Synced ${_formatRelativeTime(application.lastSyncedAt!)}',
                   color: AppColors.grey,
                 ),
             ],
@@ -440,10 +435,7 @@ class _HeroHeader extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _OverviewTab extends StatelessWidget {
-  const _OverviewTab({
-    required this.controller,
-    required this.application,
-  });
+  const _OverviewTab({required this.controller, required this.application});
 
   final AppController controller;
   final ArgoApplication application;
@@ -770,9 +762,7 @@ class _ResourceCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: kindColor.withValues(alpha: 0.3),
-            ),
+            border: Border.all(color: kindColor.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: <Widget>[
@@ -860,7 +850,6 @@ class _ResourceCard extends StatelessWidget {
                           applicationName: applicationName,
                           namespace: resource.namespace,
                           podName: resource.name,
-                          containerName: resource.name,
                         ),
                       ),
                     );
@@ -974,10 +963,7 @@ class _TimelineEntry extends StatelessWidget {
                 ),
                 if (!isLast)
                   Expanded(
-                    child: Container(
-                      width: 2,
-                      color: theme.dividerColor,
-                    ),
+                    child: Container(width: 2, color: theme.dividerColor),
                   ),
               ],
             ),
@@ -1169,9 +1155,7 @@ class _BottomActionBar extends StatelessWidget {
               onPressed: actionInFlight ? null : onRefresh,
               icon: const Icon(Icons.refresh, size: 18),
               label: const Text('Refresh'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.cobalt,
-              ),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.cobalt),
             ),
           ),
           const SizedBox(width: 12),
@@ -1180,9 +1164,7 @@ class _BottomActionBar extends StatelessWidget {
               onPressed: actionInFlight ? null : onSync,
               icon: const Icon(Icons.sync, size: 18),
               label: const Text('Sync'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.teal,
-              ),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.teal),
             ),
           ),
           const SizedBox(width: 12),

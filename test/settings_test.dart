@@ -77,10 +77,7 @@ void main() {
       final themeController = ThemeController();
 
       await tester.pumpWidget(
-        wrapSettings(
-          controller: controller,
-          themeController: themeController,
-        ),
+        wrapSettings(controller: controller, themeController: themeController),
       );
       await tester.pumpAndSettle();
 
@@ -96,10 +93,7 @@ void main() {
       final themeController = ThemeController();
 
       await tester.pumpWidget(
-        wrapSettings(
-          controller: controller,
-          themeController: themeController,
-        ),
+        wrapSettings(controller: controller, themeController: themeController),
       );
       await tester.pumpAndSettle();
 
@@ -116,10 +110,7 @@ void main() {
       final themeController = ThemeController();
 
       await tester.pumpWidget(
-        wrapSettings(
-          controller: controller,
-          themeController: themeController,
-        ),
+        wrapSettings(controller: controller, themeController: themeController),
       );
       await tester.pumpAndSettle();
 
@@ -137,10 +128,7 @@ void main() {
       expect(themeController.themeMode, ThemeMode.system);
 
       await tester.pumpWidget(
-        wrapSettings(
-          controller: controller,
-          themeController: themeController,
-        ),
+        wrapSettings(controller: controller, themeController: themeController),
       );
       await tester.pumpAndSettle();
 
@@ -161,10 +149,7 @@ void main() {
       final themeController = ThemeController();
 
       await tester.pumpWidget(
-        wrapSettings(
-          controller: controller,
-          themeController: themeController,
-        ),
+        wrapSettings(controller: controller, themeController: themeController),
       );
       await tester.pumpAndSettle();
 
@@ -199,10 +184,7 @@ void main() {
       final themeController = ThemeController();
 
       await tester.pumpWidget(
-        wrapSettings(
-          controller: controller,
-          themeController: themeController,
-        ),
+        wrapSettings(controller: controller, themeController: themeController),
       );
       await tester.pumpAndSettle();
 
@@ -232,10 +214,7 @@ void main() {
       final themeController = ThemeController();
 
       await tester.pumpWidget(
-        wrapSettings(
-          controller: controller,
-          themeController: themeController,
-        ),
+        wrapSettings(controller: controller, themeController: themeController),
       );
       await tester.pumpAndSettle();
 
@@ -253,9 +232,7 @@ void main() {
   });
 
   group('SignInScreen', () {
-    testWidgets('renders form fields and buttons', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('renders form fields and buttons', (WidgetTester tester) async {
       final controller = createUnauthenticatedController();
       await controller.initialize();
 
@@ -512,7 +489,7 @@ class _FakeArgoCdApi implements ArgoCdApi {
     required String applicationName,
     required String namespace,
     required String podName,
-    required String containerName,
+    String? containerName,
     int tailLines = 500,
   }) async {
     return '';

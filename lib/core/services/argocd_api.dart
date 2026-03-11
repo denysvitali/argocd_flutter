@@ -44,7 +44,7 @@ abstract class ArgoCdApi {
     required String applicationName,
     required String namespace,
     required String podName,
-    required String containerName,
+    String? containerName,
     int tailLines = 500,
   });
   Future<String> fetchResourceManifest(
@@ -281,7 +281,7 @@ class NetworkArgoCdApi implements ArgoCdApi {
     required String applicationName,
     required String namespace,
     required String podName,
-    required String containerName,
+    String? containerName,
     int tailLines = 500,
   }) async {
     final dio = _createDio(session.serverUrl, token: session.token);
@@ -291,9 +291,10 @@ class NetworkArgoCdApi implements ArgoCdApi {
         queryParameters: <String, dynamic>{
           'namespace': namespace,
           'podName': podName,
-          'container': containerName,
           'tailLines': tailLines,
           'follow': false,
+          if (containerName != null && containerName.trim().isNotEmpty)
+            'container': containerName,
         },
         options: Options(responseType: ResponseType.plain),
       );

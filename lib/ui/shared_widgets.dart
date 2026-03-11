@@ -9,8 +9,14 @@ String jsonToYaml(dynamic value, {int indent = 0}) {
 }
 
 List<String> _yamlLinesForValue(dynamic value, {required int indent}) {
-  if (value is Map<String, dynamic>) {
-    return _yamlLinesForMap(value, indent: indent);
+  if (value is Map) {
+    return _yamlLinesForMap(
+      value.map(
+        (dynamic key, dynamic nestedValue) =>
+            MapEntry(key.toString(), nestedValue),
+      ),
+      indent: indent,
+    );
   }
   if (value is List) {
     return _yamlLinesForList(value, indent: indent);
@@ -18,7 +24,10 @@ List<String> _yamlLinesForValue(dynamic value, {required int indent}) {
   return <String>[_yamlScalarAsLine(value, indent: indent)];
 }
 
-List<String> _yamlLinesForMap(Map<String, dynamic> value, {required int indent}) {
+List<String> _yamlLinesForMap(
+  Map<String, dynamic> value, {
+  required int indent,
+}) {
   final prefix = ' ' * indent;
   if (value.isEmpty) {
     return <String>['$prefix{}'];
@@ -26,6 +35,16 @@ List<String> _yamlLinesForMap(Map<String, dynamic> value, {required int indent})
 
   final lines = <String>[];
   for (final entry in value.entries) {
+    if (entry.value is Map && (entry.value as Map).isEmpty) {
+      lines.add('$prefix${entry.key}: {}');
+      continue;
+    }
+
+    if (entry.value is List && (entry.value as List).isEmpty) {
+      lines.add('$prefix${entry.key}: []');
+      continue;
+    }
+
     final scalarLine = _yamlScalarLineOrNull(entry.value);
     if (scalarLine != null) {
       lines.add('$prefix${entry.key}: $scalarLine');
@@ -35,7 +54,9 @@ List<String> _yamlLinesForMap(Map<String, dynamic> value, {required int indent})
     final blockHeader = _yamlBlockHeaderOrNull(entry.value);
     if (blockHeader != null) {
       lines.add('$prefix${entry.key}: $blockHeader');
-      lines.addAll(_yamlMultilineStringLines(entry.value as String, indent + 2));
+      lines.addAll(
+        _yamlMultilineStringLines(entry.value as String, indent + 2),
+      );
       continue;
     }
 
@@ -53,6 +74,11 @@ List<String> _yamlLinesForList(List<dynamic> value, {required int indent}) {
 
   final lines = <String>[];
   for (final item in value) {
+    if (item is List && item.isEmpty) {
+      lines.add('$prefix- []');
+      continue;
+    }
+
     final scalarLine = _yamlScalarLineOrNull(item);
     if (scalarLine != null) {
       lines.add('$prefix- $scalarLine');
@@ -127,6 +153,9 @@ String _yamlScalarAsLine(dynamic value, {required int indent}) {
 }
 
 String? _yamlScalarLineOrNull(dynamic value) {
+  if (value is Map || value is List) {
+    return null;
+  }
   if (value == null) {
     return 'null';
   }
@@ -155,9 +184,7 @@ String? _yamlBlockHeaderOrNull(dynamic value) {
 
 List<String> _yamlMultilineStringLines(String value, int indent) {
   final prefix = ' ' * indent;
-  return <String>[
-    for (final line in value.split('\n')) '$prefix$line',
-  ];
+  return <String>[for (final line in value.split('\n')) '$prefix$line'];
 }
 
 bool needsYamlQuoting(String str) => _needsQuoting(str);

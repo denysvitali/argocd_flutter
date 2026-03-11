@@ -214,7 +214,7 @@ class FakeArgoCdApi implements ArgoCdApi {
     required String applicationName,
     required String namespace,
     required String podName,
-    required String containerName,
+    String? containerName,
     int tailLines = 500,
   }) async {
     return '';
@@ -278,7 +278,8 @@ Future<AppController> createAuthenticatedController({
   MemorySessionStorage? storage,
   FakeArgoCdApi? api,
 }) async {
-  final effectiveStorage = storage ?? (MemorySessionStorage()..seedSession(testSession));
+  final effectiveStorage =
+      storage ?? (MemorySessionStorage()..seedSession(testSession));
   final effectiveApi = api ?? FakeArgoCdApi.withSeedData();
   final controller = AppController(
     storage: effectiveStorage,

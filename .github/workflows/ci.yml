@@ -84,8 +84,22 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Run widget tests
-        run: flutter test
+      - name: Run non-golden tests
+        run: flutter test --exclude-tags=golden
+
+      - name: Run golden tests
+        run: flutter test --tags=golden
+
+      - name: Upload golden failures
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-failures
+          path: |
+            **/failures/*.png
+            **/test/goldens/**/*.png
+          if-no-files-found: ignore
+          retention-days: 14
 
   build-debug:
     name: Build Debug APK

@@ -40,10 +40,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: ProjectsScreen(
-            controller: controller,
-            onOpenProject: (_) {},
-          ),
+          home: ProjectsScreen(controller: controller, onOpenProject: (_) {}),
         ),
       );
       await tester.pumpAndSettle();
@@ -63,10 +60,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: ProjectsScreen(
-            controller: controller,
-            onOpenProject: (_) {},
-          ),
+          home: ProjectsScreen(controller: controller, onOpenProject: (_) {}),
         ),
       );
       await tester.pumpAndSettle();
@@ -77,9 +71,7 @@ void main() {
       expect(find.text('Source repos'), findsOneWidget);
     });
 
-    testWidgets('search filters projects by name', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('search filters projects by name', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(800, 2000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -87,10 +79,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: ProjectsScreen(
-            controller: controller,
-            onOpenProject: (_) {},
-          ),
+          home: ProjectsScreen(controller: controller, onOpenProject: (_) {}),
         ),
       );
       await tester.pumpAndSettle();
@@ -121,10 +110,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: ProjectsScreen(
-            controller: controller,
-            onOpenProject: (_) {},
-          ),
+          home: ProjectsScreen(controller: controller, onOpenProject: (_) {}),
         ),
       );
       await tester.pumpAndSettle();
@@ -141,10 +127,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: ProjectsScreen(
-            controller: controller,
-            onOpenProject: (_) {},
-          ),
+          home: ProjectsScreen(controller: controller, onOpenProject: (_) {}),
         ),
       );
       await tester.pumpAndSettle();
@@ -189,34 +172,27 @@ void main() {
     testWidgets('sort popup menu is available', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: ProjectsScreen(
-            controller: controller,
-            onOpenProject: (_) {},
-          ),
+          home: ProjectsScreen(controller: controller, onOpenProject: (_) {}),
         ),
       );
       await tester.pumpAndSettle();
 
       // Find sort button
-      expect(find.byIcon(Icons.sort), findsOneWidget);
+      expect(find.byIcon(Icons.sort_rounded), findsOneWidget);
 
       // Tap sort button to open menu
-      await tester.tap(find.byIcon(Icons.sort));
+      await tester.tap(find.byIcon(Icons.sort_rounded));
       await tester.pumpAndSettle();
 
-      expect(find.text('Name'), findsOneWidget);
-      expect(find.text('Source repos'), findsWidgets);
+      expect(find.text('Name'), findsWidgets);
+      expect(find.text('Destinations'), findsWidgets);
+      expect(find.text('Repos'), findsWidgets);
     });
 
-    testWidgets('project card shows count badges', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('project card shows count badges', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: ProjectsScreen(
-            controller: controller,
-            onOpenProject: (_) {},
-          ),
+          home: ProjectsScreen(controller: controller, onOpenProject: (_) {}),
         ),
       );
       await tester.pumpAndSettle();
@@ -328,9 +304,7 @@ void main() {
       expect(find.text('Description'), findsOneWidget);
     });
 
-    testWidgets('sources tab shows repositories', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('sources tab shows repositories', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: ProjectDetailScreen(
@@ -345,10 +319,7 @@ void main() {
       await tester.tap(find.text('Sources (1)'));
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('https://github.com/example/platform'),
-        findsOneWidget,
-      );
+      expect(find.text('https://github.com/example/platform'), findsOneWidget);
     });
 
     testWidgets('destinations tab shows server and namespace', (
@@ -368,10 +339,7 @@ void main() {
       await tester.tap(find.text('Destinations (1)'));
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('https://kubernetes.default.svc'),
-        findsOneWidget,
-      );
+      expect(find.text('https://kubernetes.default.svc'), findsOneWidget);
       expect(find.text('payments'), findsOneWidget);
       expect(find.text('in-cluster'), findsOneWidget);
     });
@@ -598,7 +566,7 @@ class _FakeArgoCdApi implements ArgoCdApi {
     required String applicationName,
     required String namespace,
     required String podName,
-    required String containerName,
+    String? containerName,
     int tailLines = 500,
   }) async {
     return '';

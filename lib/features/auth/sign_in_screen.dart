@@ -40,7 +40,8 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   void _onServerUrlChanged() {
-    final matches = _serverController.text == widget.controller.lastServerUrl &&
+    final matches =
+        _serverController.text == widget.controller.lastServerUrl &&
         widget.controller.lastServerUrl.isNotEmpty;
     if (matches != _serverUrlRemembered) {
       setState(() {
@@ -52,23 +53,31 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final certificateStatus = widget.controller.certificateStatus;
     final errorMessage = widget.controller.errorMessage;
     final showError = errorMessage != null && errorMessage != _dismissedError;
+    final pageGradient = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: isDark
+          ? <Color>[
+              AppColors.ink,
+              AppColors.darkSurface,
+              AppColors.gradientAppMid,
+            ]
+          : <Color>[AppColors.canvas, AppColors.blueLight, AppColors.peach],
+    );
+    final heroColor = isDark ? colorScheme.surfaceContainerHigh : AppColors.ink;
+    final heroTitleColor = isDark ? colorScheme.onSurface : Colors.white;
+    final heroBodyColor = isDark
+        ? colorScheme.onSurfaceVariant
+        : AppColors.textOnDarkMuted;
 
     return Scaffold(
       body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[
-              AppColors.canvas,
-              AppColors.blueLight,
-              AppColors.peach,
-            ],
-          ),
-        ),
+        decoration: BoxDecoration(gradient: pageGradient),
         child: SafeArea(
           child: Center(
             child: ConstrainedBox(
@@ -84,7 +93,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       padding: const EdgeInsets.all(28),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(28),
-                        color: AppColors.ink,
+                        color: heroColor,
                       ),
                       child: Column(
                         children: <Widget>[
@@ -105,7 +114,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           Text(
                             'ArgoCD Flutter',
                             style: theme.textTheme.displaySmall?.copyWith(
-                              color: Colors.white,
+                              color: heroTitleColor,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -116,7 +125,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             'health from the same shell.',
                             textAlign: TextAlign.center,
                             style: theme.textTheme.titleMedium?.copyWith(
-                              color: AppColors.textOnDarkMuted,
+                              color: heroBodyColor,
                             ),
                           ),
                         ],
@@ -168,11 +177,11 @@ class _SignInScreenState extends State<SignInScreen> {
                               decoration: InputDecoration(
                                 labelText: 'Server URL',
                                 hintText: 'https://argocd.example.com',
-                                prefixIcon:
-                                    const Icon(Icons.cloud_outlined),
+                                prefixIcon: const Icon(Icons.cloud_outlined),
                                 suffixIcon: _serverUrlRemembered
                                     ? Tooltip(
-                                        message: 'Server URL remembered '
+                                        message:
+                                            'Server URL remembered '
                                             'from last session',
                                         child: Icon(
                                           Icons.bookmark,
@@ -383,9 +392,7 @@ class _SignInButton extends StatelessWidget {
       curve: Curves.easeInOut,
       child: FilledButton.icon(
         onPressed: busy ? null : onPressed,
-        icon: busy
-            ? const _ShimmerIcon()
-            : const Icon(Icons.login),
+        icon: busy ? const _ShimmerIcon() : const Icon(Icons.login),
         label: AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
           child: Text(
@@ -461,11 +468,7 @@ class _ErrorBanner extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Icon(
-              Icons.error_outline,
-              color: theme.colorScheme.error,
-              size: 22,
-            ),
+            Icon(Icons.error_outline, color: theme.colorScheme.error, size: 22),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -501,18 +504,27 @@ class _CertificateBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.canvasSubtle,
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Icon(Icons.verified_user_outlined),
+          Icon(Icons.verified_user_outlined, color: theme.colorScheme.primary),
           const SizedBox(width: 12),
-          Expanded(child: Text(message)),
+          Expanded(
+            child: Text(
+              message,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
         ],
       ),
     );

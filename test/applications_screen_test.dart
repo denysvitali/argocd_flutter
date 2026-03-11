@@ -61,10 +61,7 @@ void main() {
     testWidgets('renders applications in list view', (
       WidgetTester tester,
     ) async {
-      await pumpApplicationsScreen(
-        tester,
-        applications: _sampleApplications,
-      );
+      await pumpApplicationsScreen(tester, applications: _sampleApplications);
 
       // Scroll to ensure cards are visible
       await tester.scrollUntilVisible(
@@ -73,21 +70,15 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       expect(find.text('payments-api'), findsOneWidget);
-      expect(find.text('Applications'), findsOneWidget);
+      expect(find.text('Application control plane'), findsOneWidget);
     });
 
     testWidgets('search filters applications by name', (
       WidgetTester tester,
     ) async {
-      await pumpApplicationsScreen(
-        tester,
-        applications: _sampleApplications,
-      );
+      await pumpApplicationsScreen(tester, applications: _sampleApplications);
 
-      await tester.enterText(
-        find.byType(TextField),
-        'payments',
-      );
+      await tester.enterText(find.byType(TextField), 'payments');
       await tester.pumpAndSettle();
 
       await tester.scrollUntilVisible(
@@ -102,15 +93,9 @@ void main() {
     testWidgets('search filters applications by project', (
       WidgetTester tester,
     ) async {
-      await pumpApplicationsScreen(
-        tester,
-        applications: _sampleApplications,
-      );
+      await pumpApplicationsScreen(tester, applications: _sampleApplications);
 
-      await tester.enterText(
-        find.byType(TextField),
-        'web-team',
-      );
+      await tester.enterText(find.byType(TextField), 'web-team');
       await tester.pumpAndSettle();
 
       await tester.scrollUntilVisible(
@@ -125,16 +110,10 @@ void main() {
     testWidgets('filter chips filter by health status', (
       WidgetTester tester,
     ) async {
-      await pumpApplicationsScreen(
-        tester,
-        applications: _sampleApplications,
-      );
+      await pumpApplicationsScreen(tester, applications: _sampleApplications);
 
       // Tap the Degraded filter chip (use the FilterChip specifically)
-      final degradedChip = find.descendant(
-        of: find.byType(FilterChip),
-        matching: find.text('Degraded'),
-      );
+      final degradedChip = _filterChipFinder('Degraded');
       await tester.tap(degradedChip);
       await tester.pumpAndSettle();
 
@@ -147,18 +126,10 @@ void main() {
       expect(find.text('payments-api'), findsNothing);
     });
 
-    testWidgets('filter chips show healthy only', (
-      WidgetTester tester,
-    ) async {
-      await pumpApplicationsScreen(
-        tester,
-        applications: _sampleApplications,
-      );
+    testWidgets('filter chips show healthy only', (WidgetTester tester) async {
+      await pumpApplicationsScreen(tester, applications: _sampleApplications);
 
-      final healthyChip = find.descendant(
-        of: find.byType(FilterChip),
-        matching: find.text('Healthy'),
-      );
+      final healthyChip = _filterChipFinder('Healthy');
       await tester.tap(healthyChip);
       await tester.pumpAndSettle();
 
@@ -174,25 +145,16 @@ void main() {
     testWidgets('filter All shows all applications', (
       WidgetTester tester,
     ) async {
-      await pumpApplicationsScreen(
-        tester,
-        applications: _sampleApplications,
-      );
+      await pumpApplicationsScreen(tester, applications: _sampleApplications);
 
       // Switch to Healthy first
-      final healthyChip = find.descendant(
-        of: find.byType(FilterChip),
-        matching: find.text('Healthy'),
-      );
+      final healthyChip = _filterChipFinder('Healthy');
       await tester.tap(healthyChip);
       await tester.pumpAndSettle();
       expect(find.text('frontend-app'), findsNothing);
 
       // Switch back to All
-      final allChip = find.descendant(
-        of: find.byType(FilterChip),
-        matching: find.text('All'),
-      );
+      final allChip = _filterChipFinder('All');
       await tester.tap(allChip);
       await tester.pumpAndSettle();
 
@@ -207,10 +169,7 @@ void main() {
     testWidgets('grid/list toggle switches view mode', (
       WidgetTester tester,
     ) async {
-      await pumpApplicationsScreen(
-        tester,
-        applications: _sampleApplications,
-      );
+      await pumpApplicationsScreen(tester, applications: _sampleApplications);
 
       // Default is list view, grid icon should be shown
       expect(find.byIcon(Icons.grid_view_rounded), findsOneWidget);
@@ -247,15 +206,9 @@ void main() {
     testWidgets('empty state shows when filter matches nothing', (
       WidgetTester tester,
     ) async {
-      await pumpApplicationsScreen(
-        tester,
-        applications: _sampleApplications,
-      );
+      await pumpApplicationsScreen(tester, applications: _sampleApplications);
 
-      await tester.enterText(
-        find.byType(TextField),
-        'nonexistent-app-xyz',
-      );
+      await tester.enterText(find.byType(TextField), 'nonexistent-app-xyz');
       await tester.pumpAndSettle();
 
       await tester.scrollUntilVisible(
@@ -269,47 +222,42 @@ void main() {
     testWidgets('tapping a card calls onOpenApplication', (
       WidgetTester tester,
     ) async {
-      await pumpApplicationsScreen(
-        tester,
-        applications: _sampleApplications,
-      );
+      await pumpApplicationsScreen(tester, applications: _sampleApplications);
 
       await tester.scrollUntilVisible(
         find.text('payments-api'),
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.tap(find.text('payments-api'));
+      final nameFinder = find.text('payments-api').last;
+      await tester.ensureVisible(nameFinder);
+      final tapHandler = tester
+          .widgetList<InkWell>(
+            find.ancestor(of: nameFinder, matching: find.byType(InkWell)),
+          )
+          .map((widget) => widget.onTap)
+          .whereType<VoidCallback>()
+          .first;
+      tapHandler();
       await tester.pumpAndSettle();
 
       expect(openedApplications, <String>['payments-api']);
     });
 
     testWidgets('sort dropdown is visible', (WidgetTester tester) async {
-      await pumpApplicationsScreen(
-        tester,
-        applications: _sampleApplications,
-      );
+      await pumpApplicationsScreen(tester, applications: _sampleApplications);
 
       expect(find.byIcon(Icons.sort_rounded), findsOneWidget);
     });
 
-    testWidgets('FAB refresh button is visible', (
-      WidgetTester tester,
-    ) async {
-      await pumpApplicationsScreen(
-        tester,
-        applications: _sampleApplications,
-      );
+    testWidgets('refresh button is visible', (WidgetTester tester) async {
+      await pumpApplicationsScreen(tester, applications: _sampleApplications);
 
-      expect(find.byType(FloatingActionButton), findsOneWidget);
+      expect(find.byIcon(Icons.refresh), findsOneWidget);
     });
 
     testWidgets('shows relative sync time', (WidgetTester tester) async {
-      await pumpApplicationsScreen(
-        tester,
-        applications: _sampleApplications,
-      );
+      await pumpApplicationsScreen(tester, applications: _sampleApplications);
 
       // Scroll to ensure cards are visible
       await tester.scrollUntilVisible(
@@ -325,10 +273,7 @@ void main() {
     testWidgets('clear search restores all applications', (
       WidgetTester tester,
     ) async {
-      await pumpApplicationsScreen(
-        tester,
-        applications: _sampleApplications,
-      );
+      await pumpApplicationsScreen(tester, applications: _sampleApplications);
 
       // Enter search
       await tester.enterText(find.byType(TextField), 'payments');
@@ -346,6 +291,16 @@ void main() {
       );
       expect(find.text('payments-api'), findsOneWidget);
     });
+  });
+}
+
+Finder _filterChipFinder(String labelPrefix) {
+  return find.byWidgetPredicate((widget) {
+    if (widget is! FilterChip) {
+      return false;
+    }
+    final label = widget.label;
+    return label is Text && (label.data?.startsWith(labelPrefix) ?? false);
   });
 }
 
@@ -467,7 +422,7 @@ class _FakeArgoCdApi implements ArgoCdApi {
     required String applicationName,
     required String namespace,
     required String podName,
-    required String containerName,
+    String? containerName,
     int tailLines = 500,
   }) async {
     return '';

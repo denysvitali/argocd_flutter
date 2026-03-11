@@ -9,7 +9,105 @@ import 'package:argocd_flutter/features/projects/projects_screen.dart';
 import 'package:argocd_flutter/features/settings/settings_screen.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
+const _displayFontFamily = 'SpaceGrotesk';
+const _bodyFontFamily = 'DMSans';
+
+ThemeData buildLightAppTheme() {
+  final lightBaseTextTheme = ThemeData.light().textTheme.apply(
+    bodyColor: AppColors.ink,
+    displayColor: AppColors.ink,
+    fontFamily: _displayFontFamily,
+  );
+
+  return ThemeData(
+    useMaterial3: true,
+    scaffoldBackgroundColor: AppColors.canvas,
+    colorScheme: const ColorScheme.light(
+      primary: AppColors.cobalt,
+      secondary: AppColors.teal,
+      surface: Colors.white,
+      onPrimary: Colors.white,
+      onSecondary: Colors.white,
+      onSurface: AppColors.ink,
+    ),
+    textTheme: lightBaseTextTheme.copyWith(
+      bodyMedium: const TextStyle(
+        fontFamily: _bodyFontFamily,
+        color: AppColors.ink,
+        fontSize: 16,
+      ),
+      bodyLarge: const TextStyle(
+        fontFamily: _bodyFontFamily,
+        color: AppColors.ink,
+        fontSize: 18,
+      ),
+    ),
+    dividerColor: AppColors.border,
+    appBarTheme: const AppBarTheme(toolbarHeight: 60),
+    navigationBarTheme: NavigationBarThemeData(
+      height: 68,
+      labelTextStyle: const MaterialStatePropertyAll<TextStyle>(
+        TextStyle(
+          fontFamily: _bodyFontFamily,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      iconTheme: MaterialStateProperty.resolveWith<IconThemeData>((states) {
+        final color = states.contains(MaterialState.selected)
+            ? Colors.white
+            : AppColors.grey;
+        return IconThemeData(size: 22, color: color);
+      }),
+    ),
+  );
+}
+
+ThemeData buildDarkAppTheme() {
+  final darkBaseTextTheme = ThemeData.dark().textTheme.apply(
+    bodyColor: AppColors.border,
+    displayColor: AppColors.border,
+    fontFamily: _displayFontFamily,
+  );
+
+  return ThemeData(
+    useMaterial3: true,
+    scaffoldBackgroundColor: AppColors.ink,
+    colorScheme: const ColorScheme.dark(
+      primary: AppColors.cobalt,
+      secondary: AppColors.teal,
+      surface: AppColors.darkSurface,
+      onPrimary: Colors.white,
+      onSecondary: Colors.white,
+      onSurface: AppColors.border,
+    ),
+    textTheme: darkBaseTextTheme.copyWith(
+      bodyMedium: const TextStyle(
+        fontFamily: _bodyFontFamily,
+        color: AppColors.border,
+        fontSize: 16,
+      ),
+      bodyLarge: const TextStyle(
+        fontFamily: _bodyFontFamily,
+        color: AppColors.border,
+        fontSize: 18,
+      ),
+    ),
+    dividerColor: AppColors.darkBorder,
+    appBarTheme: const AppBarTheme(toolbarHeight: 60),
+    navigationBarTheme: const NavigationBarThemeData(
+      height: 68,
+      labelTextStyle: MaterialStatePropertyAll<TextStyle>(
+        TextStyle(
+          fontFamily: _bodyFontFamily,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ),
+  );
+}
 
 class ArgoCdApp extends StatefulWidget {
   const ArgoCdApp({
@@ -35,68 +133,8 @@ class _ArgoCdAppState extends State<ArgoCdApp> {
 
   @override
   Widget build(BuildContext context) {
-    final baseTheme = ThemeData(
-      useMaterial3: true,
-      scaffoldBackgroundColor: AppColors.canvas,
-      colorScheme: const ColorScheme.light(
-        primary: AppColors.cobalt,
-        secondary: AppColors.teal,
-        surface: Colors.white,
-        onPrimary: Colors.white,
-        onSecondary: Colors.white,
-        onSurface: AppColors.ink,
-      ),
-      textTheme: GoogleFonts.spaceGroteskTextTheme().copyWith(
-        bodyMedium: GoogleFonts.dmSans(color: AppColors.ink, fontSize: 16),
-        bodyLarge: GoogleFonts.dmSans(color: AppColors.ink, fontSize: 18),
-      ),
-      dividerColor: AppColors.border,
-      appBarTheme: const AppBarTheme(toolbarHeight: 60),
-      navigationBarTheme: NavigationBarThemeData(
-        height: 68,
-        labelTextStyle: MaterialStatePropertyAll<TextStyle>(
-          GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w600),
-        ),
-        iconTheme: MaterialStateProperty.resolveWith<IconThemeData>((states) {
-          final color = states.contains(MaterialState.selected)
-              ? Colors.white
-              : AppColors.grey;
-          return IconThemeData(size: 22, color: color);
-        }),
-      ),
-    );
-
-    final darkTheme = ThemeData(
-      useMaterial3: true,
-      scaffoldBackgroundColor: AppColors.ink,
-      colorScheme: const ColorScheme.dark(
-        primary: AppColors.cobalt,
-        secondary: AppColors.teal,
-        surface: AppColors.darkSurface,
-        onPrimary: Colors.white,
-        onSecondary: Colors.white,
-        onSurface: AppColors.border,
-      ),
-      textTheme: GoogleFonts.spaceGroteskTextTheme(ThemeData.dark().textTheme)
-          .copyWith(
-            bodyMedium: GoogleFonts.dmSans(
-              color: AppColors.border,
-              fontSize: 16,
-            ),
-            bodyLarge: GoogleFonts.dmSans(
-              color: AppColors.border,
-              fontSize: 18,
-            ),
-          ),
-      dividerColor: AppColors.darkBorder,
-      appBarTheme: const AppBarTheme(toolbarHeight: 60),
-      navigationBarTheme: NavigationBarThemeData(
-        height: 68,
-        labelTextStyle: MaterialStatePropertyAll<TextStyle>(
-          GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w600),
-        ),
-      ),
-    );
+    final baseTheme = buildLightAppTheme();
+    final darkTheme = buildDarkAppTheme();
 
     return AnimatedBuilder(
       animation: Listenable.merge(<Listenable>[

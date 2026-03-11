@@ -12,7 +12,8 @@ import 'package:argocd_flutter/features/applications/manifest_viewer_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-const String _sampleManifest = '{'
+const String _sampleManifest =
+    '{'
     '"apiVersion":"v1",'
     '"kind":"Service",'
     '"metadata":{"name":"my-svc","namespace":"default","labels":{"app":"web"}},'
@@ -107,9 +108,23 @@ void main() {
       expect(yaml, contains('emptyList: []'));
     });
 
+    test('avoids double newlines for deeply nested structures', () {
+      final json = <String, dynamic>{
+        'metadata': <String, dynamic>{
+          'annotations': <String, dynamic>{'description': 'hello'},
+        },
+        'spec': <String, dynamic>{
+          'ports': <dynamic>[
+            <String, dynamic>{'name': 'http', 'enabled': true},
+          ],
+        },
+      };
+      final yaml = jsonToYaml(json);
+      expect(yaml.contains('\n\n'), isFalse);
+    });
+
     test('converts the full sample manifest', () {
-      final decoded =
-          jsonDecode(_sampleManifest) as Map<String, dynamic>;
+      final decoded = jsonDecode(_sampleManifest) as Map<String, dynamic>;
       final yaml = jsonToYaml(decoded);
       expect(yaml, contains('apiVersion: v1'));
       expect(yaml, contains('kind: Service'));
@@ -151,8 +166,17 @@ void main() {
       expect(valueToken.type, YamlTokenType.boolNullValue);
     });
 
+    test('tokenizes false as a bool/null token', () {
+      final tokens = tokenizeYamlLine('disabled: false');
+      final valueToken = tokens.last;
+      expect(valueToken.text, 'false');
+      expect(valueToken.type, YamlTokenType.boolNullValue);
+    });
+
     test('does not split URLs at colons inside the value', () {
-      final tokens = tokenizeYamlLine('repo: https://github.com/argoproj/argo-cd');
+      final tokens = tokenizeYamlLine(
+        'repo: https://github.com/argoproj/argo-cd',
+      );
       expect(tokens.length, 4);
       expect(tokens[0].text, 'repo');
       expect(tokens[0].type, YamlTokenType.key);
@@ -238,7 +262,7 @@ void main() {
       expect(find.text('metadata'), findsWidgets);
       expect(find.text('spec'), findsWidgets);
       expect(find.text('status'), findsWidgets);
-      expect(find.textContaining('lines'), findsWidgets);
+      expect(find.textContaining('Lines:'), findsOneWidget);
     });
 
     testWidgets('toggles between YAML and JSON view', (
@@ -279,10 +303,26 @@ void main() {
       await tester.enterText(find.byType(TextField), 'ClusterIP');
       await tester.pumpAndSettle();
 
-      // The spec section should still be visible since it contains ClusterIP
+      // The matching spec section and the matched value should remain visible.
       expect(find.text('spec'), findsWidgets);
+      expect(find.textContaining('ClusterIP'), findsWidgets);
       expect(find.byIcon(Icons.keyboard_arrow_up), findsWidgets);
       expect(find.byIcon(Icons.keyboard_arrow_down), findsWidgets);
+    });
+
+    testWidgets('expand all toggle collapses and expands sections', (
+      WidgetTester tester,
+    ) async {
+      await controller.initialize();
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.unfold_less), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.unfold_less));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.unfold_more), findsOneWidget);
     });
 
     testWidgets('shows loading state', (WidgetTester tester) async {
@@ -338,9 +378,7 @@ void main() {
       expect(find.byIcon(Icons.copy), findsOneWidget);
     });
 
-    testWidgets('refresh button triggers reload', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('refresh button triggers reload', (WidgetTester tester) async {
       await controller.initialize();
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
@@ -410,10 +448,7 @@ class _MemorySessionStorage implements SessionStorage {
 }
 
 class _FakeArgoCdApi implements ArgoCdApi {
-  _FakeArgoCdApi({
-    this.manifest = '',
-    this.shouldFail = false,
-  });
+  _FakeArgoCdApi({this.manifest = '', this.shouldFail = false});
 
   final String manifest;
   final bool shouldFail;
@@ -475,7 +510,7 @@ class _FakeArgoCdApi implements ArgoCdApi {
     required String applicationName,
     required String namespace,
     required String podName,
-    required String containerName,
+    String? containerName,
     int tailLines = 500,
   }) async {
     return '';

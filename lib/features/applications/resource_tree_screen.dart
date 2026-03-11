@@ -75,88 +75,89 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
       ),
       body: FutureBuilder<List<ArgoResourceNode>>(
         future: _future,
-        builder: (
-          BuildContext context,
-          AsyncSnapshot<List<ArgoResourceNode>> snapshot,
-        ) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return _buildLoadingState(theme);
-          }
+        builder:
+            (
+              BuildContext context,
+              AsyncSnapshot<List<ArgoResourceNode>> snapshot,
+            ) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return _buildLoadingState(theme);
+              }
 
-          if (snapshot.hasError) {
-            return _buildErrorState(snapshot.error, theme);
-          }
+              if (snapshot.hasError) {
+                return _buildErrorState(snapshot.error, theme);
+              }
 
-          final nodes = snapshot.requireData;
+              final nodes = snapshot.requireData;
 
-          if (nodes.isEmpty) {
-            return _buildEmptyState(theme);
-          }
+              if (nodes.isEmpty) {
+                return _buildEmptyState(theme);
+              }
 
-          final tree = _ResourceTreeData(nodes);
-          final List<ArgoResourceNode> filteredRoots;
-          if (_searchQuery.isEmpty) {
-            filteredRoots = tree.rootNodes;
-          } else {
-            filteredRoots = _filterTree(tree, tree.rootNodes);
-          }
+              final tree = _ResourceTreeData(nodes);
+              final List<ArgoResourceNode> filteredRoots;
+              if (_searchQuery.isEmpty) {
+                filteredRoots = tree.rootNodes;
+              } else {
+                filteredRoots = _filterTree(tree, tree.rootNodes);
+              }
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: <Widget>[
-              _SummaryHeader(nodes: nodes),
-              const SizedBox(height: 16),
-              _buildSearchBar(theme),
-              const SizedBox(height: 16),
-              if (filteredRoots.isEmpty && _searchQuery.isNotEmpty)
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      children: <Widget>[
-                        Icon(
-                          Icons.search_off_rounded,
-                          size: 48,
-                          color: AppColors.greyLight,
+              return ListView(
+                padding: const EdgeInsets.all(20),
+                children: <Widget>[
+                  _SummaryHeader(nodes: nodes),
+                  const SizedBox(height: 16),
+                  _buildSearchBar(theme),
+                  const SizedBox(height: 16),
+                  if (filteredRoots.isEmpty && _searchQuery.isNotEmpty)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          children: <Widget>[
+                            Icon(
+                              Icons.search_off_rounded,
+                              size: 48,
+                              color: AppColors.greyLight,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No resources match "$_searchQuery"',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: AppColors.grey,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'No resources match "$_searchQuery"',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: AppColors.grey,
-                          ),
-                        ),
-                      ],
+                      ),
+                    )
+                  else
+                    SectionCard(
+                      title: 'Kubernetes Hierarchy',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          for (int i = 0; i < filteredRoots.length; i++)
+                            _ResourceNodeTile(
+                              key: ValueKey<String>(
+                                '${filteredRoots[i].uid}_$_expandGeneration',
+                              ),
+                              controller: widget.controller,
+                              applicationName: widget.applicationName,
+                              node: filteredRoots[i],
+                              tree: tree,
+                              depth: 0,
+                              isInitiallyExpanded: _allExpanded,
+                              ancestorUids: const <String>{},
+                              isLastChild: i == filteredRoots.length - 1,
+                              searchQuery: _searchQuery,
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                )
-              else
-                SectionCard(
-                  title: 'Kubernetes Hierarchy',
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      for (int i = 0; i < filteredRoots.length; i++)
-                        _ResourceNodeTile(
-                          key: ValueKey<String>(
-                            '${filteredRoots[i].uid}_$_expandGeneration',
-                          ),
-                          controller: widget.controller,
-                          applicationName: widget.applicationName,
-                          node: filteredRoots[i],
-                          tree: tree,
-                          depth: 0,
-                          isInitiallyExpanded: _allExpanded,
-                          ancestorUids: const <String>{},
-                          isLastChild: i == filteredRoots.length - 1,
-                          searchQuery: _searchQuery,
-                        ),
-                    ],
-                  ),
-                ),
-            ],
-          );
-        },
+                ],
+              );
+            },
       ),
     );
   }
@@ -208,9 +209,7 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
           const SizedBox(height: 20),
           Text(
             'Loading resource tree...',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.grey,
-            ),
+            style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.grey),
           ),
         ],
       ),
@@ -224,11 +223,7 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(
-              Icons.error_outline_rounded,
-              size: 56,
-              color: AppColors.coral,
-            ),
+            Icon(Icons.error_outline_rounded, size: 56, color: AppColors.coral),
             const SizedBox(height: 16),
             Text(
               'Failed to load resources',
@@ -327,11 +322,10 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
       if (_nodeMatchesSearch(child)) {
         return true;
       }
-      if (_hasMatchingDescendant(
-        tree,
-        child,
-        <String>{...visited, child.uid},
-      )) {
+      if (_hasMatchingDescendant(tree, child, <String>{
+        ...visited,
+        child.uid,
+      })) {
         return true;
       }
     }
@@ -497,10 +491,7 @@ class _SummaryHeader extends StatelessWidget {
             runSpacing: 6,
             children: <Widget>[
               for (final MapEntry<String, int> entry in sortedKinds)
-                _KindCountBadge(
-                  kind: entry.key,
-                  count: entry.value,
-                ),
+                _KindCountBadge(kind: entry.key, count: entry.value),
             ],
           ),
         ],
@@ -589,10 +580,7 @@ class _LegendItem extends StatelessWidget {
         Container(
           width: 10,
           height: 10,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 6),
         Text(
@@ -626,11 +614,7 @@ class _KindCountBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(
-            iconForResourceKind(kind),
-            size: 14,
-            color: kindColor,
-          ),
+          Icon(iconForResourceKind(kind), size: 14, color: kindColor),
           const SizedBox(width: 4),
           Text(
             '$count $kind',
@@ -755,8 +739,7 @@ class _ResourceNodeTileState extends State<_ResourceNodeTile> {
     final children = widget.tree
         .childrenFor(widget.node.uid)
         .where(
-          (ArgoResourceNode child) =>
-              !widget.ancestorUids.contains(child.uid),
+          (ArgoResourceNode child) => !widget.ancestorUids.contains(child.uid),
         )
         .toList(growable: false);
     final nextAncestors = <String>{...widget.ancestorUids, widget.node.uid};
@@ -822,9 +805,7 @@ class _ResourceNodeTileState extends State<_ResourceNodeTile> {
             curve: Curves.easeInOut,
             alignment: Alignment.topLeft,
             child: Padding(
-              padding: EdgeInsets.only(
-                left: widget.depth > 0 ? 24.0 : 0.0,
-              ),
+              padding: EdgeInsets.only(left: widget.depth > 0 ? 24.0 : 0.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
@@ -855,10 +836,7 @@ class _ResourceNodeTileState extends State<_ResourceNodeTile> {
 // ---------------------------------------------------------------------------
 
 class _NodeConnectorPainter extends CustomPainter {
-  _NodeConnectorPainter({
-    required this.color,
-    required this.isLastChild,
-  });
+  _NodeConnectorPainter({required this.color, required this.isLastChild});
 
   final Color color;
   final bool isLastChild;
@@ -1149,7 +1127,6 @@ class _NodeCard extends StatelessWidget {
           applicationName: applicationName,
           namespace: node.namespace,
           podName: node.name,
-          containerName: node.name,
         ),
       ),
     );
@@ -1185,35 +1162,37 @@ class _MetadataRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = theme.textTheme.bodySmall?.copyWith(
-      color: AppColors.greyLight,
+      color: AppColors.mutedText(theme),
       fontSize: 11,
     );
-    final dotStyle = TextStyle(color: AppColors.greyLight, fontSize: 11);
+    final dotStyle = TextStyle(color: AppColors.mutedText(theme), fontSize: 11);
+    final pieces = <Widget>[
+      Text(node.namespace, style: style, overflow: TextOverflow.ellipsis),
+    ];
 
-    return Row(
-      children: <Widget>[
-        Text(node.namespace, style: style),
-        if (node.version.isNotEmpty) ...<Widget>[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Text('\u00b7', style: dotStyle),
-          ),
-          Text(node.version, style: style),
-        ],
-        if (node.createdAt.isNotEmpty) ...<Widget>[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Text('\u00b7', style: dotStyle),
-          ),
-          Flexible(
-            child: Text(
-              node.createdAt,
-              style: style,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ],
+    void addSeparator() {
+      pieces.add(Text('\u00b7', style: dotStyle));
+    }
+
+    if (node.version.isNotEmpty) {
+      addSeparator();
+      pieces.add(
+        Text(node.version, style: style, overflow: TextOverflow.ellipsis),
+      );
+    }
+
+    if (node.createdAt.isNotEmpty) {
+      addSeparator();
+      pieces.add(
+        Text(node.createdAt, style: style, overflow: TextOverflow.ellipsis),
+      );
+    }
+
+    return Wrap(
+      spacing: 4,
+      runSpacing: 2,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: pieces,
     );
   }
 }
@@ -1223,11 +1202,7 @@ class _MetadataRow extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.label,
-    required this.value,
-    this.valueColor,
-  });
+  const _DetailRow({required this.label, required this.value, this.valueColor});
 
   final String label;
   final String value;

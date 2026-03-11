@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   late AppController controller;
+  late _FakeArgoCdApi api;
 
   final sampleNodes = <ArgoResourceNode>[
     const ArgoResourceNode(
@@ -85,9 +86,10 @@ void main() {
           token: 'test-token',
         ),
       );
+    api = _FakeArgoCdApi(resourceNodes: sampleNodes);
     controller = AppController(
       storage: storage,
-      api: _FakeArgoCdApi(resourceNodes: sampleNodes),
+      api: api,
       certificateProvider: const CertificateProvider(),
     );
   });
@@ -176,9 +178,7 @@ void main() {
     expect(find.text('my-app-abc123'), findsOneWidget);
   });
 
-  testWidgets('search filters resources by name', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('search filters resources by name', (WidgetTester tester) async {
     await controller.initialize();
     await tester.pumpWidget(buildScreen());
     await tester.pumpAndSettle();
@@ -200,9 +200,7 @@ void main() {
     expect(find.text('my-app-svc'), findsNothing);
   });
 
-  testWidgets('search filters resources by kind', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('search filters resources by kind', (WidgetTester tester) async {
     await controller.initialize();
     await tester.pumpWidget(buildScreen());
     await tester.pumpAndSettle();
@@ -265,10 +263,7 @@ void main() {
     await tester.enterText(searchField, 'nonexistent-resource-xyz');
     await tester.pumpAndSettle();
 
-    expect(
-      find.textContaining('No resources match'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('No resources match'), findsOneWidget);
   });
 
   testWidgets('resource detail bottom sheet opens on long press', (
@@ -345,6 +340,26 @@ void main() {
     expect(find.text('1 Service'), findsOneWidget);
     expect(find.text('1 ConfigMap'), findsOneWidget);
   });
+
+  testWidgets('pod logs open without forcing a container name', (
+    WidgetTester tester,
+  ) async {
+    await controller.initialize();
+    await tester.pumpWidget(buildScreen());
+    await tester.pumpAndSettle();
+
+    await tester.drag(find.byType(ListView), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byIcon(Icons.article_outlined).first);
+    await tester.tap(find.byIcon(Icons.article_outlined).first);
+    await tester.pumpAndSettle();
+
+    expect(api.lastLogRequest, isNotNull);
+    expect(api.lastLogRequest!.podName, 'my-app-abc123-xyz');
+    expect(api.lastLogRequest!.containerName, isNull);
+    expect(find.text('my-app-abc123-xyz'), findsWidgets);
+    expect(find.textContaining('INFO resource tree log line'), findsOneWidget);
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -389,6 +404,7 @@ class _FakeArgoCdApi implements ArgoCdApi {
   }) : _resourceNodes = resourceNodes;
 
   final List<ArgoResourceNode> _resourceNodes;
+  _LogRequest? lastLogRequest;
 
   @override
   Future<List<ArgoResourceNode>> fetchResourceTree(
@@ -431,10 +447,16 @@ class _FakeArgoCdApi implements ArgoCdApi {
     required String applicationName,
     required String namespace,
     required String podName,
-    required String containerName,
+    String? containerName,
     int tailLines = 500,
   }) async {
-    return '';
+    lastLogRequest = _LogRequest(
+      applicationName: applicationName,
+      namespace: namespace,
+      podName: podName,
+      containerName: containerName,
+    );
+    return '2026-03-10T10:00:00Z INFO resource tree log line';
   }
 
   @override
@@ -481,4 +503,18 @@ class _FakeArgoCdApi implements ArgoCdApi {
 
   @override
   Future<void> verifyServer(String serverUrl) async {}
+}
+
+class _LogRequest {
+  const _LogRequest({
+    required this.applicationName,
+    required this.namespace,
+    required this.podName,
+    required this.containerName,
+  });
+
+  final String applicationName;
+  final String namespace;
+  final String podName;
+  final String? containerName;
 }

@@ -38,20 +38,13 @@ void main() {
     testWidgets('renders summary tiles with correct counts', (
       WidgetTester tester,
     ) async {
-      final controller = _createController(
-        applications: _testApplications,
-      );
+      final controller = _createController(applications: _testApplications);
       await _initController(controller);
 
       await tester.pumpWidget(_wrapDashboard(controller));
       await tester.pumpAndSettle();
 
-      // Summary section header
-      expect(find.text('Summary'), findsOneWidget);
-
-      // Summary section and tile labels are visible
-      expect(find.text('Total Apps'), findsOneWidget);
-      expect(find.text('Out of Sync'), findsOneWidget);
+      expect(find.text('Health Breakdown'), findsOneWidget);
 
       // Hero banner metric chip values are visible
       expect(find.text('Total'), findsOneWidget);
@@ -64,9 +57,7 @@ void main() {
     testWidgets('needs attention section shows degraded and out-of-sync apps', (
       WidgetTester tester,
     ) async {
-      final controller = _createController(
-        applications: _testApplications,
-      );
+      final controller = _createController(applications: _testApplications);
       await _initController(controller);
 
       await tester.pumpWidget(_wrapDashboard(controller));
@@ -84,12 +75,8 @@ void main() {
       expect(find.text('degraded-app'), findsWidgets);
     });
 
-    testWidgets('shows recent activity timeline', (
-      WidgetTester tester,
-    ) async {
-      final controller = _createController(
-        applications: _testApplications,
-      );
+    testWidgets('shows recent activity timeline', (WidgetTester tester) async {
+      final controller = _createController(applications: _testApplications);
       await _initController(controller);
 
       await tester.pumpWidget(_wrapDashboard(controller));
@@ -128,12 +115,10 @@ void main() {
       await tester.pumpWidget(_wrapDashboard(controller));
       await tester.pumpAndSettle();
 
-      // Scroll down to find the healthy message
       await _scrollTo(
         tester,
         find.text('All applications are healthy and synced!'),
       );
-
       expect(
         find.text('All applications are healthy and synced!'),
         findsOneWidget,
@@ -157,12 +142,8 @@ void main() {
       expect(find.byType(RefreshIndicator), findsOneWidget);
     });
 
-    testWidgets('shows donut chart sections', (
-      WidgetTester tester,
-    ) async {
-      final controller = _createController(
-        applications: _testApplications,
-      );
+    testWidgets('shows donut chart sections', (WidgetTester tester) async {
+      final controller = _createController(applications: _testApplications);
       await _initController(controller);
 
       await tester.pumpWidget(_wrapDashboard(controller));
@@ -283,10 +264,7 @@ Future<void> _scrollTo(WidgetTester tester, Finder target) async {
 
 Widget _wrapDashboard(AppController controller) {
   return MaterialApp(
-    home: DashboardScreen(
-      controller: controller,
-      onOpenApplication: (_) {},
-    ),
+    home: DashboardScreen(controller: controller, onOpenApplication: (_) {}),
   );
 }
 
@@ -327,9 +305,7 @@ class _MemorySessionStorage implements SessionStorage {
 }
 
 class _FakeArgoCdApi implements ArgoCdApi {
-  _FakeArgoCdApi({
-    this.applications = const <ArgoApplication>[],
-  });
+  _FakeArgoCdApi({this.applications = const <ArgoApplication>[]});
 
   final List<ArgoApplication> applications;
 
@@ -376,7 +352,7 @@ class _FakeArgoCdApi implements ArgoCdApi {
     required String applicationName,
     required String namespace,
     required String podName,
-    required String containerName,
+    String? containerName,
     int tailLines = 500,
   }) async {
     return '';

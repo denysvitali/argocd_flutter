@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   late AppController controller;
+  late _FakeArgoCdApi api;
 
   setUp(() async {
     final storage = _MemorySessionStorage()
@@ -22,9 +23,10 @@ void main() {
           token: 'token',
         ),
       );
+    api = _FakeArgoCdApi.withSeedData();
     controller = AppController(
       storage: storage,
-      api: _FakeArgoCdApi.withSeedData(),
+      api: api,
       certificateProvider: const CertificateProvider(),
     );
     await controller.initialize();
@@ -238,6 +240,29 @@ void main() {
     expect(find.text('Healthy'), findsWidgets);
     expect(find.text('Progressing'), findsOneWidget);
   });
+
+  testWidgets('pod logs open without forcing container name to pod name', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 1920);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Resources'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Logs'));
+    await tester.pumpAndSettle();
+
+    expect(api.lastLogRequest, isNotNull);
+    expect(api.lastLogRequest!.podName, 'my-pod');
+    expect(api.lastLogRequest!.containerName, isNull);
+    expect(find.text('my-pod'), findsWidgets);
+    expect(find.textContaining('2026-03-10T10:00:00Z INFO'), findsOneWidget);
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -335,6 +360,7 @@ class _FakeArgoCdApi implements ArgoCdApi {
 
   final List<ArgoApplication> _applications;
   final List<ArgoProject> _projects;
+  _LogRequest? lastLogRequest;
 
   @override
   Future<ArgoApplication> fetchApplication(
@@ -379,10 +405,16 @@ class _FakeArgoCdApi implements ArgoCdApi {
     required String applicationName,
     required String namespace,
     required String podName,
-    required String containerName,
+    String? containerName,
     int tailLines = 500,
   }) async {
-    return '';
+    lastLogRequest = _LogRequest(
+      applicationName: applicationName,
+      namespace: namespace,
+      podName: podName,
+      containerName: containerName,
+    );
+    return '2026-03-10T10:00:00Z INFO payments-api booted';
   }
 
   @override
@@ -429,4 +461,18 @@ class _FakeArgoCdApi implements ArgoCdApi {
 
   @override
   Future<void> verifyServer(String serverUrl) async {}
+}
+
+class _LogRequest {
+  const _LogRequest({
+    required this.applicationName,
+    required this.namespace,
+    required this.podName,
+    required this.containerName,
+  });
+
+  final String applicationName;
+  final String namespace;
+  final String podName;
+  final String? containerName;
 }

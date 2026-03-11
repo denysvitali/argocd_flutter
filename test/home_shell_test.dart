@@ -41,8 +41,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Dashboard content should be visible (Summary section)
-      expect(find.text('Summary'), findsOneWidget);
+      expect(find.text('Cluster dashboard'), findsOneWidget);
     });
 
     testWidgets('switching to Applications tab shows applications content', (
@@ -64,8 +63,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.dashboard_outlined));
       await tester.pumpAndSettle();
 
-      // Applications screen content should be visible
-      expect(find.text('Control plane overview'), findsOneWidget);
+      expect(find.text('Application control plane'), findsOneWidget);
     });
 
     testWidgets('switching to Projects tab shows projects content', (

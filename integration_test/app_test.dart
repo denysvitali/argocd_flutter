@@ -12,7 +12,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-
   testWidgets('full app flow: sign in, navigate tabs, sign out', (
     WidgetTester tester,
   ) async {
@@ -213,7 +212,7 @@ class _IntegrationFakeApi implements ArgoCdApi {
     required String applicationName,
     required String namespace,
     required String podName,
-    required String containerName,
+    String? containerName,
     int tailLines = 500,
   }) async {
     return '';
