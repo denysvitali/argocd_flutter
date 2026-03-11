@@ -198,6 +198,7 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    final compactNav = MediaQuery.sizeOf(context).width < 600;
     final pages = <Widget>[
       DashboardScreen(
         controller: widget.controller,
@@ -233,7 +234,9 @@ class _HomeShellState extends State<HomeShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         indicatorColor: AppColors.cobalt,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        labelBehavior: compactNav
+            ? NavigationDestinationLabelBehavior.onlyShowSelected
+            : NavigationDestinationLabelBehavior.alwaysShow,
         onDestinationSelected: (value) {
           setState(() {
             _index = value;

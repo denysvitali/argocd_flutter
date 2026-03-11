@@ -188,39 +188,77 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               },
             ),
             const SizedBox(height: 10),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    '${projects.length} of ${allProjects.length} projects',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.grey,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                if (normalizedQuery.isNotEmpty ||
-                    _activeFilter != _ProjectFilter.all)
-                  TextButton(
-                    onPressed: () {
-                      _searchController.clear();
-                      _debounce?.cancel();
-                      setState(() {
-                        _query = '';
-                        _activeFilter = _ProjectFilter.all;
-                      });
-                    },
-                    child: const Text('Clear'),
-                  ),
-                _ProjectSortDropdown(
+            LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
+                final stackedControls = constraints.maxWidth < 700;
+                final summaryText =
+                    '${projects.length} of ${allProjects.length} projects';
+                final clearButton =
+                    normalizedQuery.isNotEmpty ||
+                        _activeFilter != _ProjectFilter.all
+                    ? TextButton(
+                        onPressed: () {
+                          _searchController.clear();
+                          _debounce?.cancel();
+                          setState(() {
+                            _query = '';
+                            _activeFilter = _ProjectFilter.all;
+                          });
+                        },
+                        child: const Text('Clear'),
+                      )
+                    : null;
+                final sortDropdown = _ProjectSortDropdown(
                   value: _sortOption,
                   onChanged: (_SortOption option) {
                     setState(() {
                       _sortOption = option;
                     });
                   },
-                ),
-              ],
+                );
+
+                if (!stackedControls) {
+                  return Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          summaryText,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: AppColors.grey,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ),
+                      if (clearButton != null) clearButton,
+                      sortDropdown,
+                    ],
+                  );
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      summaryText,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.grey,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: <Widget>[
+                        if (clearButton != null) clearButton,
+                        sortDropdown,
+                      ],
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 12),
             if (widget.controller.errorMessage != null)
@@ -429,50 +467,59 @@ class _OverviewStrip extends StatelessWidget {
         color: AppColors.headerDarkAlt,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: const Icon(
-              Icons.account_tree_outlined,
-              color: Colors.white,
-              size: 18,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              session == null
-                  ? 'Project boundaries'
-                  : 'Projects · ${session.username}',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+          Row(
+            children: <Widget>[
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Icon(
+                  Icons.account_tree_outlined,
+                  color: Colors.white,
+                  size: 18,
+                ),
               ),
-              overflow: TextOverflow.ellipsis,
-            ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  session == null
+                      ? 'Project boundaries'
+                      : 'Projects · ${session.username}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          _MetricChip(
-            label: 'projects',
-            value: '$totalProjects',
-            icon: Icons.folder_special_outlined,
-          ),
-          const SizedBox(width: 16),
-          _MetricChip(
-            label: 'destinations',
-            value: '$totalDestinations',
-            icon: Icons.dns_outlined,
-          ),
-          const SizedBox(width: 16),
-          _MetricChip(
-            label: 'repos',
-            value: '$totalRepositories',
-            icon: Icons.code_outlined,
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: <Widget>[
+              _MetricChip(
+                label: 'projects',
+                value: '$totalProjects',
+                icon: Icons.folder_special_outlined,
+              ),
+              _MetricChip(
+                label: 'destinations',
+                value: '$totalDestinations',
+                icon: Icons.dns_outlined,
+              ),
+              _MetricChip(
+                label: 'repos',
+                value: '$totalRepositories',
+                icon: Icons.code_outlined,
+              ),
+            ],
           ),
         ],
       ),
@@ -526,11 +573,16 @@ class _ProjectCard extends StatelessWidget {
               Row(
                 children: <Widget>[
                   Container(
-                    width: 8,
-                    height: 8,
+                    width: 26,
+                    height: 26,
                     decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Icon(
+                      Icons.account_tree_outlined,
+                      size: 15,
                       color: accent,
-                      shape: BoxShape.circle,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -557,20 +609,40 @@ class _ProjectCard extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: 8),
-              Text(
-                'Repos: ${_projectRepoPreview(project)}',
-                style: theme.textTheme.bodySmall?.copyWith(color: mutedColor),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Icon(Icons.code_outlined, size: 14, color: mutedColor),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Repos: ${_projectRepoPreview(project)}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: mutedColor,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 2),
-              Text(
-                'Scope: ${_projectDestinationPreview(project)}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.grey,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              const SizedBox(height: 4),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Icon(Icons.dns_outlined, size: 14, color: mutedColor),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Scope: ${_projectDestinationPreview(project)}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.grey,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
               Wrap(
@@ -785,9 +857,9 @@ class _MetricChip extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: AppColors.textOnDarkGreen,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppColors.textOnDarkGreen),
         ),
       ],
     );

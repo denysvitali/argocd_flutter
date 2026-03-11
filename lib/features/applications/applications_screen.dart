@@ -202,37 +202,74 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               },
             ),
             const SizedBox(height: 8),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    '${applications.length} of ${allApplications.length} applications',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.grey,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                if (_hasActiveControls)
-                  TextButton(
-                    onPressed: () {
-                      _searchController.clear();
-                      setState(() {
-                        _query = '';
-                        _activeFilter = ApplicationFilterChip.all;
-                      });
-                    },
-                    child: const Text('Clear'),
-                  ),
-                _SortDropdown(
+            LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
+                final stackedControls = constraints.maxWidth < 700;
+                final summaryText =
+                    '${applications.length} of ${allApplications.length} applications';
+                final clearButton = _hasActiveControls
+                    ? TextButton(
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _query = '';
+                            _activeFilter = ApplicationFilterChip.all;
+                          });
+                        },
+                        child: const Text('Clear'),
+                      )
+                    : null;
+                final sortDropdown = _SortDropdown(
                   value: _sortField,
                   onChanged: (field) {
                     setState(() {
                       _sortField = field;
                     });
                   },
-                ),
-              ],
+                );
+
+                if (!stackedControls) {
+                  return Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          summaryText,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: AppColors.grey,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ),
+                      if (clearButton != null) clearButton,
+                      sortDropdown,
+                    ],
+                  );
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      summaryText,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.grey,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: <Widget>[
+                        if (clearButton != null) clearButton,
+                        sortDropdown,
+                      ],
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 8),
             if (widget.controller.errorMessage != null)
@@ -453,57 +490,52 @@ class _OverviewStrip extends StatelessWidget {
         color: AppColors.headerDark,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Text(
-                  'Application control plane',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  session == null
-                      ? 'Connect to ArgoCD to inspect application health.'
-                      : '${session.username} on ${session.serverUrl}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textOnDarkMuted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
           Text(
-            '$totalApplications apps',
-            style: theme.textTheme.labelSmall?.copyWith(
+            'Application control plane',
+            style: theme.textTheme.titleSmall?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(height: 2),
           Text(
-            '$outOfSyncCount drifted',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: outOfSyncCount > 0 ? AppColors.amber : AppColors.textOnDarkMuted,
-              fontWeight: FontWeight.w700,
+            session == null
+                ? 'Connect to ArgoCD to inspect application health.'
+                : '${session.username} on ${session.serverUrl}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.textOnDarkMuted,
             ),
           ),
-          const SizedBox(width: 10),
-          Text(
-            '$unhealthyCount unhealthy',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: unhealthyCount > 0 ? AppColors.coral : AppColors.textOnDarkMuted,
-              fontWeight: FontWeight.w700,
-            ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 12,
+            runSpacing: 6,
+            children: <Widget>[
+              _HeaderMetric(
+                value: '$totalApplications',
+                label: 'apps',
+                color: Colors.white,
+              ),
+              _HeaderMetric(
+                value: '$outOfSyncCount',
+                label: 'drifted',
+                color: outOfSyncCount > 0
+                    ? AppColors.amber
+                    : AppColors.textOnDarkMuted,
+              ),
+              _HeaderMetric(
+                value: '$unhealthyCount',
+                label: 'unhealthy',
+                color: unhealthyCount > 0
+                    ? AppColors.coral
+                    : AppColors.textOnDarkMuted,
+              ),
+            ],
           ),
         ],
       ),
@@ -511,6 +543,41 @@ class _OverviewStrip extends StatelessWidget {
   }
 }
 
+class _HeaderMetric extends StatelessWidget {
+  const _HeaderMetric({
+    required this.value,
+    required this.label,
+    required this.color,
+  });
+
+  final String value;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return RichText(
+      text: TextSpan(
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
+        children: <InlineSpan>[
+          TextSpan(
+            text: value,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          TextSpan(
+            text: ' $label',
+            style: TextStyle(color: color.withValues(alpha: 0.92)),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 IconData _healthIcon(String status) {
   return switch (status.toLowerCase()) {
@@ -667,37 +734,35 @@ class _ApplicationGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> rows = <Widget>[];
-    for (int i = 0; i < applications.length; i += 2) {
-      final first = applications[i];
-      final second = i + 1 < applications.length ? applications[i + 1] : null;
-      rows.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Expanded(
-                child: _ApplicationGridCard(
-                  application: first,
-                  onTap: () => onOpenApplication(first.name),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: second != null
-                    ? _ApplicationGridCard(
-                        application: second,
-                        onTap: () => onOpenApplication(second.name),
-                      )
-                    : const SizedBox.shrink(),
-              ),
-            ],
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final width = constraints.maxWidth;
+        final crossAxisCount = width >= 980
+            ? 3
+            : width >= 620
+            ? 2
+            : 1;
+
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: applications.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: crossAxisCount == 1 ? 2.45 : 1.28,
           ),
-        ),
-      );
-    }
-    return Column(children: rows);
+          itemBuilder: (BuildContext context, int index) {
+            final application = applications[index];
+            return _ApplicationGridCard(
+              application: application,
+              onTap: () => onOpenApplication(application.name),
+            );
+          },
+        );
+      },
+    );
   }
 }
 
