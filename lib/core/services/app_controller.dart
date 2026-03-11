@@ -89,7 +89,7 @@ class AppController extends ChangeNotifier {
         refreshApplications(showSpinner: false),
         refreshProjects(showSpinner: false),
       ]);
-    } catch (_) {
+    } on Exception {
       _stage = AppStage.unauthenticated;
       _session = null;
       _applications = const <ArgoApplication>[];
@@ -331,6 +331,7 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> _runBusyAction(Future<void> Function() action) async {
+    if (_busy) return;
     _busy = true;
     _errorMessage = null;
     notifyListeners();
@@ -340,7 +341,7 @@ class AppController extends ChangeNotifier {
     } on ArgoCdException catch (error) {
       _errorMessage = error.message;
       rethrow;
-    } catch (_) {
+    } on Exception {
       _errorMessage = 'Something went wrong while contacting ArgoCD.';
       rethrow;
     } finally {

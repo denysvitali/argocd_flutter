@@ -81,14 +81,14 @@ ThemeData buildLightAppTheme() {
     appBarTheme: const AppBarTheme(toolbarHeight: 48),
     navigationBarTheme: NavigationBarThemeData(
       height: 56,
-      labelTextStyle: const MaterialStatePropertyAll<TextStyle>(
+      labelTextStyle: const WidgetStatePropertyAll<TextStyle>(
         TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
         ),
       ),
-      iconTheme: MaterialStateProperty.resolveWith<IconThemeData>((states) {
-        final color = states.contains(MaterialState.selected)
+      iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
+        final color = states.contains(WidgetState.selected)
             ? Colors.white
             : AppColors.grey;
         return IconThemeData(size: 20, color: color);
@@ -168,14 +168,14 @@ ThemeData buildDarkAppTheme() {
     appBarTheme: const AppBarTheme(toolbarHeight: 48),
     navigationBarTheme: NavigationBarThemeData(
       height: 56,
-      labelTextStyle: const MaterialStatePropertyAll<TextStyle>(
+      labelTextStyle: const WidgetStatePropertyAll<TextStyle>(
         TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
         ),
       ),
-      iconTheme: MaterialStateProperty.resolveWith<IconThemeData>((states) {
-        final color = states.contains(MaterialState.selected)
+      iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
+        final color = states.contains(WidgetState.selected)
             ? Colors.white
             : AppColors.greyLight;
         return IconThemeData(size: 20, color: color);
