@@ -93,7 +93,7 @@ class DashboardScreen extends StatelessWidget {
             outOfSyncCount: 0,
             degradedCount: 0,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           _EmptyDashboard(),
           if (controller.errorMessage != null)
             Padding(
@@ -118,9 +118,9 @@ class DashboardScreen extends StatelessWidget {
           outOfSyncCount: outOfSyncCount,
           degradedCount: degradedCount,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         _SectionHeader(title: 'Health Breakdown'),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         SectionCard(
           title: null,
           child: _CompactBreakdownSection(
@@ -128,9 +128,9 @@ class DashboardScreen extends StatelessWidget {
             total: totalApps,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         _SectionHeader(title: 'Sync Status'),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         SectionCard(
           title: null,
           child: _CompactBreakdownSection(
@@ -138,9 +138,9 @@ class DashboardScreen extends StatelessWidget {
             total: totalApps,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         _SectionHeader(title: 'Needs Attention'),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         SectionCard(
           title: null,
           child: _NeedsAttentionList(
@@ -148,9 +148,9 @@ class DashboardScreen extends StatelessWidget {
             onOpenApplication: onOpenApplication,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         _SectionHeader(title: 'Recent Activity'),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         SectionCard(
           title: null,
           child: _RecentActivityTimeline(
@@ -160,7 +160,7 @@ class DashboardScreen extends StatelessWidget {
         ),
         if (controller.errorMessage != null)
           Padding(
-            padding: const EdgeInsets.only(top: 16),
+            padding: const EdgeInsets.only(top: 12),
             child: ErrorRetryWidget(
               message: controller.errorMessage!,
               onRetry: () => controller.refreshApplications(),
@@ -168,7 +168,7 @@ class DashboardScreen extends StatelessWidget {
           ),
         if (controller.loadingApplications &&
             !controller.hasLoadedApplications) ...<Widget>[
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           const Center(child: CircularProgressIndicator()),
         ],
         const SizedBox(height: 8),
@@ -190,24 +190,13 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Row(
-      children: <Widget>[
-        Text(
-          title,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: AppColors.grey,
-            letterSpacing: 0.3,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Divider(
-            color: theme.dividerColor,
-            thickness: 1,
-          ),
-        ),
-      ],
+    return Text(
+      title,
+      style: theme.textTheme.titleSmall?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: AppColors.grey,
+        letterSpacing: 0.2,
+      ),
     );
   }
 }
@@ -222,32 +211,32 @@ class _EmptyDashboard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 14),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
         children: <Widget>[
           Icon(
             Icons.cloud_queue_rounded,
-            size: 52,
+            size: 32,
             color: AppColors.greyLight,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           Text(
             'No applications found',
-            style: theme.textTheme.titleLarge?.copyWith(
+            style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
             'Your ArgoCD server has no applications yet.\n'
             'Deploy an application to see it here.',
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
+            style: theme.textTheme.bodySmall?.copyWith(
               color: AppColors.grey,
             ),
           ),
@@ -282,112 +271,83 @@ class _HeroBanner extends StatelessWidget {
     final session = controller.session;
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            AppColors.gradientAppStart,
-            AppColors.gradientAppMid,
-            AppColors.cobalt,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(22),
+        color: AppColors.headerDark,
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  'Cluster dashboard',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '$degradedCount degraded • $outOfSyncCount drifted',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
           Text(
             session == null
                 ? 'Connect to ArgoCD to monitor your deployments.'
-                : '${session.username} on ${session.serverUrl}',
+                : '${session.username} @ ${session.serverUrl}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(
+            style: theme.textTheme.bodySmall?.copyWith(
               color: AppColors.textOnDarkMuted,
             ),
           ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
+          const SizedBox(height: 10),
+          Row(
             children: <Widget>[
-              _MetricChip(label: 'Total', value: '$totalApps'),
-              _MetricChip(label: 'Healthy', value: '$healthyCount'),
-              _MetricChip(label: 'Out of sync', value: '$outOfSyncCount'),
-              _MetricChip(label: 'Degraded', value: '$degradedCount'),
+              _inlineMetric(theme, label: 'Total', value: '$totalApps'),
+              _divider(),
+              _inlineMetric(theme, label: 'Healthy', value: '$healthyCount'),
+              _divider(),
+              _inlineMetric(
+                theme,
+                label: 'Out of sync',
+                value: '$outOfSyncCount',
+                highlight: outOfSyncCount > 0 ? AppColors.amber : null,
+              ),
+              _divider(),
+              _inlineMetric(
+                theme,
+                label: 'Degraded',
+                value: '$degradedCount',
+                highlight: degradedCount > 0 ? AppColors.coral : null,
+              ),
             ],
           ),
         ],
       ),
     );
   }
-}
 
-class _MetricChip extends StatelessWidget {
-  const _MetricChip({required this.label, required this.value});
+  Widget _inlineMetric(
+    ThemeData theme, {
+    required String label,
+    required String value,
+    Color? highlight,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          value,
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: highlight ?? Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: AppColors.textOnDarkMuted,
+          ),
+        ),
+      ],
+    );
+  }
 
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _divider() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textOnDarkMuted,
-            ),
-          ),
-        ],
-      ),
+      width: 1,
+      height: 32,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      color: Colors.white.withValues(alpha: 0.12),
     );
   }
 }
@@ -481,10 +441,10 @@ class _BreakdownRow extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         ClipRRect(
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(4),
           child: LinearProgressIndicator(
             value: total == 0 ? 0 : count / total,
-            minHeight: 8,
+            minHeight: 4,
             color: color,
             backgroundColor: color.withValues(alpha: 0.14),
           ),
@@ -582,15 +542,15 @@ class _AttentionItem extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(6),
         child: Ink(
           decoration: BoxDecoration(
             color: _severityColor().withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(6),
             border: Border(
               left: BorderSide(
                 color: _severityColor(),
-                width: 4,
+                width: 3,
               ),
             ),
           ),
@@ -705,22 +665,22 @@ class _TimelineEntry extends StatelessWidget {
             child: Column(
               children: <Widget>[
                 Container(
-                  width: 12,
-                  height: 12,
+                  width: 8,
+                  height: 8,
                   margin: const EdgeInsets.only(top: 6),
                   decoration: BoxDecoration(
                     color: AppColors.cobalt,
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: AppColors.cobalt.withValues(alpha: 0.3),
-                      width: 3,
+                      width: 2,
                     ),
                   ),
                 ),
                 if (!isLast)
                   Expanded(
                     child: Container(
-                      width: 2,
+                      width: 1,
                       color: AppColors.border,
                     ),
                   ),
@@ -730,7 +690,7 @@ class _TimelineEntry extends StatelessWidget {
           Expanded(
             child: InkWell(
               onTap: onTap,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(4),
               child: Padding(
                 padding: const EdgeInsets.only(
                   left: 8,
