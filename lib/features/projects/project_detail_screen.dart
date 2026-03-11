@@ -213,29 +213,12 @@ class _HeaderBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final outlineColor = AppColors.outline(theme);
-    final mutedColor = AppColors.mutedText(theme);
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            AppColors.gradientProjectStart,
-            AppColors.gradientProjectMid,
-            AppColors.teal,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: AppColors.teal.withValues(alpha: 0.18),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        color: AppColors.headerDarkAlt,
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,7 +229,7 @@ class _HeaderBanner extends StatelessWidget {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 child: const Icon(
                   Icons.account_tree_outlined,
@@ -267,7 +250,7 @@ class _HeaderBanner extends StatelessWidget {
             ],
           ),
           if (project.description.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
               project.description,
               style: theme.textTheme.bodyLarge?.copyWith(
@@ -275,10 +258,10 @@ class _HeaderBanner extends StatelessWidget {
               ),
             ),
           ],
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           Wrap(
-            spacing: 12,
-            runSpacing: 12,
+            spacing: 8,
+            runSpacing: 8,
             children: <Widget>[
               _BannerChip(
                 icon: Icons.code_outlined,
@@ -310,10 +293,10 @@ class _BannerChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
       ),
       child: Row(
@@ -347,10 +330,10 @@ class _OverviewTab extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       children: <Widget>[
         Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(6),
             border: Border.all(color: theme.dividerColor),
           ),
           child: Column(
@@ -361,9 +344,9 @@ class _OverviewTab extends StatelessWidget {
                 iconColor: AppColors.cobalt,
                 title: 'Project Details',
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
               _DetailRow(label: 'Name', value: project.name),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               _DetailRow(
                 label: 'Description',
                 value: project.description.isNotEmpty
@@ -373,7 +356,7 @@ class _OverviewTab extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 12),
         Row(
           children: <Widget>[
             Expanded(
@@ -461,10 +444,10 @@ class _SourcesTab extends StatelessWidget {
         final isWildcard = repo == '*';
 
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(6),
             border: Border.all(color: outlineColor),
           ),
           child: Row(
@@ -473,7 +456,7 @@ class _SourcesTab extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: AppColors.cobalt.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Icon(
                   isWildcard ? Icons.all_inclusive : Icons.commit_outlined,
@@ -546,10 +529,10 @@ class _DestinationsTab extends StatelessWidget {
         final destination = destinations[index];
 
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(6),
             border: Border.all(color: outlineColor),
           ),
           child: Column(
@@ -564,7 +547,7 @@ class _DestinationsTab extends StatelessWidget {
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
                           color: AppColors.teal.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Icon(
                           Icons.label_outline,
@@ -646,10 +629,10 @@ class _PermissionsTab extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       children: <Widget>[
         Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(6),
             border: Border.all(color: theme.dividerColor),
           ),
           child: Column(
@@ -661,21 +644,21 @@ class _PermissionsTab extends StatelessWidget {
                 title: 'Cluster Resource Whitelist',
                 count: resources.length,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               Wrap(
-                spacing: 10,
-                runSpacing: 10,
+                spacing: 8,
+                runSpacing: 8,
                 children: resources
                     .map((resource) {
                       final kindColor = colorForResourceKind(resource.kind);
                       return Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
+                          horizontal: 10,
+                          vertical: 7,
                         ),
                         decoration: BoxDecoration(
                           color: kindColor.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(4),
                           border: Border.all(
                             color: kindColor.withValues(alpha: 0.2),
                           ),
@@ -769,7 +752,7 @@ class _SectionHeader extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: iconColor.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(6),
           ),
           child: Icon(icon, size: 20, color: iconColor),
         ),
@@ -787,7 +770,7 @@ class _SectionHeader extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: iconColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
               '$count',
