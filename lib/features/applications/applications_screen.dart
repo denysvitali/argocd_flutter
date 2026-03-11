@@ -592,13 +592,17 @@ class _OverviewStrip extends StatelessWidget {
     final theme = Theme.of(context);
     final session = controller.session;
 
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.headerDark,
-        borderRadius: AppRadius.md,
-      ),
-      child: Column(
+    return Semantics(
+      label: 'Application overview: $totalApplications total, '
+          '$outOfSyncCount drifted, $unhealthyCount unhealthy',
+      container: true,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: AppColors.headerDark,
+          borderRadius: AppRadius.md,
+        ),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
@@ -646,6 +650,7 @@ class _OverviewStrip extends StatelessWidget {
             ],
           ),
         ],
+      ),
       ),
     );
   }
