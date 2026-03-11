@@ -397,6 +397,71 @@ void main() {
       expect(find.text('metadata'), findsWidgets);
     });
 
+    testWidgets('hides managed fields by default', (
+      WidgetTester tester,
+    ) async {
+      final manifestWithManagedFields = jsonEncode(<String, dynamic>{
+        'apiVersion': 'v1',
+        'kind': 'Service',
+        'metadata': <String, dynamic>{
+          'name': 'my-svc',
+          'namespace': 'default',
+          'managedFields': <dynamic>[
+            <String, dynamic>{
+              'manager': 'kubectl',
+              'operation': 'Apply',
+              'apiVersion': 'v1',
+            },
+          ],
+        },
+        'spec': <String, dynamic>{'type': 'ClusterIP'},
+      });
+      final storage = MemorySessionStorage()
+        ..seedSession(
+          const AppSession(
+            serverUrl: 'https://argocd.example.com',
+            username: 'ops',
+            token: 'token',
+          ),
+        );
+      final ctrl = AppController(
+        storage: storage,
+        api: FakeArgoCdApi(manifestToReturn: manifestWithManagedFields),
+        certificateProvider: const CertificateProvider(),
+      );
+      await ctrl.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
+          home: ManifestViewerScreen(
+            controller: ctrl,
+            applicationName: 'my-app',
+            namespace: 'default',
+            resourceName: 'my-svc',
+            kind: 'Service',
+            group: '',
+            version: 'v1',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // managedFields should be hidden by default
+      expect(find.textContaining('managedFields'), findsNothing);
+      expect(find.textContaining('kubectl'), findsNothing);
+
+      // But the rest of metadata should still be visible
+      expect(find.text('metadata'), findsWidgets);
+
+      // Toggle managed fields on via the toolbar button
+      await tester.tap(find.byTooltip('Show managed fields'));
+      await tester.pumpAndSettle();
+
+      // Now managedFields content should be visible
+      expect(find.textContaining('managedFields'), findsWidgets);
+    });
+
     testWidgets('collapsing a section hides its content', (
       WidgetTester tester,
     ) async {

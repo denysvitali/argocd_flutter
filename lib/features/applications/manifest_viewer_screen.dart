@@ -23,6 +23,7 @@ enum _ManifestAction {
   toggleFormat,
   toggleDiff,
   toggleSections,
+  toggleManagedFields,
   copy,
   refresh,
 }
@@ -69,6 +70,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
   _ManifestViewMode _lastNonDiffMode = _ManifestViewMode.yaml;
   bool _showSearch = false;
   bool _wrapLines = false;
+  bool _hideManagedFields = true;
   String _searchQuery = '';
   int _currentMatchIndex = 0;
   List<int> _activeMatches = const <int>[];
@@ -228,6 +230,12 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                           ),
                         ),
                       if (snapshot.hasData)
+                        CheckedPopupMenuItem<_ManifestAction>(
+                          value: _ManifestAction.toggleManagedFields,
+                          checked: _hideManagedFields,
+                          child: const Text('Hide managed fields'),
+                        ),
+                      if (snapshot.hasData)
                         const PopupMenuItem<_ManifestAction>(
                           value: _ManifestAction.copy,
                           child: Text('Copy'),
@@ -256,6 +264,10 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                         if (document != null) {
                           _toggleAllSections(document);
                         }
+                      case _ManifestAction.toggleManagedFields:
+                        setState(() {
+                          _hideManagedFields = !_hideManagedFields;
+                        });
                       case _ManifestAction.copy:
                         if (snapshot.hasData) {
                           _copyManifest(snapshot.requireData);
@@ -304,6 +316,21 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                   icon: const Icon(Icons.compare_arrows),
                 );
               },
+            ),
+            IconButton(
+              tooltip: _hideManagedFields
+                  ? 'Show managed fields'
+                  : 'Hide managed fields',
+              onPressed: () {
+                setState(() {
+                  _hideManagedFields = !_hideManagedFields;
+                });
+              },
+              icon: Icon(
+                _hideManagedFields
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+              ),
             ),
             FutureBuilder<String>(
               future: _future,
@@ -952,16 +979,14 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       );
     }
 
-    String formattedJson;
-    try {
-      formattedJson = const JsonEncoder.withIndent('  ').convert(decoded);
-    } catch (_) {
-      formattedJson = manifest;
-    }
-
-    final jsonLines = formattedJson.split('\n');
-
     if (decoded is! Map<String, dynamic>) {
+      String formattedJson;
+      try {
+        formattedJson = const JsonEncoder.withIndent('  ').convert(decoded);
+      } catch (_) {
+        formattedJson = manifest;
+      }
+      final jsonLines = formattedJson.split('\n');
       return _ManifestDocumentBundle(
         yamlLines: jsonLines,
         yamlSections: const <_YamlSection>[],
@@ -969,6 +994,18 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
         diff: null,
       );
     }
+
+    if (_hideManagedFields) {
+      decoded = _stripManagedFields(decoded);
+    }
+
+    String formattedJson;
+    try {
+      formattedJson = const JsonEncoder.withIndent('  ').convert(decoded);
+    } catch (_) {
+      formattedJson = manifest;
+    }
+    final jsonLines = formattedJson.split('\n');
 
     final yamlText = jsonToYaml(decoded);
     final yamlLines = _trimTrailingEmptyLine(yamlText.split('\n'));
@@ -980,6 +1017,15 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       jsonLines: jsonLines,
       diff: _extractDiffDocument(decoded),
     );
+  }
+
+  Map<String, dynamic> _stripManagedFields(Map<String, dynamic> obj) {
+    final result = Map<String, dynamic>.of(obj);
+    final metadata = result['metadata'];
+    if (metadata is Map<String, dynamic> && metadata.containsKey('managedFields')) {
+      result['metadata'] = Map<String, dynamic>.of(metadata)..remove('managedFields');
+    }
+    return result;
   }
 
   _DiffDocument? _extractDiffDocument(Map<String, dynamic> decoded) {
