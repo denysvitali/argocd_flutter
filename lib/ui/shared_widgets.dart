@@ -339,13 +339,13 @@ List<YamlToken> _tokenizeValue(String text) {
 /// case) and are applied at ~92 % opacity by the caller in dark mode.
 Color yamlTokenColor(YamlTokenType? type) {
   return switch (type) {
-    YamlTokenType.key => const Color(0xFF1565C0), // clear blue
-    YamlTokenType.stringValue => const Color(0xFF2E7D32), // green
-    YamlTokenType.numberValue => const Color(0xFFE65100), // deep orange
-    YamlTokenType.boolNullValue => const Color(0xFFE65100), // deep orange
-    YamlTokenType.listDash => const Color(0xFF1565C0), // match keys
-    YamlTokenType.comment => const Color(0xFF9E9E9E), // muted grey
-    null => const Color(0xFF37474F), // dark blue-grey for punctuation
+    YamlTokenType.key => const Color(0xFF0D47A1),
+    YamlTokenType.stringValue => const Color(0xFF1B5E20),
+    YamlTokenType.numberValue => const Color(0xFFBF360C),
+    YamlTokenType.boolNullValue => const Color(0xFF6A1B9A),
+    YamlTokenType.listDash => const Color(0xFF0D47A1),
+    YamlTokenType.comment => const Color(0xFF78909C),
+    null => const Color(0xFF37474F),
   };
 }
 

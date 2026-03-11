@@ -413,16 +413,18 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
               decoration: InputDecoration(
                 hintText: 'Search manifest...',
                 hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                 ),
                 prefixIcon: Icon(
                   Icons.search,
+                  size: 20,
                   color: colorScheme.onSurfaceVariant,
                 ),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
                         icon: Icon(
                           Icons.clear,
+                          size: 18,
                           color: colorScheme.onSurfaceVariant,
                         ),
                         onPressed: () {
@@ -436,6 +438,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                     : null,
                 filled: true,
                 fillColor: colorScheme.surface,
+                isDense: true,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(color: colorScheme.outlineVariant),
@@ -446,11 +449,14 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: colorScheme.primary),
+                  borderSide: BorderSide(
+                    color: colorScheme.primary,
+                    width: 2,
+                  ),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 12,
-                  vertical: 8,
+                  vertical: 10,
                 ),
               ),
               onChanged: (String value) {
@@ -670,18 +676,26 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  Icon(
-                    section.expandable
-                        ? (isExpanded
-                              ? Icons.keyboard_arrow_down
-                              : Icons.keyboard_arrow_right)
-                        : Icons.drag_handle,
-                    size: 16,
-                    color: section.expandable
-                        ? colorScheme.primary
-                        : colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 8),
+                  if (section.expandable)
+                    AnimatedRotation(
+                      turns: isExpanded ? 0.25 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOutCubic,
+                      child: Icon(
+                        Icons.chevron_right,
+                        size: 18,
+                        color: colorScheme.primary,
+                      ),
+                    )
+                  else
+                    Icon(
+                      Icons.horizontal_rule,
+                      size: 18,
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.5,
+                      ),
+                    ),
+                  const SizedBox(width: 6),
                   Text(
                     section.key,
                     style: theme.textTheme.titleSmall?.copyWith(
@@ -794,26 +808,75 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     required bool isCurrentMatch,
   }) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final lineColor = switch (line.kind) {
       _DiffKind.added => AppColors.teal,
       _DiffKind.removed => AppColors.coral,
       _DiffKind.changed => AppColors.amber,
       _DiffKind.unchanged => theme.colorScheme.onSurface,
     };
+    final diffBgColor = switch (line.kind) {
+      _DiffKind.added => AppColors.teal.withValues(
+        alpha: isDark ? 0.1 : 0.08,
+      ),
+      _DiffKind.removed => AppColors.coral.withValues(
+        alpha: isDark ? 0.1 : 0.08,
+      ),
+      _DiffKind.changed => AppColors.amber.withValues(
+        alpha: isDark ? 0.1 : 0.08,
+      ),
+      _DiffKind.unchanged => null,
+    };
+    final prefixIcon = switch (line.kind) {
+      _DiffKind.added => Icons.add,
+      _DiffKind.removed => Icons.remove,
+      _DiffKind.changed => Icons.compare_arrows,
+      _DiffKind.unchanged => null,
+    };
 
-    return _buildLineFrame(
-      keyId: keyId,
-      lineNumber: lineNumber,
-      isMatch: isMatch,
-      isCurrentMatch: isCurrentMatch,
-      child: Text(
-        '${line.prefix} ${line.text}',
-        softWrap: _wrapLines,
-        style: TextStyle(
-          fontFamily: 'monospace',
-          fontSize: 13,
-          color: lineColor,
-          height: 1.5,
+    return Container(
+      color: diffBgColor,
+      child: _buildLineFrame(
+        keyId: keyId,
+        lineNumber: lineNumber,
+        isMatch: isMatch,
+        isCurrentMatch: isCurrentMatch,
+        child: Row(
+          mainAxisSize: _wrapLines ? MainAxisSize.max : MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            if (prefixIcon != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 2, right: 4),
+                child: Icon(prefixIcon, size: 14, color: lineColor),
+              )
+            else
+              const SizedBox(width: 18),
+            if (_wrapLines)
+              Expanded(
+                child: Text(
+                  line.text,
+                  softWrap: true,
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 13,
+                    color: lineColor,
+                    height: 1.5,
+                  ),
+                ),
+              )
+            else
+              Text(
+                line.text,
+                softWrap: false,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 13,
+                  color: lineColor,
+                  height: 1.5,
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -828,39 +891,48 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
   }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final key = _lineKeys.putIfAbsent(keyId, GlobalKey.new);
+    final gutterColor =
+        isDark
+            ? colorScheme.surfaceContainerHighest
+            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.6);
 
     return Container(
       key: key,
       color: isCurrentMatch
-          ? AppColors.amber.withValues(
-              alpha: theme.brightness == Brightness.dark ? 0.22 : 0.28,
-            )
+          ? AppColors.amber.withValues(alpha: isDark ? 0.22 : 0.28)
           : isMatch
-          ? colorScheme.primary.withValues(
-              alpha: theme.brightness == Brightness.dark ? 0.16 : 0.12,
-            )
-          : null,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              ? colorScheme.primary.withValues(alpha: isDark ? 0.16 : 0.12)
+              : null,
       child: Row(
         mainAxisSize: _wrapLines ? MainAxisSize.max : MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          SizedBox(
-            width: 48,
+          Container(
+            width: 52,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: gutterColor,
+              border: Border(
+                right: BorderSide(color: AppColors.outline(theme)),
+              ),
+            ),
             child: Text(
               '$lineNumber',
               textAlign: TextAlign.right,
               style: theme.textTheme.bodySmall?.copyWith(
                 fontFamily: 'monospace',
                 fontSize: 13,
-                color: colorScheme.onSurfaceVariant,
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                 height: 1.5,
               ),
             ),
           ),
-          const SizedBox(width: 12),
-          if (_wrapLines) Expanded(child: child) else child,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            child: _wrapLines ? Expanded(child: child) : child,
+          ),
         ],
       ),
     );
