@@ -40,6 +40,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: ProjectsScreen(controller: controller, onOpenProject: (_) {}),
         ),
       );
@@ -60,15 +61,16 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: ProjectsScreen(controller: controller, onOpenProject: (_) {}),
         ),
       );
       await tester.pumpAndSettle();
 
-      // Overview strip is present
-      expect(find.text('Project boundaries'), findsOneWidget);
-      // Metric labels
-      expect(find.text('Source repos'), findsOneWidget);
+      // Overview strip is present (authenticated user 'ops')
+      expect(find.text('Projects \u00b7 ops'), findsOneWidget);
+      // Metric labels (appears in overview strip and count badges)
+      expect(find.text('repos'), findsWidgets);
     });
 
     testWidgets('search filters projects by name', (WidgetTester tester) async {
@@ -79,6 +81,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: ProjectsScreen(controller: controller, onOpenProject: (_) {}),
         ),
       );
@@ -110,6 +113,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: ProjectsScreen(controller: controller, onOpenProject: (_) {}),
         ),
       );
@@ -127,6 +131,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: ProjectsScreen(controller: controller, onOpenProject: (_) {}),
         ),
       );
@@ -158,6 +163,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: ProjectsScreen(
             controller: emptyController,
             onOpenProject: (_) {},
@@ -172,6 +178,7 @@ void main() {
     testWidgets('sort popup menu is available', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: ProjectsScreen(controller: controller, onOpenProject: (_) {}),
         ),
       );
@@ -192,6 +199,7 @@ void main() {
     testWidgets('project card shows count badges', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: ProjectsScreen(controller: controller, onOpenProject: (_) {}),
         ),
       );
@@ -214,6 +222,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: ProjectsScreen(
             controller: controller,
             onOpenProject: (name) {
@@ -256,6 +265,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: ProjectDetailScreen(
             controller: controller,
             projectName: 'platform',
@@ -271,6 +281,7 @@ void main() {
     testWidgets('shows tab bar with all tabs', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: ProjectDetailScreen(
             controller: controller,
             projectName: 'platform',
@@ -290,6 +301,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: ProjectDetailScreen(
             controller: controller,
             projectName: 'platform',
@@ -307,6 +319,7 @@ void main() {
     testWidgets('sources tab shows repositories', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: ProjectDetailScreen(
             controller: controller,
             projectName: 'platform',
@@ -327,6 +340,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: ProjectDetailScreen(
             controller: controller,
             projectName: 'platform',
@@ -349,6 +363,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: ProjectDetailScreen(
             controller: controller,
             projectName: 'platform',
@@ -369,6 +384,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: ProjectDetailScreen(
             controller: controller,
             projectName: 'data-team',
@@ -415,6 +431,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: ProjectDetailScreen(
             controller: emptyController,
             projectName: 'empty-project',

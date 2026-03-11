@@ -45,6 +45,7 @@ void main() {
     required ThemeController themeController,
   }) {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: ListenableBuilder(
         listenable: Listenable.merge(<Listenable>[controller, themeController]),
         builder: (context, _) {
@@ -59,6 +60,7 @@ void main() {
 
   Widget wrapSignIn({required AppController controller}) {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: ListenableBuilder(
         listenable: controller,
         builder: (context, _) {

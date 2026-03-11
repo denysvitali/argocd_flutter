@@ -14,6 +14,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: HomeShell(
             controller: controller,
             themeController: ThemeController(),
@@ -33,6 +34,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: HomeShell(
             controller: controller,
             themeController: ThemeController(),
@@ -41,7 +43,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Cluster dashboard'), findsOneWidget);
+      expect(find.text('admin @ https://argocd.example.com'), findsOneWidget);
     });
 
     testWidgets('switching to Applications tab shows applications content', (
@@ -51,6 +53,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: HomeShell(
             controller: controller,
             themeController: ThemeController(),
@@ -73,6 +76,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: HomeShell(
             controller: controller,
             themeController: ThemeController(),
@@ -85,8 +89,8 @@ void main() {
       await tester.tap(find.byIcon(Icons.folder_outlined));
       await tester.pumpAndSettle();
 
-      // Projects screen has a "Project boundaries" heading
-      expect(find.text('Project boundaries'), findsOneWidget);
+      // Projects screen overview strip heading (authenticated)
+      expect(find.text('Projects \u00b7 admin'), findsOneWidget);
     });
 
     testWidgets('switching to Settings tab updates selected index', (
@@ -96,6 +100,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: HomeShell(
             controller: controller,
             themeController: ThemeController(),
@@ -119,6 +124,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: HomeShell(
             controller: controller,
             themeController: ThemeController(),

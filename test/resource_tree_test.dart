@@ -96,6 +96,7 @@ void main() {
 
   Widget buildScreen() {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: ResourceTreeScreen(
         controller: controller,
         applicationName: 'test-app',
@@ -237,6 +238,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
         home: ResourceTreeScreen(
           controller: emptyController,
           applicationName: 'empty-app',
@@ -302,6 +304,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
         home: ResourceTreeScreen(
           controller: singleNodeController,
           applicationName: 'detail-test',

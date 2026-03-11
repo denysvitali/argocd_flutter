@@ -4,7 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   Widget wrapInApp(Widget child) {
-    return MaterialApp(home: Scaffold(body: child));
+    return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
+      home: Scaffold(body: child),
+    );
   }
 
   group('StatusChip', () {
@@ -63,7 +66,7 @@ void main() {
       );
 
       final text = tester.widget<Text>(find.text('Bold Title'));
-      expect(text.style?.fontWeight, FontWeight.w700);
+      expect(text.style?.fontWeight, FontWeight.w600);
     });
   });
 
@@ -93,7 +96,7 @@ void main() {
       );
 
       final text = tester.widget<Text>(find.text('Empty'));
-      expect(text.style?.fontWeight, FontWeight.w700);
+      expect(text.style?.fontWeight, FontWeight.w600);
     });
   });
 

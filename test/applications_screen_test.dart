@@ -40,6 +40,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
         home: MediaQuery(
           data: const MediaQueryData(size: Size(800, 1200)),
           child: ListenableBuilder(

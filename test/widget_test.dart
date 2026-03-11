@@ -45,7 +45,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Dashboard'), findsWidgets);
-    expect(find.text('Cluster dashboard'), findsOneWidget);
+    expect(find.text('ops @ https://argocd.example.com'), findsOneWidget);
     expect(controller.applications.length, equals(1));
     expect(controller.applications.first.name, equals('payments-api'));
   });

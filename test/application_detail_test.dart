@@ -34,6 +34,7 @@ void main() {
 
   Widget buildApp({String applicationName = 'payments-api'}) {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: ApplicationDetailScreen(
         controller: controller,
         applicationName: applicationName,

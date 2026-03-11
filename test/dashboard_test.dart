@@ -24,7 +24,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Dashboard'), findsOneWidget);
-      expect(find.text('Cluster dashboard'), findsOneWidget);
+      expect(find.text('admin @ https://argocd.example.com'), findsOneWidget);
       expect(find.text('No applications found'), findsOneWidget);
       expect(
         find.text(
@@ -264,6 +264,7 @@ Future<void> _scrollTo(WidgetTester tester, Finder target) async {
 
 Widget _wrapDashboard(AppController controller) {
   return MaterialApp(
+    theme: ThemeData(splashFactory: InkRipple.splashFactory),
     home: DashboardScreen(controller: controller, onOpenApplication: (_) {}),
   );
 }

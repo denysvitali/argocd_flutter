@@ -236,6 +236,7 @@ void main() {
 
     Widget buildTestWidget() {
       return MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
         home: ManifestViewerScreen(
           controller: controller,
           applicationName: 'my-app',
@@ -352,6 +353,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: ManifestViewerScreen(
             controller: errorController,
             applicationName: 'my-app',
