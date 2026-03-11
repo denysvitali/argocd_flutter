@@ -395,7 +395,7 @@ class _FilterChips extends StatelessWidget {
         color: isSelected ? AppColors.cobalt : AppColors.border,
         width: isSelected ? 1.5 : 1,
       ),
-      shape: const RoundedRectangleBorder(borderRadius: AppRadius.md),
+      shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
       visualDensity: VisualDensity.compact,
       padding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
     );

@@ -2,10 +2,10 @@ import 'dart:convert';
 
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
+import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:argocd_flutter/ui/design_tokens.dart';
 
 export 'package:argocd_flutter/ui/shared_widgets.dart'
     show
@@ -123,7 +123,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                 children: <Widget>[
                   if (!compactActions)
                     Container(
-                      margin: const EdgeInsets.only(right: AppSpacing.sm),
+                      margin: const EdgeInsets.only(right: 4),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 6,
@@ -818,13 +818,13 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     };
     final diffBgColor = switch (line.kind) {
       _DiffKind.added => AppColors.teal.withValues(
-        alpha: isDark ? 0.1 : 0.08,
+        alpha: isDark ? AppOpacity.soft : AppOpacity.light,
       ),
       _DiffKind.removed => AppColors.coral.withValues(
-        alpha: isDark ? 0.1 : 0.08,
+        alpha: isDark ? AppOpacity.soft : AppOpacity.light,
       ),
       _DiffKind.changed => AppColors.amber.withValues(
-        alpha: isDark ? 0.1 : 0.08,
+        alpha: isDark ? AppOpacity.soft : AppOpacity.light,
       ),
       _DiffKind.unchanged => null,
     };
@@ -848,7 +848,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
           children: <Widget>[
             if (prefixIcon != null)
               Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.xs, right: AppSpacing.sm),
+                padding: const EdgeInsets.only(top: 2, right: 4),
                 child: Icon(prefixIcon, size: 14, color: lineColor),
               )
             else
@@ -912,7 +912,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
         children: <Widget>[
           Container(
             width: 52,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 2),
             decoration: BoxDecoration(
               color: gutterColor,
               border: Border(
@@ -931,7 +931,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 2),
             child: _wrapLines ? Expanded(child: child) : child,
           ),
         ],
