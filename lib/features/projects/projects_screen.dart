@@ -400,7 +400,7 @@ class _ProjectFilterChips extends StatelessWidget {
       side: BorderSide(
         color: selected ? AppColors.teal : AppColors.outline(theme),
       ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
 }
@@ -464,7 +464,14 @@ class _OverviewStrip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.headerDarkAlt,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[
+            AppColors.headerDarkAlt,
+            Color(0xFF0B1A12),
+          ],
+        ),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -489,7 +496,7 @@ class _OverviewStrip extends StatelessWidget {
                 child: Text(
                   session == null
                       ? 'Project boundaries'
-                      : 'Projects · ${session.username}',
+                      : 'Projects \u00b7 ${session.username}',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -573,15 +580,15 @@ class _ProjectCard extends StatelessWidget {
               Row(
                 children: <Widget>[
                   Container(
-                    width: 26,
-                    height: 26,
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: accent.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Icon(
                       Icons.account_tree_outlined,
-                      size: 15,
+                      size: 18,
                       color: accent,
                     ),
                   ),
@@ -696,10 +703,10 @@ class _CountBadge extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -759,7 +766,7 @@ class _HighlightedText extends StatelessWidget {
         TextSpan(
           text: text.substring(index, index + query.length),
           style: TextStyle(
-            backgroundColor: AppColors.amber.withValues(alpha: 0.3),
+            backgroundColor: AppColors.amber.withValues(alpha: 0.45),
             fontWeight: FontWeight.w700,
           ),
         ),
