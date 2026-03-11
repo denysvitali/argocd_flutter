@@ -51,6 +51,19 @@ class _ArgoCdAppState extends State<ArgoCdApp> {
         bodyLarge: GoogleFonts.dmSans(color: AppColors.ink, fontSize: 18),
       ),
       dividerColor: AppColors.border,
+      appBarTheme: const AppBarTheme(toolbarHeight: 60),
+      navigationBarTheme: NavigationBarThemeData(
+        height: 68,
+        labelTextStyle: MaterialStatePropertyAll<TextStyle>(
+          GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+        iconTheme: MaterialStateProperty.resolveWith<IconThemeData>((states) {
+          final color = states.contains(MaterialState.selected)
+              ? Colors.white
+              : AppColors.grey;
+          return IconThemeData(size: 22, color: color);
+        }),
+      ),
     );
 
     final darkTheme = ThemeData(
@@ -76,6 +89,13 @@ class _ArgoCdAppState extends State<ArgoCdApp> {
             ),
           ),
       dividerColor: AppColors.darkBorder,
+      appBarTheme: const AppBarTheme(toolbarHeight: 60),
+      navigationBarTheme: NavigationBarThemeData(
+        height: 68,
+        labelTextStyle: MaterialStatePropertyAll<TextStyle>(
+          GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+      ),
     );
 
     return AnimatedBuilder(
@@ -172,6 +192,8 @@ class _HomeShellState extends State<HomeShell> {
       body: IndexedStack(index: _index, children: pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
+        indicatorColor: AppColors.cobalt,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         onDestinationSelected: (value) {
           setState(() {
             _index = value;

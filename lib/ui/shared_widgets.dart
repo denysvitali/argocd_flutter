@@ -1,152 +1,163 @@
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:flutter/material.dart';
 
+const EdgeInsets kPagePadding = EdgeInsets.fromLTRB(16, 16, 16, 20);
+
 /// Converts a decoded JSON value to a YAML-formatted string.
 String jsonToYaml(dynamic value, {int indent = 0}) {
-  final buffer = StringBuffer();
-  _writeYamlValue(buffer, value, indent: indent, isTopLevel: true);
-  return buffer.toString();
+  return _yamlLinesForValue(value, indent: indent).join('\n');
 }
 
-void _writeYamlValue(
-  StringBuffer buffer,
-  dynamic value, {
-  required int indent,
-  bool isTopLevel = false,
-}) {
-  final prefix = ' ' * indent;
-
+List<String> _yamlLinesForValue(dynamic value, {required int indent}) {
   if (value is Map<String, dynamic>) {
-    if (value.isEmpty) {
-      buffer.writeln('{}');
-      return;
+    return _yamlLinesForMap(value, indent: indent);
+  }
+  if (value is List) {
+    return _yamlLinesForList(value, indent: indent);
+  }
+  return <String>[_yamlScalarAsLine(value, indent: indent)];
+}
+
+List<String> _yamlLinesForMap(Map<String, dynamic> value, {required int indent}) {
+  final prefix = ' ' * indent;
+  if (value.isEmpty) {
+    return <String>['$prefix{}'];
+  }
+
+  final lines = <String>[];
+  for (final entry in value.entries) {
+    final scalarLine = _yamlScalarLineOrNull(entry.value);
+    if (scalarLine != null) {
+      lines.add('$prefix${entry.key}: $scalarLine');
+      continue;
     }
-    if (!isTopLevel) {
-      buffer.writeln();
+
+    final blockHeader = _yamlBlockHeaderOrNull(entry.value);
+    if (blockHeader != null) {
+      lines.add('$prefix${entry.key}: $blockHeader');
+      lines.addAll(_yamlMultilineStringLines(entry.value as String, indent + 2));
+      continue;
     }
-    final entries = value.entries.toList(growable: false);
-    for (final entry in entries) {
-      buffer.write('$prefix${entry.key}:');
-      if (entry.value is Map<String, dynamic> || entry.value is List) {
-        final isEmpty = (entry.value is Map && (entry.value as Map).isEmpty) ||
-            (entry.value is List && (entry.value as List).isEmpty);
-        if (isEmpty) {
-          buffer.write(' ');
-        }
-        _writeYamlValue(buffer, entry.value, indent: indent + 2);
-      } else if (entry.value is String) {
-        final stringValue = entry.value as String;
-        if (stringValue.contains('\n')) {
-          _writeYamlScalar(buffer, stringValue, indent: indent + 2);
-        } else {
-          buffer.write(' ');
-          _writeYamlScalar(buffer, stringValue, indent: indent + 2);
-          buffer.writeln();
-        }
-      } else {
-        buffer.write(' ');
-        _writeYamlScalar(buffer, entry.value, indent: indent + 2);
-        buffer.writeln();
+
+    lines.add('$prefix${entry.key}:');
+    lines.addAll(_yamlLinesForValue(entry.value, indent: indent + 2));
+  }
+  return lines;
+}
+
+List<String> _yamlLinesForList(List<dynamic> value, {required int indent}) {
+  final prefix = ' ' * indent;
+  if (value.isEmpty) {
+    return <String>['$prefix[]'];
+  }
+
+  final lines = <String>[];
+  for (final item in value) {
+    final scalarLine = _yamlScalarLineOrNull(item);
+    if (scalarLine != null) {
+      lines.add('$prefix- $scalarLine');
+      continue;
+    }
+
+    if (item is String && item.contains('\n')) {
+      lines.add('$prefix- |');
+      lines.addAll(_yamlMultilineStringLines(item, indent + 2));
+      continue;
+    }
+
+    if (item is Map<String, dynamic>) {
+      if (item.isEmpty) {
+        lines.add('$prefix- {}');
+        continue;
       }
-    }
-  } else if (value is List) {
-    if (value.isEmpty) {
-      buffer.writeln('[]');
-      return;
-    }
-    buffer.writeln();
-    for (final item in value) {
-      if (item is Map<String, dynamic>) {
-        if (item.isEmpty) {
-          buffer.writeln('$prefix- {}');
+
+      final entries = item.entries.toList(growable: false);
+      final firstEntry = entries.first;
+      final firstScalarLine = _yamlScalarLineOrNull(firstEntry.value);
+      if (firstScalarLine != null) {
+        lines.add('$prefix- ${firstEntry.key}: $firstScalarLine');
+      } else if (firstEntry.value is String &&
+          (firstEntry.value as String).contains('\n')) {
+        lines.add('$prefix- ${firstEntry.key}: |');
+        lines.addAll(
+          _yamlMultilineStringLines(firstEntry.value as String, indent + 4),
+        );
+      } else {
+        lines.add('$prefix- ${firstEntry.key}:');
+        lines.addAll(_yamlLinesForValue(firstEntry.value, indent: indent + 4));
+      }
+
+      for (var i = 1; i < entries.length; i++) {
+        final entry = entries[i];
+        final entryScalarLine = _yamlScalarLineOrNull(entry.value);
+        if (entryScalarLine != null) {
+          lines.add('$prefix  ${entry.key}: $entryScalarLine');
           continue;
         }
-        final entries = item.entries.toList(growable: false);
-        buffer.write('$prefix- ${entries.first.key}:');
-        if (entries.first.value is Map<String, dynamic> ||
-            entries.first.value is List) {
-          _writeYamlValue(
-            buffer,
-            entries.first.value,
-            indent: indent + 4,
+        if (entry.value is String && (entry.value as String).contains('\n')) {
+          lines.add('$prefix  ${entry.key}: |');
+          lines.addAll(
+            _yamlMultilineStringLines(entry.value as String, indent + 4),
           );
-        } else if (entries.first.value is String) {
-          final stringValue = entries.first.value as String;
-          if (stringValue.contains('\n')) {
-            _writeYamlScalar(buffer, stringValue, indent: indent + 4);
-          } else {
-            buffer.write(' ');
-            _writeYamlScalar(buffer, stringValue, indent: indent + 4);
-            buffer.writeln();
-          }
-        } else {
-          buffer.write(' ');
-          _writeYamlScalar(buffer, entries.first.value, indent: indent + 4);
-          buffer.writeln();
+          continue;
         }
-        for (var i = 1; i < entries.length; i++) {
-          buffer.write('$prefix  ${entries[i].key}:');
-          if (entries[i].value is Map<String, dynamic> ||
-              entries[i].value is List) {
-            _writeYamlValue(
-              buffer,
-              entries[i].value,
-              indent: indent + 4,
-            );
-          } else if (entries[i].value is String) {
-            final stringValue = entries[i].value as String;
-            if (stringValue.contains('\n')) {
-              _writeYamlScalar(buffer, stringValue, indent: indent + 4);
-            } else {
-              buffer.write(' ');
-              _writeYamlScalar(buffer, stringValue, indent: indent + 4);
-              buffer.writeln();
-            }
-          } else {
-            buffer.write(' ');
-            _writeYamlScalar(buffer, entries[i].value, indent: indent + 4);
-            buffer.writeln();
-          }
-        }
-      } else if (item is List) {
-        buffer.write('$prefix-');
-        _writeYamlValue(buffer, item, indent: indent + 2);
-      } else if (item is String && item.contains('\n')) {
-        buffer.write('$prefix-');
-        _writeYamlScalar(buffer, item, indent: indent + 2);
-      } else {
-        buffer.write('$prefix- ');
-        _writeYamlScalar(buffer, item, indent: indent + 2);
-        buffer.writeln();
+        lines.add('$prefix  ${entry.key}:');
+        lines.addAll(_yamlLinesForValue(entry.value, indent: indent + 4));
       }
+      continue;
     }
-  } else {
-    _writeYamlScalar(buffer, value, indent: indent);
-    buffer.writeln();
+
+    lines.add('$prefix-');
+    lines.addAll(_yamlLinesForValue(item, indent: indent + 2));
   }
+
+  return lines;
 }
 
-void _writeYamlScalar(StringBuffer buffer, dynamic value, {required int indent}) {
-  if (value == null) {
-    buffer.write('null');
-  } else if (value is bool) {
-    buffer.write(value ? 'true' : 'false');
-  } else if (value is num) {
-    buffer.write(value);
-  } else {
-    final str = value.toString();
-    if (str.contains('\n')) {
-      final lines = str.split('\n');
-      buffer.writeln(' |');
-      for (final line in lines) {
-        buffer.writeln('${' ' * indent}$line');
-      }
-    } else if (_needsQuoting(str)) {
-      buffer.write("'${str.replaceAll("'", "''")}'");
-    } else {
-      buffer.write(str);
-    }
+String _yamlScalarAsLine(dynamic value, {required int indent}) {
+  final scalarLine = _yamlScalarLineOrNull(value);
+  if (scalarLine != null) {
+    return '${' ' * indent}$scalarLine';
   }
+  final blockHeader = _yamlBlockHeaderOrNull(value);
+  if (blockHeader != null) {
+    return '${' ' * indent}$blockHeader';
+  }
+  return '${' ' * indent}${value.toString()}';
+}
+
+String? _yamlScalarLineOrNull(dynamic value) {
+  if (value == null) {
+    return 'null';
+  }
+  if (value is bool) {
+    return value ? 'true' : 'false';
+  }
+  if (value is num) {
+    return value.toString();
+  }
+  final str = value.toString();
+  if (str.contains('\n')) {
+    return null;
+  }
+  if (_needsQuoting(str)) {
+    return "'${str.replaceAll("'", "''")}'";
+  }
+  return str;
+}
+
+String? _yamlBlockHeaderOrNull(dynamic value) {
+  if (value is String && value.contains('\n')) {
+    return '|';
+  }
+  return null;
+}
+
+List<String> _yamlMultilineStringLines(String value, int indent) {
+  final prefix = ' ' * indent;
+  return <String>[
+    for (final line in value.split('\n')) '$prefix$line',
+  ];
 }
 
 bool needsYamlQuoting(String str) => _needsQuoting(str);
@@ -307,7 +318,7 @@ class StatusChip extends StatelessWidget {
     return Semantics(
       label: 'Status: $label',
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: color.withValues(
             alpha: theme.brightness == Brightness.dark ? 0.24 : 0.12,
@@ -327,9 +338,9 @@ class StatusChip extends StatelessWidget {
 }
 
 class SectionCard extends StatelessWidget {
-  const SectionCard({super.key, required this.title, required this.child});
+  const SectionCard({super.key, this.title, required this.child});
 
-  final String title;
+  final String? title;
   final Widget child;
 
   @override
@@ -337,22 +348,24 @@ class SectionCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            title,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
+          if (title != null) ...<Widget>[
+            Text(
+              title!,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
+            const SizedBox(height: 14),
+          ],
           child,
         ],
       ),
@@ -375,10 +388,10 @@ class EmptyStateCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
@@ -413,10 +426,10 @@ class SummaryTile extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
@@ -456,16 +469,16 @@ class FactBadge extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          ExcludeSemantics(child: Icon(icon, size: 18)),
-          const SizedBox(width: 8),
+          ExcludeSemantics(child: Icon(icon, size: 16)),
+          const SizedBox(width: 6),
           Text(label),
         ],
       ),

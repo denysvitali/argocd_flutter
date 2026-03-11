@@ -31,6 +31,9 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
   ApplicationSortField _sortField = ApplicationSortField.name;
   ApplicationFilterChip _activeFilter = ApplicationFilterChip.all;
 
+  bool get _hasActiveControls =>
+      _query.trim().isNotEmpty || _activeFilter != ApplicationFilterChip.all;
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -101,10 +104,34 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
 
           return application.name.toLowerCase().contains(normalizedQuery) ||
               application.project.toLowerCase().contains(normalizedQuery) ||
-              application.namespace.toLowerCase().contains(normalizedQuery);
+              application.namespace.toLowerCase().contains(normalizedQuery) ||
+              application.cluster.toLowerCase().contains(normalizedQuery) ||
+              application.repoUrl.toLowerCase().contains(normalizedQuery) ||
+              application.path.toLowerCase().contains(normalizedQuery) ||
+              application.targetRevision.toLowerCase().contains(normalizedQuery);
         }).toList(growable: false);
     final filteredApplications = _applyFilter(searchedApplications);
     final applications = _applySort(filteredApplications);
+    final filterCounts = <ApplicationFilterChip, int>{
+      ApplicationFilterChip.all: searchedApplications.length,
+      ApplicationFilterChip.healthy: searchedApplications
+          .where((application) => application.isHealthy)
+          .length,
+      ApplicationFilterChip.degraded: searchedApplications
+          .where(
+            (application) => application.healthStatus.toLowerCase() == 'degraded',
+          )
+          .length,
+      ApplicationFilterChip.outOfSync: searchedApplications
+          .where((application) => application.isOutOfSync)
+          .length,
+      ApplicationFilterChip.progressing: searchedApplications
+          .where(
+            (application) =>
+                application.healthStatus.toLowerCase() == 'progressing',
+          )
+          .length,
+    };
 
     return Scaffold(
       appBar: AppBar(
@@ -130,17 +157,10 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: widget.controller.busy
-            ? null
-            : () => widget.controller.refreshApplications(),
-        tooltip: 'Refresh applications',
-        child: const Icon(Icons.refresh),
-      ),
       body: RefreshIndicator(
         onRefresh: () => widget.controller.refreshApplications(),
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: kPagePadding,
           children: <Widget>[
             LastUpdatedText(timestamp: widget.controller.lastRefreshedAt),
             _OverviewStrip(
@@ -149,7 +169,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               unhealthyCount: unhealthyCount,
               outOfSyncCount: outOfSyncCount,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 14),
             _SearchBar(
               controller: _searchController,
               onChanged: (value) {
@@ -165,31 +185,39 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               },
               showClear: _query.isNotEmpty,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             _FilterChips(
               activeFilter: _activeFilter,
+              counts: filterCounts,
               onSelected: (filter) {
                 setState(() {
                   _activeFilter = filter;
                 });
               },
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Row(
               children: <Widget>[
-                if (normalizedQuery.isNotEmpty ||
-                    _activeFilter != ApplicationFilterChip.all)
-                  Expanded(
-                    child: Text(
-                      '${applications.length} of ${allApplications.length} applications',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.grey,
-                        fontWeight: FontWeight.w600,
-                      ),
+                Expanded(
+                  child: Text(
+                    '${applications.length} of ${allApplications.length} applications',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.grey,
+                      fontWeight: FontWeight.w600,
                     ),
-                  )
-                else
-                  const Spacer(),
+                  ),
+                ),
+                if (_hasActiveControls)
+                  TextButton(
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() {
+                        _query = '';
+                        _activeFilter = ApplicationFilterChip.all;
+                      });
+                    },
+                    child: const Text('Clear'),
+                  ),
                 _SortDropdown(
                   value: _sortField,
                   onChanged: (field) {
@@ -200,7 +228,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             if (widget.controller.errorMessage != null)
               ErrorRetryWidget(
                 message: widget.controller.errorMessage!,
@@ -240,10 +268,12 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
 class _FilterChips extends StatelessWidget {
   const _FilterChips({
     required this.activeFilter,
+    required this.counts,
     required this.onSelected,
   });
 
   final ApplicationFilterChip activeFilter;
+  final Map<ApplicationFilterChip, int> counts;
   final ValueChanged<ApplicationFilterChip> onSelected;
 
   @override
@@ -282,7 +312,7 @@ class _FilterChips extends StatelessWidget {
     final isSelected = activeFilter == chip;
 
     return FilterChip(
-      label: Text(label),
+      label: Text('$label ${counts[chip] ?? 0}'),
       selected: isSelected,
       onSelected: (_) => onSelected(chip),
       selectedColor: AppColors.cobalt.withValues(alpha: 0.15),
@@ -297,6 +327,7 @@ class _FilterChips extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
       ),
+      visualDensity: VisualDensity.compact,
     );
   }
 }
@@ -366,7 +397,7 @@ class _SearchBar extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.border),
         boxShadow: <BoxShadow>[
           BoxShadow(
@@ -380,7 +411,7 @@ class _SearchBar extends StatelessWidget {
         controller: controller,
         onChanged: onChanged,
         decoration: InputDecoration(
-          hintText: 'Filter by name, project, or namespace',
+          hintText: 'Search name, project, namespace, repo, cluster, revision',
           hintStyle: theme.textTheme.bodyMedium?.copyWith(
             color: AppColors.greyLight,
           ),
@@ -402,7 +433,7 @@ class _SearchBar extends StatelessWidget {
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
-            vertical: 14,
+            vertical: 12,
           ),
         ),
       ),
@@ -429,7 +460,7 @@ class _OverviewStrip extends StatelessWidget {
     final session = controller.session;
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
@@ -440,35 +471,57 @@ class _OverviewStrip extends StatelessWidget {
             AppColors.cobalt,
           ],
         ),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(22),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            'Control plane overview',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  'Application control plane',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '$outOfSyncCount drifted • $unhealthyCount unhealthy',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             session == null
                 ? 'Connect to ArgoCD to inspect application health.'
-                : 'Signed in as ${session.username} on ${session.serverUrl}',
-            style: theme.textTheme.bodyLarge?.copyWith(
+                : '${session.username} on ${session.serverUrl}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(
               color: AppColors.textOnDarkMuted,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
           Wrap(
-            spacing: 12,
-            runSpacing: 12,
+            spacing: 10,
+            runSpacing: 10,
             children: <Widget>[
               _MetricChip(label: 'Applications', value: '$totalApplications'),
               _MetricChip(label: 'Out of sync', value: '$outOfSyncCount'),
-              _MetricChip(label: 'Degraded', value: '$unhealthyCount'),
+              _MetricChip(label: 'Unhealthy', value: '$unhealthyCount'),
             ],
           ),
         ],
@@ -486,10 +539,10 @@ class _MetricChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
       ),
       child: Column(
@@ -503,12 +556,12 @@ class _MetricChip extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: AppColors.textOnDarkMuted),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.textOnDarkMuted,
+            ),
           ),
         ],
       ),
@@ -555,99 +608,40 @@ class _ApplicationCard extends StatelessWidget {
 
     return Material(
       color: theme.colorScheme.surface,
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(20),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.dividerColor),
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(20),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(20),
             child: Container(
               decoration: BoxDecoration(
                 border: Border(
                   left: BorderSide(color: healthColor, width: 4),
                 ),
               ),
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(
-                    application.name,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
                   Row(
                     children: <Widget>[
-                      Icon(
-                        Icons.folder_outlined,
-                        size: 16,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          '${application.project} \u2022 ${application.namespace}',
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w500,
+                          application.name,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
                           ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: <Widget>[
-                      Icon(
-                        Icons.link_rounded,
-                        size: 16,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          application.repoUrl,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: AppColors.greyLight,
-                          ),
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: <Widget>[
-                      Icon(
-                        _healthIcon(application.healthStatus),
-                        size: 18,
-                        color: healthColor,
-                      ),
-                      const SizedBox(width: 4),
-                      StatusChip(
-                        label: application.healthStatus,
-                        color: healthColor,
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        _syncIcon(application.syncStatus),
-                        size: 18,
-                        color: AppColors.syncColor(application.syncStatus),
-                      ),
-                      const SizedBox(width: 4),
-                      StatusChip(
-                        label: application.syncStatus,
-                        color: AppColors.syncColor(application.syncStatus),
-                      ),
-                      const Spacer(),
                       if (application.lastSyncedAt != null &&
                           application.lastSyncedAt!.isNotEmpty)
                         Text(
@@ -658,22 +652,56 @@ class _ApplicationCard extends StatelessWidget {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${application.project} / ${application.namespace}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
                   Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
+                    spacing: 6,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: <Widget>[
+                      StatusChip(
+                        label: application.healthStatus,
+                        color: healthColor,
+                      ),
+                      StatusChip(
+                        label: application.syncStatus,
+                        color: AppColors.syncColor(application.syncStatus),
+                      ),
+                      Text(
+                        application.operationPhase,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.grey,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        _shortRevision(application.targetRevision),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
                     children: <Widget>[
                       _ColoredFactBadge(
                         icon: Icons.route_outlined,
-                        label: application.path,
+                        label: _pathLabel(application.path),
                       ),
                       _ColoredFactBadge(
-                        icon: Icons.commit_outlined,
-                        label: application.targetRevision,
-                      ),
-                      _ColoredFactBadge(
-                        icon: Icons.public,
-                        label: application.cluster,
+                        icon: Icons.link_rounded,
+                        label: _repoLabel(application.repoUrl),
                       ),
                     ],
                   ),
@@ -704,7 +732,7 @@ class _ApplicationGrid extends StatelessWidget {
       final second = i + 1 < applications.length ? applications[i + 1] : null;
       rows.add(
         Padding(
-          padding: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.only(bottom: 12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -748,25 +776,25 @@ class _ApplicationGridCard extends StatelessWidget {
 
     return Material(
       color: theme.colorScheme.surface,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(18),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.dividerColor),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(18),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(18),
             child: Container(
               decoration: BoxDecoration(
                 border: Border(
                   left: BorderSide(color: healthColor, width: 4),
                 ),
               ),
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
@@ -778,16 +806,16 @@ class _ApplicationGridCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
-                    application.project,
+                    '${application.project} / ${application.namespace}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 6),
                   Row(
                     children: <Widget>[
                       Icon(
@@ -804,7 +832,7 @@ class _ApplicationGridCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Row(
                     children: <Widget>[
                       Icon(
@@ -823,9 +851,9 @@ class _ApplicationGridCard extends StatelessWidget {
                   ),
                   if (application.lastSyncedAt != null &&
                       application.lastSyncedAt!.isNotEmpty) ...<Widget>[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Text(
-                      _formatRelativeTime(application.lastSyncedAt!),
+                      '${_shortRevision(application.targetRevision)} • ${_repoHost(application.repoUrl)}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.greyLight,
                       ),
@@ -849,6 +877,34 @@ String _formatRelativeTime(String isoTimestamp) {
   return formatTimeAgo(dateTime);
 }
 
+String _repoLabel(String repoUrl) {
+  final uri = Uri.tryParse(repoUrl);
+  if (uri != null && uri.host.isNotEmpty) {
+    return '${uri.host}${uri.path}';
+  }
+  return repoUrl;
+}
+
+String _repoHost(String repoUrl) {
+  final uri = Uri.tryParse(repoUrl);
+  if (uri != null && uri.host.isNotEmpty) {
+    return uri.host;
+  }
+  return repoUrl;
+}
+
+String _pathLabel(String path) {
+  final segments = path.split('/').where((segment) => segment.isNotEmpty).toList();
+  if (segments.length <= 2) {
+    return path;
+  }
+  return '${segments[segments.length - 2]}/${segments.last}';
+}
+
+String _shortRevision(String revision) {
+  return revision.length <= 10 ? revision : revision.substring(0, 10);
+}
+
 class _ColoredFactBadge extends StatelessWidget {
   const _ColoredFactBadge({required this.icon, required this.label});
 
@@ -860,23 +916,24 @@ class _ColoredFactBadge extends StatelessWidget {
     final color = _factBadgeColor(icon);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.16)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          ExcludeSemantics(child: Icon(icon, size: 18, color: color)),
-          const SizedBox(width: 8),
+          ExcludeSemantics(child: Icon(icon, size: 14, color: color)),
+          const SizedBox(width: 4),
           Text(
             label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: color,
               fontWeight: FontWeight.w600,
             ),
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -916,16 +973,16 @@ class _EmptyState extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
         children: <Widget>[
-          Icon(icon, size: 56, color: AppColors.greyLight),
-          const SizedBox(height: 16),
+          Icon(icon, size: 44, color: AppColors.greyLight),
+          const SizedBox(height: 12),
           Text(
             title,
             textAlign: TextAlign.center,
