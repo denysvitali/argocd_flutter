@@ -202,7 +202,14 @@ bool _needsQuoting(String str) {
 }
 
 /// Identifies the type of a YAML token for syntax highlighting.
-enum YamlTokenType { key, stringValue, numberValue, boolNullValue, listDash }
+enum YamlTokenType {
+  key,
+  stringValue,
+  numberValue,
+  boolNullValue,
+  listDash,
+  comment,
+}
 
 /// A single syntax-highlighted span in a YAML line.
 class YamlToken {
@@ -216,6 +223,12 @@ class YamlToken {
 List<YamlToken> tokenizeYamlLine(String line) {
   final tokens = <YamlToken>[];
   final trimmedLeft = line.trimLeft();
+
+  // Full-line comment.
+  if (trimmedLeft.startsWith('#')) {
+    tokens.add(YamlToken(line, YamlTokenType.comment));
+    return tokens;
+  }
 
   if (trimmedLeft.startsWith('- ') || trimmedLeft == '-') {
     final dashIndex = line.indexOf('-');
@@ -321,14 +334,18 @@ List<YamlToken> _tokenizeValue(String text) {
 }
 
 /// Returns the color for a given YAML token type.
+///
+/// Colours are chosen for readability on a light background (the primary use
+/// case) and are applied at ~92 % opacity by the caller in dark mode.
 Color yamlTokenColor(YamlTokenType? type) {
   return switch (type) {
-    YamlTokenType.key => AppColors.cobalt,
-    YamlTokenType.stringValue => AppColors.teal,
-    YamlTokenType.numberValue => AppColors.amber,
-    YamlTokenType.boolNullValue => AppColors.grey,
-    YamlTokenType.listDash => AppColors.coral,
-    null => AppColors.border,
+    YamlTokenType.key => const Color(0xFF1565C0), // clear blue
+    YamlTokenType.stringValue => const Color(0xFF2E7D32), // green
+    YamlTokenType.numberValue => const Color(0xFFE65100), // deep orange
+    YamlTokenType.boolNullValue => const Color(0xFFE65100), // deep orange
+    YamlTokenType.listDash => const Color(0xFF1565C0), // match keys
+    YamlTokenType.comment => const Color(0xFF9E9E9E), // muted grey
+    null => const Color(0xFF37474F), // dark blue-grey for punctuation
   };
 }
 
