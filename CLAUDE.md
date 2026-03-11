@@ -16,14 +16,15 @@ flutter pub get               # Install dependencies
 
 ## Common Commands
 
+All flutter commands must be run through devenv to ensure the correct SDK versions:
 ```bash
-flutter pub get          # Install dependencies
-flutter analyze          # Lint (strict-casts, strict-inference, strict-raw-types enabled)
-flutter test             # Run all tests
-flutter test test/widget_test.dart  # Run single test file
-flutter run              # Run on connected device/emulator
-flutter build apk --debug   # Debug Android APK
-flutter build web --release  # Release web bundle
+devenv shell flutter pub get          # Install dependencies
+devenv shell flutter analyze          # Lint (strict-casts, strict-inference, strict-raw-types enabled)
+devenv shell flutter test             # Run all tests
+devenv shell flutter test test/widget_test.dart  # Run single test file
+devenv shell flutter run              # Run on connected device/emulator
+devenv shell flutter build apk --debug   # Debug Android APK
+devenv shell flutter build web --release  # Release web bundle
 ```
 
 CI runs `flutter analyze --no-fatal-infos --no-fatal-warnings` then `flutter test`.
