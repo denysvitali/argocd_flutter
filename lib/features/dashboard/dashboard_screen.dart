@@ -1,6 +1,7 @@
 import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
+import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:argocd_flutter/ui/error_retry_widget.dart';
 import 'package:argocd_flutter/ui/last_updated_text.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
@@ -93,11 +94,11 @@ class DashboardScreen extends StatelessWidget {
             outOfSyncCount: 0,
             degradedCount: 0,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.lg),
           _EmptyDashboard(),
           if (controller.errorMessage != null)
             Padding(
-              padding: const EdgeInsets.only(top: 16),
+              padding: const EdgeInsets.only(top: AppSpacing.xl),
               child: ErrorRetryWidget(
                 message: controller.errorMessage!,
                 onRetry: () => controller.refreshApplications(),
@@ -118,9 +119,9 @@ class DashboardScreen extends StatelessWidget {
           outOfSyncCount: outOfSyncCount,
           degradedCount: degradedCount,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.lg),
         _SectionHeader(title: 'Health Breakdown'),
-        const SizedBox(height: 6),
+        const SizedBox(height: AppSpacing.md),
         SectionCard(
           title: null,
           child: _CompactBreakdownSection(
@@ -128,9 +129,9 @@ class DashboardScreen extends StatelessWidget {
             total: totalApps,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.lg),
         _SectionHeader(title: 'Sync Status'),
-        const SizedBox(height: 6),
+        const SizedBox(height: AppSpacing.md),
         SectionCard(
           title: null,
           child: _CompactBreakdownSection(
@@ -138,9 +139,9 @@ class DashboardScreen extends StatelessWidget {
             total: totalApps,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.lg),
         _SectionHeader(title: 'Needs Attention'),
-        const SizedBox(height: 6),
+        const SizedBox(height: AppSpacing.md),
         SectionCard(
           title: null,
           child: _NeedsAttentionList(
@@ -148,9 +149,9 @@ class DashboardScreen extends StatelessWidget {
             onOpenApplication: onOpenApplication,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.lg),
         _SectionHeader(title: 'Recent Activity'),
-        const SizedBox(height: 6),
+        const SizedBox(height: AppSpacing.md),
         SectionCard(
           title: null,
           child: _RecentActivityTimeline(
@@ -160,7 +161,7 @@ class DashboardScreen extends StatelessWidget {
         ),
         if (controller.errorMessage != null)
           Padding(
-            padding: const EdgeInsets.only(top: 12),
+            padding: const EdgeInsets.only(top: AppSpacing.lg),
             child: ErrorRetryWidget(
               message: controller.errorMessage!,
               onRetry: () => controller.refreshApplications(),
@@ -168,10 +169,10 @@ class DashboardScreen extends StatelessWidget {
           ),
         if (controller.loadingApplications &&
             !controller.hasLoadedApplications) ...<Widget>[
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.lg),
           const Center(child: CircularProgressIndicator()),
         ],
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.md),
       ],
     );
   }
@@ -211,10 +212,10 @@ class _EmptyDashboard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 14),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl, horizontal: AppSpacing.xl),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: AppRadius.md,
         border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
@@ -224,14 +225,14 @@ class _EmptyDashboard extends StatelessWidget {
             size: 32,
             color: AppColors.greyLight,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.lg),
           Text(
             'No applications found',
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             'Your ArgoCD server has no applications yet.\n'
             'Deploy an application to see it here.',
@@ -271,10 +272,10 @@ class _HeroBanner extends StatelessWidget {
     final session = controller.session;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
       decoration: BoxDecoration(
         color: AppColors.headerDark,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.md,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -289,7 +290,7 @@ class _HeroBanner extends StatelessWidget {
               color: AppColors.textOnDarkMuted,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.lg),
           Row(
             children: <Widget>[
               _inlineMetric(theme, label: 'Total', value: '$totalApps'),
@@ -346,8 +347,8 @@ class _HeroBanner extends StatelessWidget {
     return Container(
       width: 1,
       height: 32,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      color: Colors.white.withValues(alpha: 0.12),
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+      color: Colors.white.withValues(alpha: AppOpacity.medium),
     );
   }
 }
@@ -371,7 +372,7 @@ class _CompactBreakdownSection extends StatelessWidget {
       children: segments
           .map(
             (segment) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 5),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
               child: _BreakdownRow(
                 color: segment.color,
                 label: segment.label,
@@ -415,7 +416,7 @@ class _BreakdownRow extends StatelessWidget {
                 decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Text(
                 label,
@@ -430,7 +431,7 @@ class _BreakdownRow extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.md),
             Text(
               '${percentage.round()}%',
               style: theme.textTheme.bodySmall?.copyWith(
@@ -439,14 +440,14 @@ class _BreakdownRow extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: AppSpacing.md),
         ClipRRect(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: AppRadius.sm,
           child: LinearProgressIndicator(
             value: total == 0 ? 0 : count / total,
             minHeight: 4,
             color: color,
-            backgroundColor: color.withValues(alpha: 0.14),
+            backgroundColor: color.withValues(alpha: AppOpacity.moderate),
           ),
         ),
       ],
@@ -477,7 +478,7 @@ class _NeedsAttentionList extends StatelessWidget {
             color: AppColors.teal,
             size: 18,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.md),
           const Expanded(
             child: Text('All applications are healthy and synced!'),
           ),
@@ -497,7 +498,7 @@ class _NeedsAttentionList extends StatelessWidget {
           ),
         ),
         if (remainingCount > 0) ...<Widget>[
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.md),
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -542,14 +543,14 @@ class _AttentionItem extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: AppRadius.md,
         child: Ink(
           decoration: BoxDecoration(
-            color: _severityColor().withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(6),
+            color: _severityColor().withValues(alpha: AppOpacity.subtle),
+            borderRadius: AppRadius.md,
             border: Border(
               left: BorderSide(
                 color: _severityColor(),
@@ -557,7 +558,7 @@ class _AttentionItem extends StatelessWidget {
               ),
             ),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -575,14 +576,14 @@ class _AttentionItem extends StatelessWidget {
                     label: application.syncStatus,
                     color: AppColors.syncColor(application.syncStatus),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: AppSpacing.md),
                   StatusChip(
                     label: application.healthStatus,
                     color: AppColors.healthColor(application.healthStatus),
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 '${application.project} / ${application.namespace} • ${_attentionReason(application)}',
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -619,7 +620,7 @@ class _RecentActivityTimeline extends StatelessWidget {
             Icons.history_rounded,
             color: AppColors.greyLight,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.lg),
           Text(
             'No recent sync activity.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -675,7 +676,7 @@ class _TimelineEntry extends StatelessWidget {
                     color: AppColors.cobalt,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: AppColors.cobalt.withValues(alpha: 0.3),
+                      color: AppColors.cobalt.withValues(alpha: AppOpacity.bold),
                       width: 2,
                     ),
                   ),
@@ -693,7 +694,7 @@ class _TimelineEntry extends StatelessWidget {
           Expanded(
             child: InkWell(
               onTap: onTap,
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: AppRadius.sm,
               child: Padding(
                 padding: const EdgeInsets.only(
                   left: 8,
@@ -708,14 +709,14 @@ class _TimelineEntry extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(
                       '${application.project} / ${application.namespace}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.grey,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: AppSpacing.md),
                     Wrap(
                       spacing: 8,
                       runSpacing: 6,
