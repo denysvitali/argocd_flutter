@@ -534,7 +534,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       lineCount: document.yamlLines.length,
       matches: viewData.matches,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(0, AppSpacing.md, AppSpacing.lg, 8),
+        padding: const EdgeInsets.fromLTRB(0, AppSpacing.md, AppSpacing.lg, AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[

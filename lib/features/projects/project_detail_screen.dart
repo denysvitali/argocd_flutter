@@ -134,7 +134,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, 0, 20, AppSpacing.xl),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, 0, AppSpacing.xxl, AppSpacing.xl),
               child: _HeaderBanner(project: project),
             ),
           ),
