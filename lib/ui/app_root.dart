@@ -51,7 +51,7 @@ ThemeData buildLightAppTheme() {
       labelTextStyle: const MaterialStatePropertyAll<TextStyle>(
         TextStyle(
           fontFamily: _bodyFontFamily,
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -59,7 +59,7 @@ ThemeData buildLightAppTheme() {
         final color = states.contains(MaterialState.selected)
             ? Colors.white
             : AppColors.grey;
-        return IconThemeData(size: 20, color: color);
+        return IconThemeData(size: 24, color: color);
       }),
     ),
   );
@@ -103,7 +103,7 @@ ThemeData buildDarkAppTheme() {
       labelTextStyle: MaterialStatePropertyAll<TextStyle>(
         TextStyle(
           fontFamily: _bodyFontFamily,
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -231,39 +231,50 @@ class _HomeShellState extends State<HomeShell> {
 
     return Scaffold(
       body: IndexedStack(index: _index, children: pages),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        indicatorColor: AppColors.cobalt,
-        labelBehavior: compactNav
-            ? NavigationDestinationLabelBehavior.onlyShowSelected
-            : NavigationDestinationLabelBehavior.alwaysShow,
-        onDestinationSelected: (value) {
-          setState(() {
-            _index = value;
-          });
-        },
-        destinations: const <NavigationDestination>[
-          NavigationDestination(
-            icon: Icon(Icons.analytics_outlined),
-            selectedIcon: Icon(Icons.analytics),
-            label: 'Dashboard',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              color: Theme.of(context).dividerColor,
+              width: 1,
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard_rounded),
-            label: 'Applications',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.folder_outlined),
-            selectedIcon: Icon(Icons.folder),
-            label: 'Projects',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
+        ),
+        child: NavigationBar(
+          selectedIndex: _index,
+          indicatorColor: AppColors.cobalt,
+          animationDuration: const Duration(milliseconds: 400),
+          labelBehavior: compactNav
+              ? NavigationDestinationLabelBehavior.onlyShowSelected
+              : NavigationDestinationLabelBehavior.alwaysShow,
+          onDestinationSelected: (value) {
+            setState(() {
+              _index = value;
+            });
+          },
+          destinations: const <NavigationDestination>[
+            NavigationDestination(
+              icon: Icon(Icons.analytics_outlined),
+              selectedIcon: Icon(Icons.analytics),
+              label: 'Dashboard',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.dashboard_outlined),
+              selectedIcon: Icon(Icons.dashboard_rounded),
+              label: 'Applications',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.folder_outlined),
+              selectedIcon: Icon(Icons.folder),
+              label: 'Projects',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.settings_outlined),
+              selectedIcon: Icon(Icons.settings),
+              label: 'Settings',
+            ),
+          ],
+        ),
       ),
     );
   }

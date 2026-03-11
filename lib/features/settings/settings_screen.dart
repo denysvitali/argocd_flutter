@@ -58,30 +58,30 @@ class SettingsScreen extends StatelessWidget {
                     session == null ? 'No active session' : 'Authenticated',
                 trailing: _ConnectionDot(connected: session != null),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 14),
               Wrap(
-                spacing: 12,
-                runSpacing: 12,
+                spacing: 10,
+                runSpacing: 10,
                 children: <Widget>[
                   OutlinedButton.icon(
                     onPressed: controller.busy
                         ? null
                         : () => _showServerDialog(context),
-                    icon: const Icon(Icons.edit_outlined),
+                    icon: const Icon(Icons.edit_outlined, size: 18),
                     label: const Text('Edit server'),
                   ),
                   OutlinedButton.icon(
                     onPressed: controller.busy
                         ? null
                         : () => _testConnection(context),
-                    icon: const Icon(Icons.network_ping),
+                    icon: const Icon(Icons.network_ping, size: 18),
                     label: const Text('Test connection'),
                   ),
                   OutlinedButton.icon(
                     onPressed: controller.busy
                         ? null
                         : () => controller.refreshProjects(),
-                    icon: const Icon(Icons.sync_outlined),
+                    icon: const Icon(Icons.sync_outlined, size: 18),
                     label: const Text('Refresh projects'),
                   ),
                 ],
@@ -115,20 +115,33 @@ class SettingsScreen extends StatelessWidget {
             title: 'Actions',
             icon: Icons.bolt_outlined,
             children: <Widget>[
-              FilledButton.icon(
-                onPressed: controller.busy
-                    ? null
-                    : () => controller.refreshApplications(),
-                icon: const Icon(Icons.refresh),
-                label: const Text('Refresh applications'),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: controller.busy
+                      ? null
+                      : () => controller.refreshApplications(),
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: const Text('Refresh applications'),
+                ),
               ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: controller.busy
-                    ? null
-                    : () => _confirmSignOut(context),
-                icon: const Icon(Icons.logout),
-                label: const Text('Sign out'),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: controller.busy
+                      ? null
+                      : () => _confirmSignOut(context),
+                  icon: const Icon(Icons.logout, size: 18),
+                  label: const Text('Sign out'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.coral,
+                    side: const BorderSide(
+                      color: AppColors.coral,
+                      width: 1,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -144,12 +157,6 @@ class SettingsScreen extends StatelessWidget {
               ),
               const Divider(height: 1),
               _ConnectionTile(
-                icon: Icons.tag_outlined,
-                title: 'Version',
-                subtitle: '1.0.0+1',
-              ),
-              const Divider(height: 1),
-              _ConnectionTile(
                 icon: Icons.flutter_dash_outlined,
                 title: 'Framework',
                 subtitle: 'Flutter 3.38+',
@@ -160,6 +167,8 @@ class SettingsScreen extends StatelessWidget {
                 title: 'Source',
                 subtitle: 'github.com/argocd-flutter',
               ),
+              const SizedBox(height: 8),
+              const _VersionBadge(),
             ],
           ),
         ],
@@ -360,21 +369,44 @@ class _ThemeCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(6),
               border: Border.all(
                 color: borderColor,
-                width: 1,
+                width: selected ? 1.5 : 1,
               ),
             ),
             child: Column(
               children: <Widget>[
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: Icon(
-                    icon,
-                    key: ValueKey<bool>(selected),
-                    size: 28,
-                    color: selected
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant,
-                  ),
+                Stack(
+                  alignment: Alignment.topRight,
+                  children: <Widget>[
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(
+                        icon,
+                        key: ValueKey<bool>(selected),
+                        size: 28,
+                        color: selected
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    if (selected)
+                      Positioned(
+                        top: -2,
+                        right: -2,
+                        child: Container(
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: theme.colorScheme.primary,
+                          ),
+                          child: const Icon(
+                            Icons.check,
+                            size: 11,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -424,13 +456,13 @@ class _SectionCard extends StatelessWidget {
             children: <Widget>[
               Icon(
                 icon,
-                size: 22,
+                size: 20,
                 color: theme.colorScheme.primary,
               ),
               const SizedBox(width: 10),
               Text(
                 title,
-                style: theme.textTheme.titleLarge?.copyWith(
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -463,7 +495,11 @@ class _ConnectionTile extends StatelessWidget {
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon),
       title: Text(title),
-      subtitle: Text(subtitle),
+      subtitle: Text(
+        subtitle,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
       trailing: trailing,
     );
   }
@@ -476,12 +512,70 @@ class _ConnectionDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = connected ? AppColors.teal : AppColors.coral;
+
     return Container(
-      width: 10,
-      height: 10,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: connected ? AppColors.teal : AppColors.coral,
+      width: 18,
+      height: 18,
+      alignment: Alignment.center,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color,
+          boxShadow: connected
+              ? <BoxShadow>[
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.4),
+                    blurRadius: 6,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : null,
+        ),
+      ),
+    );
+  }
+}
+
+class _VersionBadge extends StatelessWidget {
+  const _VersionBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: theme.colorScheme.primary.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(
+              Icons.tag_outlined,
+              size: 14,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'v1.0.0+1',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
