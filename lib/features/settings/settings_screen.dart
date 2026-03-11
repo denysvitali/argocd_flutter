@@ -1,4 +1,5 @@
 import 'package:argocd_flutter/core/services/app_controller.dart';
+import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:argocd_flutter/core/services/theme_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +22,7 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         children: <Widget>[
           _SectionCard(
             title: 'Appearance',
@@ -30,7 +31,7 @@ class SettingsScreen extends StatelessWidget {
               _ThemePicker(themeController: themeController),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.lg),
           _SectionCard(
             title: 'Connection',
             icon: Icons.cloud_outlined,
@@ -58,7 +59,7 @@ class SettingsScreen extends StatelessWidget {
                     session == null ? 'No active session' : 'Authenticated',
                 trailing: _ConnectionDot(connected: session != null),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSpacing.lg),
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
@@ -88,7 +89,7 @@ class SettingsScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.lg),
           _SectionCard(
             title: 'Certificates',
             icon: Icons.verified_user_outlined,
@@ -110,7 +111,7 @@ class SettingsScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.lg),
           _SectionCard(
             title: 'Actions',
             icon: Icons.bolt_outlined,
@@ -122,7 +123,7 @@ class SettingsScreen extends StatelessWidget {
                 icon: const Icon(Icons.refresh),
                 label: const Text('Refresh applications'),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.lg),
               OutlinedButton.icon(
                 onPressed: controller.busy
                     ? null
@@ -132,7 +133,7 @@ class SettingsScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.lg),
           _SectionCard(
             title: 'About',
             icon: Icons.info_outline,
@@ -294,7 +295,7 @@ class _ThemePicker extends StatelessWidget {
             theme: theme,
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: AppSpacing.lg),
         Expanded(
           child: _ThemeCard(
             icon: Icons.light_mode_outlined,
@@ -304,7 +305,7 @@ class _ThemePicker extends StatelessWidget {
             theme: theme,
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: AppSpacing.lg),
         Expanded(
           child: _ThemeCard(
             icon: Icons.dark_mode_outlined,
@@ -340,24 +341,24 @@ class _ThemeCard extends StatelessWidget {
         ? theme.colorScheme.primary
         : theme.dividerColor;
     final backgroundColor = selected
-        ? theme.colorScheme.primary.withValues(alpha: 0.08)
-        : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4);
+        ? theme.colorScheme.primary.withValues(alpha: AppOpacity.light)
+        : theme.colorScheme.surfaceContainerHighest.withValues(alpha: AppOpacity.heavy);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
       child: Material(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: AppRadius.md,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: AppRadius.md,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeInOut,
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl, horizontal: AppSpacing.lg),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: AppRadius.md,
               border: Border.all(
                 color: borderColor,
                 width: 1,
@@ -376,7 +377,7 @@ class _ThemeCard extends StatelessWidget {
                         : theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.md),
                 Text(
                   label,
                   style: theme.textTheme.labelLarge?.copyWith(
@@ -411,10 +412,10 @@ class _SectionCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: AppRadius.md,
         border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
@@ -427,7 +428,7 @@ class _SectionCard extends StatelessWidget {
                 size: 22,
                 color: theme.colorScheme.primary,
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: AppSpacing.lg),
               Text(
                 title,
                 style: theme.textTheme.titleLarge?.copyWith(
@@ -436,7 +437,7 @@ class _SectionCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.lg),
           ...children,
         ],
       ),
