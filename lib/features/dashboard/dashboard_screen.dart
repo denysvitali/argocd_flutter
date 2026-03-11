@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
@@ -125,7 +123,7 @@ class DashboardScreen extends StatelessWidget {
         const SizedBox(height: 8),
         SectionCard(
           title: null,
-          child: _DonutChartSection(
+          child: _CompactBreakdownSection(
             segments: healthSegments,
             total: totalApps,
           ),
@@ -135,7 +133,7 @@ class DashboardScreen extends StatelessWidget {
         const SizedBox(height: 8),
         SectionCard(
           title: null,
-          child: _DonutChartSection(
+          child: _CompactBreakdownSection(
             segments: syncSegments,
             total: totalApps,
           ),
@@ -395,179 +393,11 @@ class _MetricChip extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Enhanced summary tile with gradient, progress ring, animated counter
-// ---------------------------------------------------------------------------
-
-class _EnhancedSummaryTile extends StatelessWidget {
-  const _EnhancedSummaryTile({
-    required this.label,
-    required this.value,
-    required this.totalApps,
-    required this.icon,
-    required this.accentColor,
-    required this.gradientColors,
-  });
-
-  final String label;
-  final int value;
-  final int totalApps;
-  final IconData icon;
-  final Color accentColor;
-  final List<Color> gradientColors;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final fraction = totalApps > 0 ? value / totalApps : 0.0;
-
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: theme.brightness == Brightness.dark
-              ? <Color>[
-                  accentColor.withValues(alpha: 0.12),
-                  accentColor.withValues(alpha: 0.06),
-                ]
-              : gradientColors,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: accentColor.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: <Widget>[
-                      TweenAnimationBuilder<double>(
-                        tween: Tween<double>(begin: 0, end: fraction),
-                        duration: const Duration(milliseconds: 800),
-                        curve: Curves.easeOutCubic,
-                        builder: (context, animatedFraction, _) {
-                          return CustomPaint(
-                            size: const Size(44, 44),
-                            painter: _ProgressRingPainter(
-                              fraction: animatedFraction,
-                              color: accentColor,
-                              trackColor: accentColor.withValues(alpha: 0.15),
-                            ),
-                          );
-                        },
-                      ),
-                      Icon(
-                        icon,
-                        color: accentColor,
-                        size: 22,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                TweenAnimationBuilder<int>(
-                  tween: IntTween(begin: 0, end: value),
-                  duration: const Duration(milliseconds: 800),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, animatedValue, _) {
-                    return Text(
-                      '$animatedValue',
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: accentColor,
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.grey,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Progress ring painter for summary tiles
-// ---------------------------------------------------------------------------
-
-class _ProgressRingPainter extends CustomPainter {
-  const _ProgressRingPainter({
-    required this.fraction,
-    required this.color,
-    required this.trackColor,
-  });
-
-  final double fraction;
-  final Color color;
-  final Color trackColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.shortestSide / 2) - 2;
-    const strokeWidth = 3.5;
-
-    final trackPaint = Paint()
-      ..color = trackColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawCircle(center, radius, trackPaint);
-
-    if (fraction > 0) {
-      final arcPaint = Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth
-        ..strokeCap = StrokeCap.round;
-
-      final sweepAngle = 2 * math.pi * fraction;
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        -math.pi / 2,
-        sweepAngle,
-        false,
-        arcPaint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_ProgressRingPainter oldDelegate) =>
-      fraction != oldDelegate.fraction ||
-      color != oldDelegate.color ||
-      trackColor != oldDelegate.trackColor;
-}
-
-// ---------------------------------------------------------------------------
 // Donut chart section (replaces segment bar)
 // ---------------------------------------------------------------------------
 
-class _DonutChartSection extends StatelessWidget {
-  const _DonutChartSection({
+class _CompactBreakdownSection extends StatelessWidget {
+  const _CompactBreakdownSection({
     required this.segments,
     required this.total,
   });
@@ -577,121 +407,26 @@ class _DonutChartSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeSegments =
-        segments.where((segment) => segment.count > 0).toList(growable: false);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: <Widget>[
-        SizedBox(
-          width: 96,
-          height: 96,
-          child: TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0, end: 1),
-            duration: const Duration(milliseconds: 900),
-            curve: Curves.easeOutCubic,
-            builder: (context, animProgress, _) {
-              return CustomPaint(
-                size: const Size(96, 96),
-                painter: _DonutChartPainter(
-                  segments: activeSegments,
-                  total: total,
-                  animationProgress: animProgress,
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: segments
-                .map(
-                  (segment) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 3),
-                    child: _LegendItem(
-                      color: segment.color,
-                      label: segment.label,
-                      count: segment.count,
-                      total: total,
-                    ),
-                  ),
-                )
-                .toList(growable: false),
-          ),
-        ),
-      ],
+    return Column(
+      children: segments
+          .map(
+            (segment) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              child: _BreakdownRow(
+                color: segment.color,
+                label: segment.label,
+                count: segment.count,
+                total: total,
+              ),
+            ),
+          )
+          .toList(growable: false),
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// Donut chart painter
-// ---------------------------------------------------------------------------
-
-class _DonutChartPainter extends CustomPainter {
-  const _DonutChartPainter({
-    required this.segments,
-    required this.total,
-    required this.animationProgress,
-  });
-
-  final List<_BreakdownSegment> segments;
-  final int total;
-  final double animationProgress;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.shortestSide / 2) - 4;
-    const strokeWidth = 20.0;
-    const gapAngle = 0.04;
-
-    if (total == 0 || segments.isEmpty) {
-      final emptyPaint = Paint()
-        ..color = AppColors.greyLight.withValues(alpha: 0.3)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth
-        ..strokeCap = StrokeCap.round;
-      canvas.drawCircle(center, radius, emptyPaint);
-      return;
-    }
-
-    final rect = Rect.fromCircle(center: center, radius: radius);
-    var startAngle = -math.pi / 2;
-    final totalGap = gapAngle * segments.length;
-    final availableAngle = 2 * math.pi - totalGap;
-
-    for (final segment in segments) {
-      final sweepAngle =
-          (segment.count / total) * availableAngle * animationProgress;
-
-      final paint = Paint()
-        ..color = segment.color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth
-        ..strokeCap = StrokeCap.round;
-
-      canvas.drawArc(rect, startAngle, sweepAngle, false, paint);
-      startAngle += sweepAngle + gapAngle;
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DonutChartPainter oldDelegate) =>
-      animationProgress != oldDelegate.animationProgress ||
-      total != oldDelegate.total ||
-      segments != oldDelegate.segments;
-}
-
-// ---------------------------------------------------------------------------
-// Legend item with percentage
-// ---------------------------------------------------------------------------
-
-class _LegendItem extends StatelessWidget {
-  const _LegendItem({
+class _BreakdownRow extends StatelessWidget {
+  const _BreakdownRow({
     required this.color,
     required this.label,
     required this.count,
@@ -706,34 +441,54 @@ class _LegendItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final percentage = total > 0 ? (count / total * 100).round() : 0;
+    final percentage = total > 0 ? (count / total * 100) : 0.0;
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        ExcludeSemantics(
-          child: Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          '$label ($count)',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        if (total > 0) ...<Widget>[
-          const SizedBox(width: 4),
-          Text(
-            '$percentage%',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.greyLight,
+        Row(
+          children: <Widget>[
+            ExcludeSemantics(
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
             ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Text(
+              '$count',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${percentage.round()}%',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.greyLight,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(
+            value: total == 0 ? 0 : count / total,
+            minHeight: 8,
+            color: color,
+            backgroundColor: color.withValues(alpha: 0.14),
           ),
-        ],
+        ),
       ],
     );
   }
