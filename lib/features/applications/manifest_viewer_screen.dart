@@ -5,6 +5,7 @@ import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:argocd_flutter/ui/design_tokens.dart';
 
 export 'package:argocd_flutter/ui/shared_widgets.dart'
     show
@@ -122,7 +123,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                 children: <Widget>[
                   if (!compactActions)
                     Container(
-                      margin: const EdgeInsets.only(right: 4),
+                      margin: const EdgeInsets.only(right: AppSpacing.sm),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 6,
@@ -338,7 +339,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                 if (snapshot.hasError) {
                   return Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(24),
+                      padding: const EdgeInsets.all(AppSpacing.xxxl),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
@@ -346,7 +347,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                             snapshot.error.toString(),
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: AppSpacing.xl),
                           FilledButton(
                             onPressed: _refreshManifest,
                             child: const Text('Retry'),
@@ -403,7 +404,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       color: colorScheme.surfaceContainerHighest.withValues(
         alpha: theme.brightness == Brightness.dark ? 0.65 : 0.9,
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.md),
       child: Row(
         children: <Widget>[
           Expanded(
@@ -440,22 +441,22 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                 fillColor: colorScheme.surface,
                 isDense: true,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.md,
                   borderSide: BorderSide(color: colorScheme.outlineVariant),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.md,
                   borderSide: BorderSide(color: colorScheme.outlineVariant),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.md,
                   borderSide: BorderSide(
                     color: colorScheme.primary,
                     width: 2,
                   ),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
+                  horizontal: AppSpacing.lg,
                   vertical: 10,
                 ),
               ),
@@ -468,7 +469,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
               },
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.lg),
           Text(
             currentLabel,
             style: theme.textTheme.labelMedium?.copyWith(
@@ -499,7 +500,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       lineCount: viewData.lines.length,
       matches: viewData.matches,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
@@ -533,7 +534,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       lineCount: document.yamlLines.length,
       matches: viewData.matches,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(0, 8, 12, 8),
+        padding: const EdgeInsets.fromLTRB(0, AppSpacing.md, AppSpacing.lg, 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
@@ -558,7 +559,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       final theme = Theme.of(context);
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.xxxl),
           child: Text(
             'Desired/live diff is not available for this manifest response.',
             style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
@@ -573,7 +574,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       lineCount: diff.lines.length,
       matches: viewData.matches,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
@@ -672,7 +673,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                   }
                 : null,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 6),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
@@ -729,7 +730,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
             secondChild: section.expandable
                 ? const SizedBox.shrink()
                 : Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
+                    padding: const EdgeInsets.fromLTRB(0, 0, 0, AppSpacing.sm),
                     child: _buildScalarSectionLine(document, section, viewData),
                   ),
           ),
@@ -847,7 +848,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
           children: <Widget>[
             if (prefixIcon != null)
               Padding(
-                padding: const EdgeInsets.only(top: 2, right: 4),
+                padding: const EdgeInsets.only(top: AppSpacing.xs, right: AppSpacing.sm),
                 child: Icon(prefixIcon, size: 14, color: lineColor),
               )
             else
@@ -911,7 +912,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
         children: <Widget>[
           Container(
             width: 52,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
             decoration: BoxDecoration(
               color: gutterColor,
               border: Border(
@@ -930,7 +931,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
             child: _wrapLines ? Expanded(child: child) : child,
           ),
         ],
@@ -1147,7 +1148,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: widgets,
@@ -1182,7 +1183,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     final colorScheme = theme.colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
       child: Text(
         '... $hiddenLineCount lines hidden between $startLine and $endLine ...',
         style: theme.textTheme.labelSmall?.copyWith(

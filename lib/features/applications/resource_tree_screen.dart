@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 
 import 'log_viewer_screen.dart';
 import 'manifest_viewer_screen.dart';
+import 'package:argocd_flutter/ui/design_tokens.dart';
 
 class ResourceTreeScreen extends StatefulWidget {
   const ResourceTreeScreen({
@@ -112,7 +113,7 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
                   if (filteredRoots.isEmpty && _searchQuery.isNotEmpty)
                     Center(
                       child: Padding(
-                        padding: const EdgeInsets.all(32),
+                        padding: const EdgeInsets.all(AppSpacing.huge),
                         child: Column(
                           children: <Widget>[
                             Icon(
@@ -120,7 +121,7 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
                               size: 48,
                               color: AppColors.greyLight,
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: AppSpacing.lg),
                             Text(
                               'No resources match "$_searchQuery"',
                               style: theme.textTheme.bodyMedium?.copyWith(
@@ -184,8 +185,8 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
           borderSide: BorderSide.none,
         ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 8,
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
         ),
       ),
       onChanged: (String value) {
@@ -206,7 +207,7 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
             height: 48,
             child: CircularProgressIndicator(strokeWidth: 3),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.xxl),
           Text(
             'Loading resource tree...',
             style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.grey),
@@ -219,19 +220,19 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
   Widget _buildErrorState(Object? error, ThemeData theme) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.xxxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Icon(Icons.error_outline_rounded, size: 56, color: AppColors.coral),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.xl),
             Text(
               'Failed to load resources',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.md),
             Text(
               error.toString(),
               textAlign: TextAlign.center,
@@ -239,7 +240,7 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
                 color: AppColors.grey,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.xxl),
             FilledButton.icon(
               onPressed: _refresh,
               icon: const Icon(Icons.refresh),
@@ -254,7 +255,7 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
   Widget _buildEmptyState(ThemeData theme) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppSpacing.huge),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
@@ -263,14 +264,14 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
               size: 64,
               color: AppColors.greyLight,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.xl),
             Text(
               'No resources found',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.md),
             Text(
               'No resource tree data returned by the ArgoCD API.',
               textAlign: TextAlign.center,
@@ -278,7 +279,7 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
                 color: AppColors.grey,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.xxl),
             FilledButton.icon(
               onPressed: _refresh,
               icon: const Icon(Icons.refresh),
@@ -415,7 +416,7 @@ class _SummaryHeader extends StatelessWidget {
     ];
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(6),
@@ -462,10 +463,10 @@ class _SummaryHeader extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.lg),
           // Health legend
           Wrap(
-            spacing: 12,
+            spacing: AppSpacing.lg,
             runSpacing: 6,
             children: <Widget>[
               for (final _DonutSegment segment in healthSegments)
@@ -475,9 +476,9 @@ class _SummaryHeader extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.lg),
           const Divider(),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.md),
           // Resource kind counts
           Text(
             'Resources by Kind',
@@ -488,7 +489,7 @@ class _SummaryHeader extends StatelessWidget {
           const SizedBox(height: 6),
           Wrap(
             spacing: 6,
-            runSpacing: 4,
+            runSpacing: AppSpacing.sm,
             children: <Widget>[
               for (final MapEntry<String, int> entry in sortedKinds)
                 _KindCountBadge(kind: entry.key, count: entry.value),
@@ -606,16 +607,16 @@ class _KindCountBadge extends StatelessWidget {
     final Color kindColor = colorForResourceKind(kind);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 3),
       decoration: BoxDecoration(
-        color: kindColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
+        color: kindColor.withValues(alpha: AppOpacity.soft),
+        borderRadius: AppRadius.sm,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Icon(iconForResourceKind(kind), size: 14, color: kindColor),
-          const SizedBox(width: 4),
+          const SizedBox(width: AppSpacing.sm),
           Text(
             '$count $kind',
             style: theme.textTheme.bodySmall?.copyWith(
@@ -770,7 +771,7 @@ class _ResourceNodeTileState extends State<_ResourceNodeTile> {
                 GestureDetector(
                   onTap: _toggleExpanded,
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.only(top: AppSpacing.md),
                     child: AnimatedRotation(
                       turns: _expanded ? 0.25 : 0.0,
                       duration: const Duration(milliseconds: 200),
@@ -783,7 +784,7 @@ class _ResourceNodeTileState extends State<_ResourceNodeTile> {
                   ),
                 )
               else
-                const SizedBox(width: 20),
+                const SizedBox(width: AppSpacing.xxl),
               // Node card
               Expanded(
                 child: _NodeCard(
@@ -893,7 +894,7 @@ class _NodeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: InkWell(
         borderRadius: BorderRadius.circular(6),
         onTap: () => _openManifest(context),
@@ -909,15 +910,15 @@ class _NodeCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 Container(width: 3, color: kindColor),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.md),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Container(
                     width: 28,
                     height: 28,
                     decoration: BoxDecoration(
-                      color: kindColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(4),
+                      color: kindColor.withValues(alpha: AppOpacity.medium),
+                      borderRadius: AppRadius.sm,
                     ),
                     child: Icon(
                       iconForResourceKind(node.kind),
@@ -926,7 +927,7 @@ class _NodeCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 6),
@@ -942,7 +943,7 @@ class _NodeCard extends StatelessWidget {
                             letterSpacing: 0.5,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: AppSpacing.xs),
                         Text(
                           node.name,
                           style: theme.textTheme.bodyMedium?.copyWith(
@@ -956,9 +957,9 @@ class _NodeCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.md),
                 Padding(
-                  padding: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.only(right: AppSpacing.md),
                   child: Tooltip(
                     message: node.healthStatus,
                     child: Container(
@@ -973,7 +974,7 @@ class _NodeCard extends StatelessWidget {
                 ),
                 if (isPod)
                   Padding(
-                    padding: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.only(right: AppSpacing.md),
                     child: Center(
                       child: _SmallActionButton(
                         icon: Icons.article_outlined,
@@ -1008,7 +1009,7 @@ class _NodeCard extends StatelessWidget {
           builder: (BuildContext context, ScrollController scrollController) {
             return ListView(
               controller: scrollController,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.xl),
               children: <Widget>[
                 Center(
                   child: Container(
@@ -1017,7 +1018,7 @@ class _NodeCard extends StatelessWidget {
                     margin: const EdgeInsets.only(bottom: 14),
                     decoration: BoxDecoration(
                       color: AppColors.greyLight,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: AppRadius.sm,
                     ),
                   ),
                 ),
@@ -1027,8 +1028,8 @@ class _NodeCard extends StatelessWidget {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: kindColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
+                        color: kindColor.withValues(alpha: AppOpacity.medium),
+                        borderRadius: AppRadius.md,
                       ),
                       child: Icon(
                         iconForResourceKind(node.kind),
@@ -1060,7 +1061,7 @@ class _NodeCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 const Divider(),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.md),
                 _DetailRow(label: 'Kind', value: node.kind),
                 _DetailRow(label: 'Name', value: node.name),
                 _DetailRow(label: 'Namespace', value: node.namespace),
@@ -1083,7 +1084,7 @@ class _NodeCard extends StatelessWidget {
                     label: 'Parent UIDs',
                     value: node.parentUids.join(', '),
                   ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.lg),
                 Row(
                   children: <Widget>[
                     Expanded(
@@ -1097,7 +1098,7 @@ class _NodeCard extends StatelessWidget {
                       ),
                     ),
                     if (isPod) ...<Widget>[
-                      const SizedBox(width: 12),
+                      const SizedBox(width: AppSpacing.lg),
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () {
@@ -1188,8 +1189,8 @@ class _MetadataRow extends StatelessWidget {
     }
 
     return Wrap(
-      spacing: 4,
-      runSpacing: 2,
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.xs,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: pieces,
     );
@@ -1264,19 +1265,19 @@ class _SmallActionButton extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: AppRadius.sm,
         onTap: onPressed,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 5),
           decoration: BoxDecoration(
-            border: Border.all(color: color.withValues(alpha: 0.4)),
-            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: color.withValues(alpha: AppOpacity.heavy)),
+            borderRadius: AppRadius.sm,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Icon(icon, size: 14, color: color),
-              const SizedBox(width: 4),
+              const SizedBox(width: AppSpacing.sm),
               Text(
                 label,
                 style: TextStyle(

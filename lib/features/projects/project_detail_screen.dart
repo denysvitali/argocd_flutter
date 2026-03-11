@@ -5,6 +5,7 @@ import 'package:argocd_flutter/ui/error_retry_widget.dart';
 import 'package:argocd_flutter/ui/resource_icons.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:argocd_flutter/ui/design_tokens.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   const ProjectDetailScreen({
@@ -79,7 +80,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 CircularProgressIndicator(),
-                SizedBox(height: 16),
+                SizedBox(height: AppSpacing.xl),
                 Text('Loading project details...'),
               ],
             ),
@@ -106,7 +107,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         SliverFillRemaining(
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(AppSpacing.xxxl),
               child: ErrorRetryWidget(message: error, onRetry: _refresh),
             ),
           ),
@@ -133,7 +134,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, 0, 20, AppSpacing.xl),
               child: _HeaderBanner(project: project),
             ),
           ),
@@ -232,9 +233,9 @@ class _TabLabel extends StatelessWidget {
         Text(label),
         const SizedBox(width: 6),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: AppSpacing.xs),
           decoration: BoxDecoration(
-            color: theme.colorScheme.primary.withValues(alpha: 0.12),
+            color: theme.colorScheme.primary.withValues(alpha: AppOpacity.medium),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
@@ -260,7 +261,7 @@ class _HeaderBanner extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
@@ -270,7 +271,7 @@ class _HeaderBanner extends StatelessWidget {
             Color(0xFF0B1A12),
           ],
         ),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.md,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -281,8 +282,8 @@ class _HeaderBanner extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.white.withValues(alpha: AppOpacity.medium),
+                  borderRadius: AppRadius.md,
                 ),
                 child: const Icon(
                   Icons.account_tree_outlined,
@@ -303,7 +304,7 @@ class _HeaderBanner extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(
                       project.name,
                       style: theme.textTheme.headlineSmall?.copyWith(
@@ -325,10 +326,10 @@ class _HeaderBanner extends StatelessWidget {
               ),
             ),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.lg),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: AppSpacing.md,
+            runSpacing: AppSpacing.md,
             children: <Widget>[
               _BannerChip(
                 icon: Icons.code_outlined,
@@ -362,15 +363,15 @@ class _BannerChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+        color: Colors.white.withValues(alpha: AppOpacity.soft),
+        borderRadius: AppRadius.sm,
+        border: Border.all(color: Colors.white.withValues(alpha: AppOpacity.moderate)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Icon(icon, size: 16, color: AppColors.textOnDarkGreen),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.md),
           Text(
             label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -394,7 +395,7 @@ class _OverviewTab extends StatelessWidget {
     final theme = Theme.of(context);
 
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.xxl),
       children: <Widget>[
         Container(
           padding: const EdgeInsets.all(14),
@@ -423,7 +424,7 @@ class _OverviewTab extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.lg),
         Row(
           children: <Widget>[
             Expanded(
@@ -433,7 +434,7 @@ class _OverviewTab extends StatelessWidget {
                 valueColor: AppColors.cobalt,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.lg),
             Expanded(
               child: SummaryTile(
                 label: 'Destinations',
@@ -441,7 +442,7 @@ class _OverviewTab extends StatelessWidget {
                 valueColor: AppColors.teal,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.lg),
             Expanded(
               child: SummaryTile(
                 label: 'Resources',
@@ -476,7 +477,7 @@ class _DetailRow extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.sm),
         Text(value, style: theme.textTheme.bodyLarge),
       ],
     );
@@ -503,33 +504,33 @@ class _SourcesTab extends StatelessWidget {
     final mutedColor = AppColors.mutedText(theme);
 
     return ListView.separated(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.xxl),
       itemCount: sourceRepos.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.lg),
       itemBuilder: (context, index) {
         final repo = sourceRepos[index];
         final isWildcard = repo == '*';
         final repoColor = isWildcard ? AppColors.amber : AppColors.cobalt;
 
         return Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
             color: isWildcard
-                ? AppColors.amber.withValues(alpha: 0.06)
+                ? AppColors.amber.withValues(alpha: AppOpacity.subtle)
                 : theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
               color: isWildcard
-                  ? AppColors.amber.withValues(alpha: 0.3)
+                  ? AppColors.amber.withValues(alpha: AppOpacity.bold)
                   : outlineColor,
             ),
           ),
           child: Row(
             children: <Widget>[
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: repoColor.withValues(alpha: 0.12),
+                  color: repoColor.withValues(alpha: AppOpacity.medium),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Icon(
@@ -538,7 +539,7 @@ class _SourcesTab extends StatelessWidget {
                   color: repoColor,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.lg),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -560,15 +561,15 @@ class _SourcesTab extends StatelessWidget {
                           ),
                         ),
                         if (isWildcard) ...<Widget>[
-                          const SizedBox(width: 8),
+                          const SizedBox(width: AppSpacing.md),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
+                              horizontal: AppSpacing.md,
+                              vertical: AppSpacing.xs,
                             ),
                             decoration: BoxDecoration(
                               color: AppColors.amber.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: AppRadius.sm,
                             ),
                             child: Text(
                               'WILDCARD',
@@ -584,7 +585,7 @@ class _SourcesTab extends StatelessWidget {
                     ),
                     if (isWildcard)
                       Padding(
-                        padding: const EdgeInsets.only(top: 4),
+                        padding: const EdgeInsets.only(top: AppSpacing.sm),
                         child: Text(
                           'Any source repository is allowed',
                           style: theme.textTheme.bodySmall?.copyWith(
@@ -623,14 +624,14 @@ class _DestinationsTab extends StatelessWidget {
     final mutedColor = AppColors.mutedText(theme);
 
     return ListView.separated(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.xxl),
       itemCount: destinations.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.lg),
       itemBuilder: (context, index) {
         final destination = destinations[index];
 
         return Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(6),
@@ -645,7 +646,7 @@ class _DestinationsTab extends StatelessWidget {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: AppColors.teal.withValues(alpha: 0.1),
+                      color: AppColors.teal.withValues(alpha: AppOpacity.soft),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: const Icon(
@@ -654,7 +655,7 @@ class _DestinationsTab extends StatelessWidget {
                       color: AppColors.teal,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSpacing.lg),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -669,7 +670,7 @@ class _DestinationsTab extends StatelessWidget {
                         ),
                         if (destination.name.isNotEmpty)
                           Padding(
-                            padding: const EdgeInsets.only(top: 2),
+                            padding: const EdgeInsets.only(top: AppSpacing.xs),
                             child: Text(
                               destination.server,
                               style: theme.textTheme.bodySmall?.copyWith(
@@ -693,7 +694,7 @@ class _DestinationsTab extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.cobalt.withValues(alpha: 0.08),
+                      color: AppColors.cobalt.withValues(alpha: AppOpacity.light),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Row(
@@ -745,7 +746,7 @@ class _PermissionsTab extends StatelessWidget {
     final theme = Theme.of(context);
 
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.xxl),
       children: <Widget>[
         Container(
           padding: const EdgeInsets.all(14),
@@ -763,23 +764,23 @@ class _PermissionsTab extends StatelessWidget {
                 title: 'Cluster Resource Whitelist',
                 count: resources.length,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.lg),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: AppSpacing.md,
+                runSpacing: AppSpacing.md,
                 children: resources
                     .map((resource) {
                       final kindColor = colorForResourceKind(resource.kind);
                       return Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
+                          horizontal: AppSpacing.lg,
                           vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: kindColor.withValues(alpha: 0.08),
+                          color: kindColor.withValues(alpha: AppOpacity.light),
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(
-                            color: kindColor.withValues(alpha: 0.2),
+                            color: kindColor.withValues(alpha: AppOpacity.strong),
                           ),
                         ),
                         child: Row(
@@ -803,7 +804,7 @@ class _PermissionsTab extends StatelessWidget {
                                 ),
                                 if (resource.group.isNotEmpty)
                                   Padding(
-                                    padding: const EdgeInsets.only(top: 2),
+                                    padding: const EdgeInsets.only(top: AppSpacing.xs),
                                     child: Text(
                                       resource.group,
                                       style: theme.textTheme.bodySmall
@@ -840,10 +841,10 @@ class _TabEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(AppSpacing.huge),
       children: <Widget>[
         Icon(icon, size: 56, color: AppColors.greyLight),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.xl),
         EmptyStateCard(title: title, subtitle: subtitle),
       ],
     );
@@ -873,12 +874,12 @@ class _SectionHeader extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: iconColor.withValues(alpha: 0.12),
+            color: iconColor.withValues(alpha: AppOpacity.medium),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Icon(icon, size: 20, color: iconColor),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: AppSpacing.lg),
         Expanded(
           child: Text(
             title,
@@ -889,10 +890,10 @@ class _SectionHeader extends StatelessWidget {
         ),
         if (count != null)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: AppSpacing.sm),
             decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(4),
+              color: iconColor.withValues(alpha: AppOpacity.soft),
+              borderRadius: AppRadius.sm,
             ),
             child: Text(
               '$count',

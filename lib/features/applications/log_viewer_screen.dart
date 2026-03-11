@@ -2,6 +2,7 @@ import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:argocd_flutter/ui/design_tokens.dart';
 
 class LogViewerScreen extends StatefulWidget {
   const LogViewerScreen({
@@ -113,7 +114,7 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
             if (snapshot.hasError) {
               return Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(AppSpacing.xxxl),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
@@ -122,7 +123,7 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
                         size: 48,
                         color: colorScheme.error.withValues(alpha: 0.7),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSpacing.xl),
                       Text(
                         'Failed to load logs',
                         style: theme.textTheme.titleMedium?.copyWith(
@@ -130,7 +131,7 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.md),
                       Text(
                         snapshot.error.toString(),
                         style: theme.textTheme.bodyMedium?.copyWith(
@@ -138,7 +139,7 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: AppSpacing.xxxl),
                       FilledButton.icon(
                         onPressed: _refresh,
                         icon: const Icon(Icons.refresh, size: 18),
@@ -173,7 +174,7 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
                   child: SingleChildScrollView(
                     controller: _scrollController,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: <Widget>[
@@ -210,7 +211,7 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
     final borderColor = isDark ? AppColors.darkBorder : AppColors.border;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: 10),
       decoration: BoxDecoration(
         color: headerColor,
         border: Border(bottom: BorderSide(color: borderColor)),
@@ -218,7 +219,7 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
       child: Row(
         children: <Widget>[
           Icon(Icons.terminal, size: 16, color: colorScheme.onSurfaceVariant),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text.rich(
               TextSpan(
@@ -265,12 +266,12 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.md),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 3),
             decoration: BoxDecoration(
-              color: colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(4),
+              color: colorScheme.primary.withValues(alpha: AppOpacity.soft),
+              borderRadius: AppRadius.sm,
             ),
             child: Text(
               widget.namespace,
@@ -352,7 +353,7 @@ class _LogLine extends StatelessWidget {
       children: <Widget>[
         Container(
           width: 16.0 + lineNumberWidth * 8.5,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 1),
           decoration: BoxDecoration(
             color: gutterColor,
             border: Border(right: BorderSide(color: AppColors.outline(theme))),
@@ -368,7 +369,7 @@ class _LogLine extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: AppSpacing.lg),
         Expanded(
           child: SelectableText(
             text,

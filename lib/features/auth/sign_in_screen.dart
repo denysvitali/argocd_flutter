@@ -1,6 +1,7 @@
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:argocd_flutter/ui/design_tokens.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key, required this.controller});
@@ -75,16 +76,16 @@ class _SignInScreenState extends State<SignInScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 840),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppSpacing.xl),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
                     // Logo / branding area
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(AppSpacing.xxl),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: AppRadius.md,
                         color: heroColor,
                       ),
                       child: Column(
@@ -95,7 +96,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             size: 28,
                             color: AppColors.cobalt,
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppSpacing.lg),
                           Text(
                             'ArgoCD Flutter',
                             style: theme.textTheme.headlineSmall?.copyWith(
@@ -113,14 +114,14 @@ class _SignInScreenState extends State<SignInScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.xl),
                     // Error banner
                     AnimatedSize(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeInOut,
                       child: showError
                           ? Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.only(bottom: AppSpacing.lg),
                               child: _ErrorBanner(
                                 message: errorMessage,
                                 onDismiss: () {
@@ -136,10 +137,10 @@ class _SignInScreenState extends State<SignInScreen> {
                     // Form card
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(AppSpacing.xl),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: AppRadius.md,
                         border: Border.all(color: theme.dividerColor),
                       ),
                       child: Form(
@@ -153,7 +154,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: AppSpacing.xl),
                             TextFormField(
                               controller: _serverController,
                               decoration: InputDecoration(
@@ -177,7 +178,7 @@ class _SignInScreenState extends State<SignInScreen> {
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: AppSpacing.xl),
                             TextFormField(
                               controller: _usernameController,
                               decoration: const InputDecoration(
@@ -191,7 +192,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: AppSpacing.xl),
                             TextFormField(
                               controller: _passwordController,
                               obscureText: _obscurePassword,
@@ -228,8 +229,8 @@ class _SignInScreenState extends State<SignInScreen> {
                               ),
                             const SizedBox(height: 14),
                             Wrap(
-                              spacing: 12,
-                              runSpacing: 12,
+                              spacing: AppSpacing.lg,
+                              runSpacing: AppSpacing.lg,
                               children: <Widget>[
                                 OutlinedButton.icon(
                                   onPressed:
@@ -446,12 +447,12 @@ class _ErrorBanner extends StatelessWidget {
       color: theme.colorScheme.errorContainer,
       borderRadius: BorderRadius.circular(6),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Icon(Icons.error_outline, color: theme.colorScheme.error, size: 22),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.lg),
             Expanded(
               child: Text(
                 message,
@@ -460,7 +461,7 @@ class _ErrorBanner extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.md),
             IconButton(
               icon: Icon(
                 Icons.close,
@@ -498,7 +499,7 @@ class _CertificateBanner extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Icon(Icons.verified_user_outlined, color: theme.colorScheme.primary),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.lg),
           Expanded(
             child: Text(
               message,

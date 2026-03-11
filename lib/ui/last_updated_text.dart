@@ -1,5 +1,6 @@
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:argocd_flutter/ui/design_tokens.dart';
 
 String formatTimeAgo(DateTime timestamp) {
   final difference = DateTime.now().difference(timestamp);
@@ -30,7 +31,7 @@ class LastUpdatedText extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
       child: Text(
         'Updated ${formatTimeAgo(timestamp!)}',
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
