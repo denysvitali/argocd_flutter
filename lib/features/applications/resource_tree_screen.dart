@@ -1161,9 +1161,8 @@ class _MetadataRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = theme.textTheme.bodySmall?.copyWith(
+    final style = theme.textTheme.labelSmall?.copyWith(
       color: AppColors.mutedText(theme),
-      fontSize: 11,
     );
     final dotStyle = TextStyle(color: AppColors.mutedText(theme), fontSize: 11);
     final pieces = <Widget>[

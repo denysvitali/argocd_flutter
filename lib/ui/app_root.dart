@@ -10,14 +10,10 @@ import 'package:argocd_flutter/features/settings/settings_screen.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:flutter/material.dart';
 
-const _displayFontFamily = 'SpaceGrotesk';
-const _bodyFontFamily = 'DMSans';
-
 ThemeData buildLightAppTheme() {
   final lightBaseTextTheme = ThemeData.light().textTheme.apply(
     bodyColor: AppColors.ink,
     displayColor: AppColors.ink,
-    fontFamily: _displayFontFamily,
   );
 
   return ThemeData(
@@ -34,14 +30,12 @@ ThemeData buildLightAppTheme() {
     ),
     textTheme: lightBaseTextTheme.copyWith(
       bodyMedium: const TextStyle(
-        fontFamily: _bodyFontFamily,
         color: AppColors.ink,
-        fontSize: 16,
+        fontSize: 14,
       ),
       bodyLarge: const TextStyle(
-        fontFamily: _bodyFontFamily,
         color: AppColors.ink,
-        fontSize: 18,
+        fontSize: 16,
       ),
     ),
     dividerColor: AppColors.border,
@@ -50,7 +44,6 @@ ThemeData buildLightAppTheme() {
       height: 56,
       labelTextStyle: const MaterialStatePropertyAll<TextStyle>(
         TextStyle(
-          fontFamily: _bodyFontFamily,
           fontSize: 11,
           fontWeight: FontWeight.w600,
         ),
@@ -69,7 +62,6 @@ ThemeData buildDarkAppTheme() {
   final darkBaseTextTheme = ThemeData.dark().textTheme.apply(
     bodyColor: AppColors.border,
     displayColor: AppColors.border,
-    fontFamily: _displayFontFamily,
   );
 
   return ThemeData(
@@ -86,14 +78,12 @@ ThemeData buildDarkAppTheme() {
     ),
     textTheme: darkBaseTextTheme.copyWith(
       bodyMedium: const TextStyle(
-        fontFamily: _bodyFontFamily,
         color: AppColors.border,
-        fontSize: 16,
+        fontSize: 14,
       ),
       bodyLarge: const TextStyle(
-        fontFamily: _bodyFontFamily,
         color: AppColors.border,
-        fontSize: 18,
+        fontSize: 16,
       ),
     ),
     dividerColor: AppColors.darkBorder,
@@ -102,7 +92,6 @@ ThemeData buildDarkAppTheme() {
       height: 56,
       labelTextStyle: MaterialStatePropertyAll<TextStyle>(
         TextStyle(
-          fontFamily: _bodyFontFamily,
           fontSize: 11,
           fontWeight: FontWeight.w600,
         ),

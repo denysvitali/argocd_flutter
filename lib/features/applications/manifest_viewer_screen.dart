@@ -409,7 +409,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
           Expanded(
             child: TextField(
               controller: _searchController,
-              style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14),
+              style: theme.textTheme.bodyMedium,
               decoration: InputDecoration(
                 hintText: 'Search manifest...',
                 hintStyle: theme.textTheme.bodyMedium?.copyWith(

@@ -299,7 +299,7 @@ class _DetailBody extends StatelessWidget {
                   title: innerBoxIsScrolled
                       ? Text(
                           application.name,
-                          style: const TextStyle(fontSize: 16),
+                          style: theme.textTheme.titleMedium,
                         )
                       : null,
                   bottom: TabBar(
