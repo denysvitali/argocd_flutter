@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:flutter/material.dart';
@@ -50,6 +52,49 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 
+  InputDecoration _inputDecoration({
+    required String labelText,
+    String? hintText,
+    required Widget prefixIcon,
+    Widget? suffixIcon,
+  }) {
+    final theme = Theme.of(context);
+    return InputDecoration(
+      labelText: labelText,
+      hintText: hintText,
+      prefixIcon: prefixIcon,
+      suffixIcon: suffixIcon,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: theme.dividerColor),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: theme.dividerColor),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(
+          color: theme.colorScheme.primary,
+          width: 2,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: theme.colorScheme.error),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(
+          color: theme.colorScheme.error,
+          width: 2,
+        ),
+      ),
+      filled: true,
+      fillColor: theme.colorScheme.surface,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -79,23 +124,42 @@ class _SignInScreenState extends State<SignInScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
-                    // Logo / branding area
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
-                        color: heroColor,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: isDark
+                              ? <Color>[
+                                  heroColor,
+                                  Color.lerp(
+                                    heroColor,
+                                    AppColors.cobalt,
+                                    0.08,
+                                  )!,
+                                ]
+                              : <Color>[
+                                  heroColor,
+                                  Color.lerp(
+                                    heroColor,
+                                    AppColors.cobalt,
+                                    0.15,
+                                  )!,
+                                ],
+                        ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Icon(
                             Icons.cloud_sync_outlined,
-                            size: 28,
+                            size: 36,
                             color: AppColors.cobalt,
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 14),
                           Text(
                             'ArgoCD Flutter',
                             style: theme.textTheme.headlineSmall?.copyWith(
@@ -113,14 +177,13 @@ class _SignInScreenState extends State<SignInScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    // Error banner
+                    const SizedBox(height: 20),
                     AnimatedSize(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeInOut,
                       child: showError
                           ? Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.only(bottom: 16),
                               child: _ErrorBanner(
                                 message: errorMessage,
                                 onDismiss: () {
@@ -133,14 +196,25 @@ class _SignInScreenState extends State<SignInScreen> {
                             )
                           : const SizedBox.shrink(),
                     ),
-                    // Form card
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: theme.dividerColor),
+                        boxShadow: <BoxShadow>[
+                          BoxShadow(
+                            color: AppColors.surfaceShadow(theme, alpha: 0.06),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                          BoxShadow(
+                            color: AppColors.surfaceShadow(theme, alpha: 0.03),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Form(
                         key: _formKey,
@@ -153,18 +227,19 @@ class _SignInScreenState extends State<SignInScreen> {
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 20),
                             TextFormField(
                               controller: _serverController,
-                              decoration: InputDecoration(
+                              decoration: _inputDecoration(
                                 labelText: 'Server URL',
                                 hintText: 'https://argocd.example.com',
                                 prefixIcon: const Icon(Icons.cloud_outlined),
                                 suffixIcon: _serverUrlRemembered
                                     ? Tooltip(
                                         message:
-                                            'Server URL remembered '
-                                            'from last session',
+                                            'This URL was saved from your '
+                                            'previous session and will be '
+                                            'pre-filled on future sign-ins',
                                         child: Icon(
                                           Icons.bookmark,
                                           color: theme.colorScheme.primary,
@@ -177,12 +252,12 @@ class _SignInScreenState extends State<SignInScreen> {
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 20),
                             TextFormField(
                               controller: _usernameController,
-                              decoration: const InputDecoration(
+                              decoration: _inputDecoration(
                                 labelText: 'Username',
-                                prefixIcon: Icon(Icons.person_outline),
+                                prefixIcon: const Icon(Icons.person_outline),
                               ),
                               validator: (value) {
                                 if ((value ?? '').trim().isEmpty) {
@@ -191,27 +266,46 @@ class _SignInScreenState extends State<SignInScreen> {
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 20),
                             TextFormField(
                               controller: _passwordController,
                               obscureText: _obscurePassword,
-                              decoration: InputDecoration(
+                              decoration: _inputDecoration(
                                 labelText: 'Password',
                                 prefixIcon: const Icon(Icons.lock_outline),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscurePassword
-                                        ? Icons.visibility_outlined
-                                        : Icons.visibility_off_outlined,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _obscurePassword = !_obscurePassword;
-                                    });
-                                  },
-                                  tooltip: _obscurePassword
+                                suffixIcon: Tooltip(
+                                  message: _obscurePassword
                                       ? 'Show password'
                                       : 'Hide password',
+                                  child: Material(
+                                    type: MaterialType.transparency,
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(20),
+                                      onTap: () {
+                                        setState(() {
+                                          _obscurePassword = !_obscurePassword;
+                                        });
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(12),
+                                        child: AnimatedSwitcher(
+                                          duration: const Duration(
+                                            milliseconds: 200,
+                                          ),
+                                          child: Icon(
+                                            _obscurePassword
+                                                ? Icons.visibility_outlined
+                                                : Icons.visibility_off_outlined,
+                                            key: ValueKey<bool>(
+                                              _obscurePassword,
+                                            ),
+                                            size: 20,
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                               validator: (value) {
@@ -221,12 +315,15 @@ class _SignInScreenState extends State<SignInScreen> {
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 16),
                             if (certificateStatus != null)
-                              _CertificateBanner(
-                                message: certificateStatus.message,
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: _CertificateBanner(
+                                  message: certificateStatus.message,
+                                ),
                               ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 4),
                             Wrap(
                               spacing: 12,
                               runSpacing: 12,
@@ -250,6 +347,12 @@ class _SignInScreenState extends State<SignInScreen> {
                                     _testingConnection
                                         ? 'Testing...'
                                         : 'Test server',
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 12,
+                                    ),
                                   ),
                                 ),
                                 _SignInButton(
@@ -369,6 +472,8 @@ class _SignInButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
@@ -380,6 +485,12 @@ class _SignInButton extends StatelessWidget {
           child: Text(
             busy ? 'Connecting...' : 'Sign In',
             key: ValueKey<bool>(busy),
+          ),
+        ),
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+          textStyle: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -403,7 +514,7 @@ class _ShimmerIconState extends State<_ShimmerIcon>
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1400),
     )..repeat();
   }
 
@@ -418,10 +529,10 @@ class _ShimmerIconState extends State<_ShimmerIcon>
     return AnimatedBuilder(
       animation: _animationController,
       builder: (context, child) {
-        return Opacity(
-          opacity: 0.3 + 0.7 * _animationController.value,
-          child: child,
-        );
+        final pulse = 0.4 + 0.6 * ((math.sin(
+          _animationController.value * 2 * math.pi,
+        ) + 1) / 2);
+        return Opacity(opacity: pulse, child: child);
       },
       child: const SizedBox(
         width: 18,
@@ -432,47 +543,101 @@ class _ShimmerIconState extends State<_ShimmerIcon>
   }
 }
 
-class _ErrorBanner extends StatelessWidget {
+class _ErrorBanner extends StatefulWidget {
   const _ErrorBanner({required this.message, required this.onDismiss});
 
   final String message;
   final VoidCallback onDismiss;
 
   @override
+  State<_ErrorBanner> createState() => _ErrorBannerState();
+}
+
+class _ErrorBannerState extends State<_ErrorBanner>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _slideController;
+  late final Animation<Offset> _slideAnimation;
+  late final Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _slideController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, -0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _slideController,
+      curve: Curves.easeOutCubic,
+    ));
+    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(
+      parent: _slideController,
+      curve: Curves.easeOut,
+    ));
+    _slideController.forward();
+  }
+
+  @override
+  void dispose() {
+    _slideController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Material(
-      color: theme.colorScheme.errorContainer,
-      borderRadius: BorderRadius.circular(6),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Icon(Icons.error_outline, color: theme.colorScheme.error, size: 22),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                message,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onErrorContainer,
+    return SlideTransition(
+      position: _slideAnimation,
+      child: FadeTransition(
+        opacity: _fadeAnimation,
+        child: Material(
+          color: theme.colorScheme.errorContainer,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Icon(
+                  Icons.error_outline,
+                  color: theme.colorScheme.error,
+                  size: 22,
                 ),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onErrorContainer,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: widget.onDismiss,
+                      child: Center(
+                        child: Icon(
+                          Icons.close,
+                          size: 16,
+                          color: theme.colorScheme.onErrorContainer,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            IconButton(
-              icon: Icon(
-                Icons.close,
-                size: 20,
-                color: theme.colorScheme.onErrorContainer,
-              ),
-              onPressed: onDismiss,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              tooltip: 'Dismiss',
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -487,23 +652,37 @@ class _CertificateBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(6),
+        color: isDark
+            ? AppColors.cobalt.withValues(alpha: 0.1)
+            : AppColors.cobaltLight,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark
+              ? AppColors.cobalt.withValues(alpha: 0.25)
+              : AppColors.cobalt.withValues(alpha: 0.15),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Icon(Icons.verified_user_outlined, color: theme.colorScheme.primary),
+          Icon(
+            Icons.verified_user_outlined,
+            color: AppColors.cobalt,
+            size: 20,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               message,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+                color: isDark
+                    ? AppColors.textOnDarkMuted
+                    : theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ),

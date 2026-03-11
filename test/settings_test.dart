@@ -346,7 +346,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.byTooltip('Server URL remembered from last session'),
+        find.byTooltip(
+          'This URL was saved from your '
+          'previous session and will be '
+          'pre-filled on future sign-ins',
+        ),
         findsOneWidget,
       );
     });
