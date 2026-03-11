@@ -164,7 +164,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                 (count, project) => count + project.sourceRepos.length,
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             _SearchBar(
               controller: _searchController,
               onChanged: _onSearchChanged,
@@ -244,7 +244,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
             else
               ...projects.map(
                 (project) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.only(bottom: 8),
                   child: _ProjectCard(
                     project: project,
                     onTap: () => widget.onOpenProject(project.name),
@@ -278,43 +278,38 @@ class _SearchBar extends StatelessWidget {
     final outlineColor = AppColors.outline(theme);
     final mutedColor = AppColors.mutedText(theme);
 
-    return Material(
-      elevation: 1,
-      shadowColor: AppColors.surfaceShadow(theme),
-      borderRadius: BorderRadius.circular(14),
-      child: TextField(
-        controller: controller,
-        onChanged: onChanged,
-        decoration: InputDecoration(
-          hintText: 'Search project, description, repo, namespace, cluster',
-          hintStyle: theme.textTheme.bodyMedium?.copyWith(color: mutedColor),
-          prefixIcon: Icon(Icons.search, color: mutedColor),
-          suffixIcon: showClear
-              ? IconButton(
-                  icon: const Icon(Icons.close, size: 20),
-                  onPressed: onClear,
-                  tooltip: 'Clear filter',
-                  color: mutedColor,
-                )
-              : null,
-          filled: true,
-          fillColor: AppColors.inputFill(theme),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 12,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: outlineColor),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: outlineColor),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: AppColors.cobalt, width: 1.5),
-          ),
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        hintText: 'Search project, description, repo, namespace, cluster',
+        hintStyle: theme.textTheme.bodyMedium?.copyWith(color: mutedColor),
+        prefixIcon: Icon(Icons.search, color: mutedColor),
+        suffixIcon: showClear
+            ? IconButton(
+                icon: const Icon(Icons.close, size: 18),
+                onPressed: onClear,
+                tooltip: 'Clear filter',
+                color: mutedColor,
+              )
+            : null,
+        filled: true,
+        fillColor: AppColors.inputFill(theme),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 10,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: BorderSide(color: outlineColor),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: BorderSide(color: outlineColor),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: const BorderSide(color: AppColors.cobalt, width: 1.5),
         ),
       ),
     );
@@ -367,7 +362,7 @@ class _ProjectFilterChips extends StatelessWidget {
       side: BorderSide(
         color: selected ? AppColors.teal : AppColors.outline(theme),
       ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
     );
   }
 }
@@ -429,87 +424,55 @@ class _OverviewStrip extends StatelessWidget {
     final session = controller.session;
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            AppColors.gradientProjectStart,
-            AppColors.gradientProjectMid,
-            AppColors.teal,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: AppColors.teal.withValues(alpha: 0.18),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        color: AppColors.headerDarkAlt,
+        borderRadius: BorderRadius.circular(8),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.account_tree_outlined,
-                  color: Colors.white,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Project boundaries',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            session == null
-                ? 'Projects define repository and deployment boundaries.'
-                : 'Review RBAC scope, source repositories, and target clusters for ${session.username}.',
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.textOnDarkGreen,
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Icon(
+              Icons.account_tree_outlined,
+              color: Colors.white,
+              size: 18,
             ),
           ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: <Widget>[
-              _MetricChip(
-                label: 'Projects',
-                value: '$totalProjects',
-                icon: Icons.folder_special_outlined,
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              session == null
+                  ? 'Project boundaries'
+                  : 'Projects · ${session.username}',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
               ),
-              _MetricChip(
-                label: 'Destinations',
-                value: '$totalDestinations',
-                icon: Icons.dns_outlined,
-              ),
-              _MetricChip(
-                label: 'Source repos',
-                value: '$totalRepositories',
-                icon: Icons.code_outlined,
-              ),
-            ],
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 12),
+          _MetricChip(
+            label: 'projects',
+            value: '$totalProjects',
+            icon: Icons.folder_special_outlined,
+          ),
+          const SizedBox(width: 16),
+          _MetricChip(
+            label: 'destinations',
+            value: '$totalDestinations',
+            icon: Icons.dns_outlined,
+          ),
+          const SizedBox(width: 16),
+          _MetricChip(
+            label: 'repos',
+            value: '$totalRepositories',
+            icon: Icons.code_outlined,
           ),
         ],
       ),
@@ -546,31 +509,31 @@ class _ProjectCard extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(6),
       splashColor: accent.withValues(alpha: 0.12),
       highlightColor: accent.withValues(alpha: 0.06),
       child: Ink(
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(6),
           border: Border.all(color: outlineColor),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Row(
                 children: <Widget>[
                   Container(
-                    width: 10,
-                    height: 10,
+                    width: 8,
+                    height: 8,
                     decoration: BoxDecoration(
                       color: accent,
                       shape: BoxShape.circle,
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: _HighlightedText(
                       text: project.name,
@@ -661,10 +624,10 @@ class _CountBadge extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -764,11 +727,11 @@ class _EmptyState extends StatelessWidget {
         : 'Connect to ArgoCD, then pull to refresh once your RBAC scope has visible projects.';
 
     return Padding(
-      padding: const EdgeInsets.only(top: 20),
+      padding: const EdgeInsets.only(top: 12),
       child: Column(
         children: <Widget>[
-          Icon(icon, size: 44, color: AppColors.greyLight),
-          const SizedBox(height: 12),
+          Icon(icon, size: 36, color: AppColors.greyLight),
+          const SizedBox(height: 8),
           EmptyStateCard(title: title, subtitle: subtitle),
         ],
       ),
@@ -809,40 +772,24 @@ class _MetricChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(icon, size: 18, color: AppColors.textOnDarkGreen),
-          const SizedBox(width: 8),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                value,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 1),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textOnDarkGreen,
-                ),
-              ),
-            ],
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Text(
+          value,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AppColors.textOnDarkGreen,
+          ),
+        ),
+      ],
     );
   }
 }
