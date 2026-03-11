@@ -546,6 +546,7 @@ class _SearchBarState extends State<_SearchBar> {
           ),
           suffixIcon: widget.showClear
               ? IconButton(
+                  tooltip: 'Clear search',
                   icon: const Icon(Icons.close_rounded, size: 20),
                   color: mutedColor,
                   onPressed: widget.onClear,

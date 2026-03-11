@@ -19,6 +19,7 @@ abstract final class AppSpacing {
 abstract final class AppRadius {
   static final BorderRadius xs = BorderRadius.circular(3);
   static final BorderRadius sm = BorderRadius.circular(4);
+  static final BorderRadius base = BorderRadius.circular(6);
   static final BorderRadius md = BorderRadius.circular(8);
   static final BorderRadius lg = BorderRadius.circular(12);
   static final BorderRadius pill = BorderRadius.circular(999);
