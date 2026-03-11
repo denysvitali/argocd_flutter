@@ -163,29 +163,43 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
   }
 
   Widget _buildSearchBar(ThemeData theme) {
+    final outlineColor = AppColors.outline(theme);
+    final mutedColor = AppColors.mutedText(theme);
+
     return TextField(
       decoration: InputDecoration(
         hintText: 'Filter by name or kind...',
-        prefixIcon: const Icon(Icons.search, size: 20),
+        hintStyle: theme.textTheme.bodyMedium?.copyWith(color: mutedColor),
+        prefixIcon: Icon(Icons.search, size: 20, color: mutedColor),
         suffixIcon: _searchQuery.isNotEmpty
             ? IconButton(
-                icon: const Icon(Icons.clear, size: 20),
+                icon: const Icon(Icons.close, size: 18),
                 onPressed: () {
                   setState(() {
                     _searchQuery = '';
                   });
                 },
+                tooltip: 'Clear filter',
+                color: mutedColor,
               )
             : null,
         filled: true,
-        fillColor: theme.colorScheme.surfaceContainerHighest,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
-          borderSide: BorderSide.none,
-        ),
+        fillColor: AppColors.inputFill(theme),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 12,
-          vertical: 8,
+          vertical: 10,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: BorderSide(color: outlineColor),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: BorderSide(color: outlineColor),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: const BorderSide(color: AppColors.cobalt, width: 1.5),
         ),
       ),
       onChanged: (String value) {
@@ -439,6 +453,7 @@ class _SummaryHeader extends StatelessWidget {
                 painter: _DonutChartPainter(
                   segments: healthSegments,
                   total: total.toDouble(),
+                  bgRingColor: theme.dividerColor.withValues(alpha: 0.3),
                 ),
                 child: Center(
                   child: Column(
@@ -446,8 +461,8 @@ class _SummaryHeader extends StatelessWidget {
                     children: <Widget>[
                       Text(
                         '$total',
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
+                        style: theme.textTheme.headlineLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                       Text(
@@ -463,7 +478,6 @@ class _SummaryHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          // Health legend
           Wrap(
             spacing: 12,
             runSpacing: 6,
@@ -478,7 +492,6 @@ class _SummaryHeader extends StatelessWidget {
           const SizedBox(height: 12),
           const Divider(),
           const SizedBox(height: 8),
-          // Resource kind counts
           Text(
             'Resources by Kind',
             style: theme.textTheme.titleSmall?.copyWith(
@@ -517,10 +530,15 @@ class _DonutSegment {
 }
 
 class _DonutChartPainter extends CustomPainter {
-  _DonutChartPainter({required this.segments, required this.total});
+  _DonutChartPainter({
+    required this.segments,
+    required this.total,
+    required this.bgRingColor,
+  });
 
   final List<_DonutSegment> segments;
   final double total;
+  final Color bgRingColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -536,6 +554,13 @@ class _DonutChartPainter extends CustomPainter {
       radius: radius - strokeWidth / 2,
     );
 
+    final bgPaint = Paint()
+      ..color = bgRingColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..isAntiAlias = true;
+    canvas.drawArc(rect, 0, 2 * math.pi, false, bgPaint);
+
     const gapAngle = 0.04;
     final totalGap = gapAngle * segments.length;
     final availableSweep = 2 * math.pi - totalGap;
@@ -548,7 +573,8 @@ class _DonutChartPainter extends CustomPainter {
         ..color = segment.color
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth
-        ..strokeCap = StrokeCap.round;
+        ..strokeCap = StrokeCap.round
+        ..isAntiAlias = true;
 
       canvas.drawArc(rect, startAngle, sweepAngle, false, paint);
       startAngle += sweepAngle + gapAngle;
@@ -557,7 +583,9 @@ class _DonutChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_DonutChartPainter oldDelegate) {
-    return segments != oldDelegate.segments || total != oldDelegate.total;
+    return segments != oldDelegate.segments ||
+        total != oldDelegate.total ||
+        bgRingColor != oldDelegate.bgRingColor;
   }
 }
 
@@ -578,8 +606,8 @@ class _LegendItem extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Container(
-          width: 8,
-          height: 8,
+          width: 10,
+          height: 10,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 6),
@@ -606,10 +634,12 @@ class _KindCountBadge extends StatelessWidget {
     final Color kindColor = colorForResourceKind(kind);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      height: 28,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         color: kindColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: kindColor.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -749,12 +779,10 @@ class _ResourceNodeTileState extends State<_ResourceNodeTile> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        // The node row with tree connector
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              // Tree connector lines
               if (widget.depth > 0)
                 SizedBox(
                   width: 24,
@@ -765,7 +793,6 @@ class _ResourceNodeTileState extends State<_ResourceNodeTile> {
                     ),
                   ),
                 ),
-              // Expand/collapse arrow
               if (hasChildren)
                 GestureDetector(
                   onTap: _toggleExpanded,
@@ -773,7 +800,8 @@ class _ResourceNodeTileState extends State<_ResourceNodeTile> {
                     padding: const EdgeInsets.only(top: 8),
                     child: AnimatedRotation(
                       turns: _expanded ? 0.25 : 0.0,
-                      duration: const Duration(milliseconds: 200),
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOutCubic,
                       child: Icon(
                         Icons.chevron_right_rounded,
                         size: 20,
@@ -784,7 +812,6 @@ class _ResourceNodeTileState extends State<_ResourceNodeTile> {
                 )
               else
                 const SizedBox(width: 20),
-              // Node card
               Expanded(
                 child: _NodeCard(
                   controller: widget.controller,
@@ -798,11 +825,10 @@ class _ResourceNodeTileState extends State<_ResourceNodeTile> {
             ],
           ),
         ),
-        // Children with animated expand/collapse
         if (hasChildren && _expanded)
           AnimatedSize(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOutCubic,
             alignment: Alignment.topLeft,
             child: Padding(
               padding: EdgeInsets.only(left: widget.depth > 0 ? 24.0 : 0.0),
@@ -846,20 +872,46 @@ class _NodeConnectorPainter extends CustomPainter {
     final paint = Paint()
       ..color = color
       ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
+      ..style = PaintingStyle.stroke
+      ..isAntiAlias = true;
 
     final double midX = size.width / 2;
-    final double midY = 20; // align with icon center
+    final double midY = 20;
 
-    // Vertical line from top
     canvas.drawLine(Offset(midX, 0), Offset(midX, midY), paint);
 
-    // Horizontal line to the right
     canvas.drawLine(Offset(midX, midY), Offset(size.width, midY), paint);
 
-    // Continue vertical line down if not last child
     if (!isLastChild) {
-      canvas.drawLine(Offset(midX, midY), Offset(midX, size.height), paint);
+      _drawDashedLine(
+        canvas,
+        Offset(midX, midY),
+        Offset(midX, size.height),
+        paint,
+      );
+    }
+  }
+
+  void _drawDashedLine(
+    Canvas canvas,
+    Offset start,
+    Offset end,
+    Paint paint,
+  ) {
+    const double dashLength = 4.0;
+    const double gapLength = 3.0;
+    final double totalLength = (end - start).distance;
+    final Offset direction = (end - start) / totalLength;
+    double drawn = 0.0;
+
+    while (drawn < totalLength) {
+      final double segEnd = math.min(drawn + dashLength, totalLength);
+      canvas.drawLine(
+        start + direction * drawn,
+        start + direction * segEnd,
+        paint,
+      );
+      drawn = segEnd + gapLength;
     }
   }
 
@@ -908,7 +960,16 @@ class _NodeCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                Container(width: 3, color: kindColor),
+                Container(
+                  width: 4,
+                  decoration: BoxDecoration(
+                    color: kindColor,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(6),
+                      bottomLeft: Radius.circular(6),
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 8),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),
@@ -1012,11 +1073,11 @@ class _NodeCard extends StatelessWidget {
               children: <Widget>[
                 Center(
                   child: Container(
-                    width: 32,
-                    height: 3,
+                    width: 40,
+                    height: 5,
                     margin: const EdgeInsets.only(bottom: 14),
                     decoration: BoxDecoration(
-                      color: AppColors.greyLight,
+                      color: AppColors.grey.withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -1189,8 +1250,8 @@ class _MetadataRow extends StatelessWidget {
     }
 
     return Wrap(
-      spacing: 4,
-      runSpacing: 2,
+      spacing: 6,
+      runSpacing: 4,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: pieces,
     );
