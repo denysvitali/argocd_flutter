@@ -536,3 +536,143 @@ class FactBadge extends StatelessWidget {
     );
   }
 }
+
+/// A small pill showing a label-value pair, used for at-a-glance metadata.
+class DetailPill extends StatelessWidget {
+  const DetailPill({super.key, required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text('$label: $value'),
+    );
+  }
+}
+
+/// A vertical label + value pair used for displaying detail fields.
+class LabeledText extends StatelessWidget {
+  const LabeledText({
+    super.key,
+    required this.label,
+    required this.value,
+    this.maxLines,
+  });
+
+  final String label;
+  final String value;
+  final int? maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            label,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            maxLines: maxLines,
+            overflow: maxLines != null ? TextOverflow.ellipsis : null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A status indicator with a colored dot and label/value text.
+class StatusIndicator extends StatelessWidget {
+  const StatusIndicator({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// A colored icon container used for resource type indicators and action cards.
+class IconBadge extends StatelessWidget {
+  const IconBadge({
+    super.key,
+    required this.icon,
+    required this.color,
+    this.size = 48,
+    this.iconSize = 24,
+    this.backgroundColor,
+  });
+
+  final IconData icon;
+  final Color color;
+  final double size;
+  final double iconSize;
+  final Color? backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: backgroundColor ?? color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Icon(icon, color: color, size: iconSize),
+    );
+  }
+}

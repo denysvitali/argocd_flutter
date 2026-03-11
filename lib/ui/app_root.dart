@@ -29,6 +29,10 @@ ThemeData buildLightAppTheme() {
       onSurface: AppColors.ink,
     ),
     textTheme: lightBaseTextTheme.copyWith(
+      bodySmall: const TextStyle(
+        color: AppColors.ink,
+        fontSize: 12,
+      ),
       bodyMedium: const TextStyle(
         color: AppColors.ink,
         fontSize: 14,
@@ -36,6 +40,41 @@ ThemeData buildLightAppTheme() {
       bodyLarge: const TextStyle(
         color: AppColors.ink,
         fontSize: 16,
+      ),
+      labelSmall: const TextStyle(
+        color: AppColors.ink,
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+      ),
+      labelMedium: const TextStyle(
+        color: AppColors.ink,
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+      ),
+      labelLarge: const TextStyle(
+        color: AppColors.ink,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+      titleSmall: const TextStyle(
+        color: AppColors.ink,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+      ),
+      titleMedium: const TextStyle(
+        color: AppColors.ink,
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+      ),
+      titleLarge: const TextStyle(
+        color: AppColors.ink,
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+      ),
+      headlineSmall: const TextStyle(
+        color: AppColors.ink,
+        fontSize: 24,
+        fontWeight: FontWeight.w700,
       ),
     ),
     dividerColor: AppColors.border,
@@ -77,6 +116,10 @@ ThemeData buildDarkAppTheme() {
       onSurface: AppColors.border,
     ),
     textTheme: darkBaseTextTheme.copyWith(
+      bodySmall: const TextStyle(
+        color: AppColors.border,
+        fontSize: 12,
+      ),
       bodyMedium: const TextStyle(
         color: AppColors.border,
         fontSize: 14,
@@ -85,17 +128,58 @@ ThemeData buildDarkAppTheme() {
         color: AppColors.border,
         fontSize: 16,
       ),
+      labelSmall: const TextStyle(
+        color: AppColors.border,
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+      ),
+      labelMedium: const TextStyle(
+        color: AppColors.border,
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+      ),
+      labelLarge: const TextStyle(
+        color: AppColors.border,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+      titleSmall: const TextStyle(
+        color: AppColors.border,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+      ),
+      titleMedium: const TextStyle(
+        color: AppColors.border,
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+      ),
+      titleLarge: const TextStyle(
+        color: AppColors.border,
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+      ),
+      headlineSmall: const TextStyle(
+        color: AppColors.border,
+        fontSize: 24,
+        fontWeight: FontWeight.w700,
+      ),
     ),
     dividerColor: AppColors.darkBorder,
     appBarTheme: const AppBarTheme(toolbarHeight: 48),
-    navigationBarTheme: const NavigationBarThemeData(
+    navigationBarTheme: NavigationBarThemeData(
       height: 56,
-      labelTextStyle: MaterialStatePropertyAll<TextStyle>(
+      labelTextStyle: const MaterialStatePropertyAll<TextStyle>(
         TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
         ),
       ),
+      iconTheme: MaterialStateProperty.resolveWith<IconThemeData>((states) {
+        final color = states.contains(MaterialState.selected)
+            ? Colors.white
+            : AppColors.greyLight;
+        return IconThemeData(size: 20, color: color);
+      }),
     ),
   );
 }

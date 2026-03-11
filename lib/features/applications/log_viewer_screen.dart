@@ -121,7 +121,7 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
                       Icon(
                         Icons.error_outline,
                         size: 48,
-                        color: colorScheme.error.withValues(alpha: 0.7),
+                        color: colorScheme.error.withValues(alpha: AppOpacity.prominent),
                       ),
                       const SizedBox(height: AppSpacing.xl),
                       Text(
@@ -171,24 +171,20 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
               children: <Widget>[
                 _buildPodInfoHeader(theme, colorScheme, isDark),
                 Expanded(
-                  child: SingleChildScrollView(
+                  child: ListView.builder(
                     controller: _scrollController,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: <Widget>[
-                          for (var i = 0; i < lines.length; i++)
-                            _LogLine(
-                              lineNumber: i + 1,
-                              lineNumberWidth: lineNumberWidth,
-                              text: lines[i],
-                              logColor: logColor,
-                              theme: theme,
-                            ),
-                        ],
-                      ),
-                    ),
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                    itemCount: lines.length,
+                    itemBuilder: (context, i) {
+                      return _LogLine(
+                        key: ValueKey<int>(i),
+                        lineNumber: i + 1,
+                        lineNumberWidth: lineNumberWidth,
+                        text: lines[i],
+                        logColor: logColor,
+                        theme: theme,
+                      );
+                    },
                   ),
                 ),
               ],
@@ -206,8 +202,8 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
   ) {
     final headerColor =
         isDark
-            ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.8)
-            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.5);
+            ? colorScheme.surfaceContainerHighest.withValues(alpha: AppOpacity.opaque)
+            : colorScheme.surfaceContainerHighest.withValues(alpha: AppOpacity.intense);
     final borderColor = isDark ? AppColors.darkBorder : AppColors.border;
 
     return Container(
@@ -326,6 +322,7 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
 
 class _LogLine extends StatelessWidget {
   const _LogLine({
+    super.key,
     required this.lineNumber,
     required this.lineNumberWidth,
     required this.text,
@@ -346,7 +343,7 @@ class _LogLine extends StatelessWidget {
     final gutterColor =
         isDark
             ? colorScheme.surfaceContainerHighest
-            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.6);
+            : colorScheme.surfaceContainerHighest.withValues(alpha: AppOpacity.dense);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -364,7 +361,7 @@ class _LogLine extends StatelessWidget {
             style: TextStyle(
               fontFamily: 'monospace',
               fontSize: 13,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+              color: colorScheme.onSurfaceVariant.withValues(alpha: AppOpacity.dense),
               height: 1.5,
             ),
           ),

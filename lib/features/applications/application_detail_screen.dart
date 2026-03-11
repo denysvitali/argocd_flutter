@@ -1,6 +1,8 @@
 import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
+import 'package:argocd_flutter/core/utils/time_format.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
+import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:argocd_flutter/ui/resource_icons.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
@@ -56,7 +58,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen>
           if (snapshot.hasError) {
             return Center(
               child: Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppSpacing.xxxl),
                 child: Text(snapshot.error.toString()),
               ),
             );
@@ -408,7 +410,7 @@ class _HeroHeader extends StatelessWidget {
               if (application.lastSyncedAt != null)
                 StatusChip(
                   label:
-                      'Synced ${_formatRelativeTime(application.lastSyncedAt!)}',
+                      'Synced ${formatRelativeTime(application.lastSyncedAt!)}',
                   color: AppColors.grey,
                 ),
             ],
@@ -440,14 +442,14 @@ class _OverviewTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.xxl),
       children: <Widget>[
         _SummarySection(application: application),
-        const SizedBox(height: 20),
+        const SizedBox(height: AppSpacing.xxl),
         _SourceSection(application: application),
-        const SizedBox(height: 20),
+        const SizedBox(height: AppSpacing.xxl),
         _DestinationSection(application: application),
-        const SizedBox(height: 20),
+        const SizedBox(height: AppSpacing.xxl),
         _ResourceTreeCard(
           controller: controller,
           applicationName: application.name,
@@ -473,9 +475,9 @@ class _SummarySection extends StatelessWidget {
             spacing: 12,
             runSpacing: 12,
             children: <Widget>[
-              _DetailPill(label: 'Project', value: application.project),
-              _DetailPill(label: 'Namespace', value: application.namespace),
-              _DetailPill(label: 'Phase', value: application.operationPhase),
+              DetailPill(label: 'Project', value: application.project),
+              DetailPill(label: 'Namespace', value: application.namespace),
+              DetailPill(label: 'Phase', value: application.operationPhase),
             ],
           ),
           const SizedBox(height: 16),
@@ -483,13 +485,13 @@ class _SummarySection extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: <Widget>[
-              _StatusIndicator(
+              StatusIndicator(
                 label: 'Health',
                 value: application.healthStatus,
                 color: AppColors.healthColor(application.healthStatus),
               ),
               const SizedBox(width: 24),
-              _StatusIndicator(
+              StatusIndicator(
                 label: 'Sync',
                 value: application.syncStatus,
                 color: AppColors.syncColor(application.syncStatus),
@@ -502,50 +504,6 @@ class _SummarySection extends StatelessWidget {
   }
 }
 
-class _StatusIndicator extends StatelessWidget {
-  const _StatusIndicator({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            Text(
-              value,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
 
 class _SourceSection extends StatelessWidget {
   const _SourceSection({required this.application});
@@ -559,9 +517,9 @@ class _SourceSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _LabeledText(label: 'Repository', value: application.repoUrl),
-          _LabeledText(label: 'Path', value: application.path),
-          _LabeledText(
+          LabeledText(label: 'Repository', value: application.repoUrl),
+          LabeledText(label: 'Path', value: application.path),
+          LabeledText(
             label: 'Target revision',
             value: application.targetRevision,
           ),
@@ -583,10 +541,10 @@ class _DestinationSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _LabeledText(label: 'Cluster', value: application.cluster),
-          _LabeledText(label: 'Namespace', value: application.namespace),
+          LabeledText(label: 'Cluster', value: application.cluster),
+          LabeledText(label: 'Namespace', value: application.namespace),
           if (application.lastSyncedAt != null)
-            _LabeledText(
+            LabeledText(
               label: 'Last reconciled',
               value: application.lastSyncedAt!,
             ),
@@ -612,7 +570,7 @@ class _ResourceTreeCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.md,
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
@@ -627,21 +585,15 @@ class _ResourceTreeCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppRadius.md,
             border: Border.all(color: theme.dividerColor),
           ),
           child: Row(
             children: <Widget>[
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.cobaltLight,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const ExcludeSemantics(
-                  child: Icon(Icons.account_tree, color: AppColors.cobalt),
-                ),
+              const IconBadge(
+                icon: Icons.account_tree,
+                color: AppColors.cobalt,
+                backgroundColor: AppColors.cobaltLight,
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -692,14 +644,14 @@ class _ResourcesTab extends StatelessWidget {
     if (resources.isEmpty) {
       return const Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: EdgeInsets.all(AppSpacing.xxxl),
           child: Text('No resources returned by the ArgoCD API.'),
         ),
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.xxl),
       itemCount: resources.length,
       itemBuilder: (context, index) {
         final resource = resources[index];
@@ -738,7 +690,7 @@ class _ResourceCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.md,
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
@@ -758,8 +710,8 @@ class _ResourceCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: kindColor.withValues(alpha: 0.3)),
+            borderRadius: AppRadius.md,
+            border: Border.all(color: kindColor.withValues(alpha: AppOpacity.bold)),
           ),
           child: Row(
             children: <Widget>[
@@ -767,7 +719,7 @@ class _ResourceCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: kindColor.withValues(alpha: 0.12),
+                  color: kindColor.withValues(alpha: AppOpacity.medium),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Icon(kindIcon, color: kindColor, size: 22),
@@ -785,8 +737,8 @@ class _ResourceCard extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: kindColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(3),
+                            color: kindColor.withValues(alpha: AppOpacity.medium),
+                            borderRadius: AppRadius.xs,
                           ),
                           child: Text(
                             resource.kind,
@@ -883,7 +835,7 @@ class _HistoryTab extends StatelessWidget {
     if (history.isEmpty) {
       return const Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: EdgeInsets.all(AppSpacing.xxxl),
           child: Text('No deployment history returned by the ArgoCD API.'),
         ),
       );
@@ -932,7 +884,7 @@ class _TimelineEntry extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final relativeTime = _formatRelativeTime(entry.deployedAt);
+    final relativeTime = formatRelativeTime(entry.deployedAt);
     final dotColor = isCurrent ? AppColors.teal : AppColors.grey;
 
     return IntrinsicHeight(
@@ -952,7 +904,7 @@ class _TimelineEntry extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: isCurrent
                         ? Border.all(
-                            color: dotColor.withValues(alpha: 0.4),
+                            color: dotColor.withValues(alpha: AppOpacity.heavy),
                             width: 2,
                           )
                         : null,
@@ -972,10 +924,10 @@ class _TimelineEntry extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppRadius.md,
                 border: Border.all(
                   color: isCurrent
-                      ? AppColors.teal.withValues(alpha: 0.3)
+                      ? AppColors.teal.withValues(alpha: AppOpacity.bold)
                       : theme.dividerColor,
                 ),
               ),
@@ -1179,93 +1131,4 @@ class _BottomActionBar extends StatelessWidget {
       ),
     );
   }
-}
-
-// ---------------------------------------------------------------------------
-// Shared helpers
-// ---------------------------------------------------------------------------
-
-class _DetailPill extends StatelessWidget {
-  const _DetailPill({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text('$label: $value'),
-    );
-  }
-}
-
-class _LabeledText extends StatelessWidget {
-  const _LabeledText({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(value),
-        ],
-      ),
-    );
-  }
-}
-
-String _formatRelativeTime(String deployedAt) {
-  final parsed = DateTime.tryParse(deployedAt);
-  if (parsed == null) {
-    return deployedAt;
-  }
-
-  final now = DateTime.now().toUtc();
-  final diff = now.difference(parsed);
-
-  if (diff.isNegative) {
-    return deployedAt;
-  }
-
-  if (diff.inSeconds < 60) {
-    return 'just now';
-  }
-  if (diff.inMinutes < 60) {
-    final m = diff.inMinutes;
-    return '$m ${m == 1 ? 'minute' : 'minutes'} ago';
-  }
-  if (diff.inHours < 24) {
-    final h = diff.inHours;
-    return '$h ${h == 1 ? 'hour' : 'hours'} ago';
-  }
-  if (diff.inDays < 30) {
-    final d = diff.inDays;
-    return '$d ${d == 1 ? 'day' : 'days'} ago';
-  }
-  if (diff.inDays < 365) {
-    final months = diff.inDays ~/ 30;
-    return '$months ${months == 1 ? 'month' : 'months'} ago';
-  }
-
-  final years = diff.inDays ~/ 365;
-  return '$years ${years == 1 ? 'year' : 'years'} ago';
 }

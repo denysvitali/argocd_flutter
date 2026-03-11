@@ -473,7 +473,7 @@ class _OverviewStrip extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: <Color>[
             AppColors.headerDarkAlt,
-            Color(0xFF0B1A12),
+            AppColors.headerDarkGreen,
           ],
         ),
         borderRadius: AppRadius.md,
@@ -731,7 +731,7 @@ class _CountBadge extends StatelessWidget {
           Text(
             label,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: color.withValues(alpha: 0.8),
+              color: color.withValues(alpha: AppOpacity.opaque),
             ),
           ),
         ],

@@ -268,7 +268,7 @@ class _HeaderBanner extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: <Color>[
             AppColors.headerDarkAlt,
-            Color(0xFF0B1A12),
+            AppColors.headerDarkGreen,
           ],
         ),
         borderRadius: AppRadius.md,
@@ -299,7 +299,7 @@ class _HeaderBanner extends StatelessWidget {
                     Text(
                       'PROJECT',
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: AppColors.textOnDarkGreen.withValues(alpha: 0.7),
+                        color: AppColors.textOnDarkGreen.withValues(alpha: AppOpacity.prominent),
                         letterSpacing: 1.2,
                         fontWeight: FontWeight.w600,
                       ),
@@ -568,7 +568,7 @@ class _SourcesTab extends StatelessWidget {
                               vertical: AppSpacing.xs,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.amber.withValues(alpha: 0.15),
+                              color: AppColors.amber.withValues(alpha: AppOpacity.moderate),
                               borderRadius: AppRadius.sm,
                             ),
                             child: Text(

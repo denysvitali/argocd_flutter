@@ -288,7 +288,7 @@ class _SignInScreenState extends State<SignInScreen> {
         username: _usernameController.text,
         password: _passwordController.text,
       );
-    } catch (_) {
+    } on Exception {
       if (!mounted) {
         return;
       }
@@ -469,8 +469,6 @@ class _ErrorBanner extends StatelessWidget {
                 color: theme.colorScheme.onErrorContainer,
               ),
               onPressed: onDismiss,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
               tooltip: 'Dismiss',
             ),
           ],

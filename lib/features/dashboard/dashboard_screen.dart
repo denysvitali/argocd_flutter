@@ -1,5 +1,6 @@
 import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
+import 'package:argocd_flutter/core/utils/time_format.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:argocd_flutter/ui/error_retry_widget.dart';
@@ -742,7 +743,7 @@ class _TimelineEntry extends StatelessWidget {
                         ),
                         if (syncTime != null && syncTime.isNotEmpty)
                           Text(
-                            _formatSyncTime(syncTime),
+                            formatRelativeTime(syncTime),
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: AppColors.greyLight,
                             ),
@@ -939,25 +940,3 @@ List<ArgoApplication> _buildRecentlySynced(
   return withSync.take(5).toList(growable: false);
 }
 
-String _formatSyncTime(String isoTimestamp) {
-  final dateTime = DateTime.tryParse(isoTimestamp);
-  if (dateTime == null) {
-    return isoTimestamp;
-  }
-
-  final now = DateTime.now();
-  final difference = now.difference(dateTime);
-
-  if (difference.inSeconds < 60) {
-    return 'just now';
-  } else if (difference.inMinutes < 60) {
-    final minutes = difference.inMinutes;
-    return '$minutes min${minutes == 1 ? '' : 's'} ago';
-  } else if (difference.inHours < 24) {
-    final hours = difference.inHours;
-    return '$hours hour${hours == 1 ? '' : 's'} ago';
-  } else {
-    final days = difference.inDays;
-    return '$days day${days == 1 ? '' : 's'} ago';
-  }
-}

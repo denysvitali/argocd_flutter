@@ -344,51 +344,47 @@ class _ThemeCard extends StatelessWidget {
         ? theme.colorScheme.primary.withValues(alpha: AppOpacity.light)
         : theme.colorScheme.surfaceContainerHighest.withValues(alpha: AppOpacity.heavy);
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeInOut,
-      child: Material(
-        color: backgroundColor,
+    return Material(
+      color: backgroundColor,
+      borderRadius: AppRadius.md,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: AppRadius.md,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: AppRadius.md,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl, horizontal: AppSpacing.lg),
-            decoration: BoxDecoration(
-              borderRadius: AppRadius.md,
-              border: Border.all(
-                color: borderColor,
-                width: 1,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl, horizontal: AppSpacing.lg),
+          decoration: BoxDecoration(
+            borderRadius: AppRadius.md,
+            border: Border.all(
+              color: borderColor,
+              width: 1,
+            ),
+          ),
+          child: Column(
+            children: <Widget>[
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  icon,
+                  key: ValueKey<bool>(selected),
+                  size: 28,
+                  color: selected
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
               ),
-            ),
-            child: Column(
-              children: <Widget>[
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: Icon(
-                    icon,
-                    key: ValueKey<bool>(selected),
-                    size: 28,
-                    color: selected
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant,
-                  ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: selected
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  label,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: selected
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

@@ -23,6 +23,7 @@ abstract final class AppColors {
 
   static const Color headerDark = Color(0xFF0F1923);
   static const Color headerDarkAlt = Color(0xFF102218);
+  static const Color headerDarkGreen = Color(0xFF0B1A12);
 
   static Color outline(ThemeData theme) {
     return theme.brightness == Brightness.dark ? darkBorder : border;
