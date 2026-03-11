@@ -527,28 +527,17 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       lineCount: document.yamlLines.length,
       matches: viewData.matches,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 20, 16),
+        padding: const EdgeInsets.fromLTRB(0, 8, 12, 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            for (var i = 0; i < document.sections.length; i++) ...<Widget>[
+            for (var i = 0; i < document.sections.length; i++)
               _buildSection(
                 document,
                 document.sections[i],
                 viewData,
                 visibleLineIndices,
               ),
-              if (i != document.sections.length - 1)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Divider(
-                    height: 1,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outlineVariant.withValues(alpha: 0.7),
-                  ),
-                ),
-            ],
           ],
         ),
       ),
@@ -665,18 +654,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     final userExpanded = _expandedSections[section.key] ?? true;
     final isExpanded = viewData.query.isNotEmpty ? true : userExpanded;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(
-          alpha: theme.brightness == Brightness.dark ? 0.28 : 0.5,
-        ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.65),
-        ),
-      ),
-      child: Column(
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           InkWell(
@@ -688,7 +666,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                   }
                 : null,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
@@ -698,7 +676,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                               ? Icons.keyboard_arrow_down
                               : Icons.keyboard_arrow_right)
                         : Icons.drag_handle,
-                    size: 18,
+                    size: 16,
                     color: section.expandable
                         ? colorScheme.primary
                         : colorScheme.onSurfaceVariant,
@@ -708,29 +686,11 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                     section.key,
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontFamily: 'monospace',
-                      fontSize: 14,
+                      fontSize: 13,
                       color: colorScheme.primary,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  if (section.summaryText
-                      case final String summaryText) ...<Widget>[
-                    const SizedBox(width: 10),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 320),
-                      child: Text(
-                        summaryText,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontFamily: 'monospace',
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ] else
-                    const SizedBox(width: 12),
-                  const SizedBox(width: 8),
-                  _buildLineCountBadge(section.lineCount),
                 ],
               ),
             ),
@@ -755,38 +715,14 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
             secondChild: section.expandable
                 ? const SizedBox.shrink()
                 : Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
+                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
                     child: _buildScalarSectionLine(document, section, viewData),
                   ),
           ),
         ],
-      ),
-    );
+      );
   }
 
-  Widget _buildLineCountBadge(int lineCount) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(
-          alpha: theme.brightness == Brightness.dark ? 0.8 : 0.95,
-        ),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
-      child: Text(
-        '$lineCount ${lineCount == 1 ? 'line' : 'lines'}',
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: colorScheme.onSurfaceVariant,
-          fontSize: 12,
-          fontFamily: 'monospace',
-        ),
-      ),
-    );
-  }
 
   Widget _buildYamlLine({
     required String keyId,
@@ -905,7 +841,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
               alpha: theme.brightness == Brightness.dark ? 0.16 : 0.12,
             )
           : null,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: Row(
         mainAxisSize: _wrapLines ? MainAxisSize.max : MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1139,7 +1075,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: widgets,
