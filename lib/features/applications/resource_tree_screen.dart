@@ -103,12 +103,12 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
               }
 
               return ListView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(14),
                 children: <Widget>[
                   _SummaryHeader(nodes: nodes),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   _buildSearchBar(theme),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   if (filteredRoots.isEmpty && _searchQuery.isNotEmpty)
                     Center(
                       child: Padding(
@@ -180,12 +180,12 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
         filled: true,
         fillColor: theme.colorScheme.surfaceContainerHighest,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(6),
           borderSide: BorderSide.none,
         ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
+          horizontal: 12,
+          vertical: 8,
         ),
       ),
       onChanged: (String value) {
@@ -415,10 +415,10 @@ class _SummaryHeader extends StatelessWidget {
     ];
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
@@ -426,11 +426,11 @@ class _SummaryHeader extends StatelessWidget {
         children: <Widget>[
           Text(
             'Resource Summary',
-            style: theme.textTheme.titleLarge?.copyWith(
+            style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
           Center(
             child: SizedBox(
               width: 140,
@@ -462,11 +462,11 @@ class _SummaryHeader extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           // Health legend
           Wrap(
-            spacing: 16,
-            runSpacing: 8,
+            spacing: 12,
+            runSpacing: 6,
             children: <Widget>[
               for (final _DonutSegment segment in healthSegments)
                 _LegendItem(
@@ -475,9 +475,9 @@ class _SummaryHeader extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 16),
-          const Divider(),
           const SizedBox(height: 12),
+          const Divider(),
+          const SizedBox(height: 8),
           // Resource kind counts
           Text(
             'Resources by Kind',
@@ -485,10 +485,10 @@ class _SummaryHeader extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Wrap(
-            spacing: 8,
-            runSpacing: 6,
+            spacing: 6,
+            runSpacing: 4,
             children: <Widget>[
               for (final MapEntry<String, int> entry in sortedKinds)
                 _KindCountBadge(kind: entry.key, count: entry.value),
@@ -578,8 +578,8 @@ class _LegendItem extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Container(
-          width: 10,
-          height: 10,
+          width: 8,
+          height: 8,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 6),
@@ -606,10 +606,10 @@ class _KindCountBadge extends StatelessWidget {
     final Color kindColor = colorForResourceKind(kind);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: kindColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -893,14 +893,14 @@ class _NodeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         onTap: () => _openManifest(context),
         onLongPress: () => _showDetailSheet(context),
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(6),
             border: Border.all(color: theme.dividerColor),
           ),
           clipBehavior: Clip.antiAlias,
@@ -908,16 +908,16 @@ class _NodeCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                Container(width: 4, color: kindColor),
-                const SizedBox(width: 10),
+                Container(width: 3, color: kindColor),
+                const SizedBox(width: 8),
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Container(
-                    width: 32,
-                    height: 32,
+                    width: 28,
+                    height: 28,
                     decoration: BoxDecoration(
                       color: kindColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                     child: Icon(
                       iconForResourceKind(node.kind),
@@ -926,10 +926,10 @@ class _NodeCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -997,7 +997,7 @@ class _NodeCard extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
       ),
       builder: (BuildContext context) {
         return DraggableScrollableSheet(
@@ -1008,34 +1008,34 @@ class _NodeCard extends StatelessWidget {
           builder: (BuildContext context, ScrollController scrollController) {
             return ListView(
               controller: scrollController,
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(16),
               children: <Widget>[
                 Center(
                   child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 20),
+                    width: 32,
+                    height: 3,
+                    margin: const EdgeInsets.only(bottom: 14),
                     decoration: BoxDecoration(
                       color: AppColors.greyLight,
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
                 ),
                 Row(
                   children: <Widget>[
                     Container(
-                      width: 44,
-                      height: 44,
+                      width: 36,
+                      height: 36,
                       decoration: BoxDecoration(
                         color: kindColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
                         iconForResourceKind(node.kind),
                         color: kindColor,
                       ),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1058,9 +1058,9 @@ class _NodeCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 14),
                 const Divider(),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 _DetailRow(label: 'Kind', value: node.kind),
                 _DetailRow(label: 'Name', value: node.name),
                 _DetailRow(label: 'Namespace', value: node.namespace),
@@ -1083,7 +1083,7 @@ class _NodeCard extends StatelessWidget {
                     label: 'Parent UIDs',
                     value: node.parentUids.join(', '),
                   ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 Row(
                   children: <Widget>[
                     Expanded(
@@ -1265,13 +1265,13 @@ class _SmallActionButton extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(4),
         onTap: onPressed,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           decoration: BoxDecoration(
             border: Border.all(color: color.withValues(alpha: 0.4)),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(4),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
