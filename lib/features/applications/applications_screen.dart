@@ -6,6 +6,8 @@ import 'package:argocd_flutter/ui/last_updated_text.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
 
+const BorderRadius _kCardRadius = BorderRadius.all(Radius.circular(8));
+
 enum ApplicationSortField { name, health, lastSynced, project }
 
 enum ApplicationFilterChip { all, healthy, degraded, outOfSync, progressing }
@@ -191,7 +193,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               },
               showClear: _query.isNotEmpty,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             _FilterChips(
               activeFilter: _activeFilter,
               counts: filterCounts,
@@ -201,14 +203,14 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                 });
               },
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             LayoutBuilder(
               builder: (BuildContext context, BoxConstraints constraints) {
                 final stackedControls = constraints.maxWidth < 700;
                 final summaryText =
                     '${applications.length} of ${allApplications.length} applications';
                 final clearButton = _hasActiveControls
-                    ? TextButton(
+                    ? TextButton.icon(
                         onPressed: () {
                           _searchController.clear();
                           setState(() {
@@ -216,7 +218,8 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                             _activeFilter = ApplicationFilterChip.all;
                           });
                         },
-                        child: const Text('Clear'),
+                        icon: const Icon(Icons.clear_all_rounded, size: 18),
+                        label: const Text('Clear'),
                       )
                     : null;
                 final sortDropdown = _SortDropdown(
@@ -232,16 +235,10 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                   return Row(
                     children: <Widget>[
                       Expanded(
-                        child: Text(
-                          summaryText,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: AppColors.grey,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
+                        child: _SummaryLabel(text: summaryText),
                       ),
-                      if (clearButton != null) clearButton,
+                      ?clearButton,
+                      const SizedBox(width: 8),
                       sortDropdown,
                     ],
                   );
@@ -250,20 +247,14 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(
-                      summaryText,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.grey,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
+                    _SummaryLabel(text: summaryText),
+                    const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: <Widget>[
-                        if (clearButton != null) clearButton,
+                        ?clearButton,
                         sortDropdown,
                       ],
                     ),
@@ -271,7 +262,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                 );
               },
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             if (widget.controller.errorMessage != null)
               ErrorRetryWidget(
                 message: widget.controller.errorMessage!,
@@ -309,6 +300,26 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
   }
 }
 
+class _SummaryLabel extends StatelessWidget {
+  const _SummaryLabel({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Text(
+      text,
+      style: theme.textTheme.bodyMedium?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.1,
+      ),
+    );
+  }
+}
+
 class _FilterChips extends StatelessWidget {
   const _FilterChips({
     required this.activeFilter,
@@ -327,13 +338,13 @@ class _FilterChips extends StatelessWidget {
       child: Row(
         children: <Widget>[
           _buildChip(context, ApplicationFilterChip.all, 'All'),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           _buildChip(context, ApplicationFilterChip.healthy, 'Healthy'),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           _buildChip(context, ApplicationFilterChip.degraded, 'Degraded'),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           _buildChip(context, ApplicationFilterChip.outOfSync, 'Out of Sync'),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           _buildChip(context, ApplicationFilterChip.progressing, 'Progressing'),
         ],
       ),
@@ -346,20 +357,48 @@ class _FilterChips extends StatelessWidget {
     String label,
   ) {
     final isSelected = activeFilter == chip;
+    final count = counts[chip] ?? 0;
 
     return FilterChip(
-      label: Text('$label ${counts[chip] ?? 0}'),
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(label),
+          const SizedBox(width: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.cobalt.withValues(alpha: 0.15)
+                  : AppColors.grey.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              '$count',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: isSelected ? AppColors.cobalt : AppColors.grey,
+              ),
+            ),
+          ),
+        ],
+      ),
       selected: isSelected,
       onSelected: (_) => onSelected(chip),
-      selectedColor: AppColors.cobalt.withValues(alpha: 0.15),
+      selectedColor: AppColors.cobalt.withValues(alpha: 0.12),
       checkmarkColor: AppColors.cobalt,
       labelStyle: TextStyle(
         color: isSelected ? AppColors.cobalt : AppColors.grey,
         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
       ),
-      side: BorderSide(color: isSelected ? AppColors.cobalt : AppColors.border),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      side: BorderSide(
+        color: isSelected ? AppColors.cobalt : AppColors.border,
+        width: isSelected ? 1.5 : 1,
+      ),
+      shape: const RoundedRectangleBorder(borderRadius: _kCardRadius),
       visualDensity: VisualDensity.compact,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     );
   }
 }
@@ -372,44 +411,55 @@ class _SortDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonHideUnderline(
-      child: DropdownButton<ApplicationSortField>(
-        value: value,
-        icon: const Icon(Icons.sort_rounded, size: 20),
-        isDense: true,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: AppColors.grey,
-          fontWeight: FontWeight.w600,
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: _kCardRadius,
+        border: Border.all(color: AppColors.outline(theme)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<ApplicationSortField>(
+          value: value,
+          icon: const Icon(Icons.sort_rounded, size: 18),
+          isDense: true,
+          borderRadius: _kCardRadius,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
+          ),
+          items: const <DropdownMenuItem<ApplicationSortField>>[
+            DropdownMenuItem(
+              value: ApplicationSortField.name,
+              child: Text('Sort by name'),
+            ),
+            DropdownMenuItem(
+              value: ApplicationSortField.health,
+              child: Text('Sort by health'),
+            ),
+            DropdownMenuItem(
+              value: ApplicationSortField.lastSynced,
+              child: Text('Sort by last synced'),
+            ),
+            DropdownMenuItem(
+              value: ApplicationSortField.project,
+              child: Text('Sort by project'),
+            ),
+          ],
+          onChanged: (ApplicationSortField? field) {
+            if (field != null) {
+              onChanged(field);
+            }
+          },
         ),
-        items: const <DropdownMenuItem<ApplicationSortField>>[
-          DropdownMenuItem(
-            value: ApplicationSortField.name,
-            child: Text('Sort by name'),
-          ),
-          DropdownMenuItem(
-            value: ApplicationSortField.health,
-            child: Text('Sort by health'),
-          ),
-          DropdownMenuItem(
-            value: ApplicationSortField.lastSynced,
-            child: Text('Sort by last synced'),
-          ),
-          DropdownMenuItem(
-            value: ApplicationSortField.project,
-            child: Text('Sort by project'),
-          ),
-        ],
-        onChanged: (ApplicationSortField? field) {
-          if (field != null) {
-            onChanged(field);
-          }
-        },
       ),
     );
   }
 }
 
-class _SearchBar extends StatelessWidget {
+class _SearchBar extends StatefulWidget {
   const _SearchBar({
     required this.controller,
     required this.onChanged,
@@ -423,36 +473,83 @@ class _SearchBar extends StatelessWidget {
   final bool showClear;
 
   @override
+  State<_SearchBar> createState() => _SearchBarState();
+}
+
+class _SearchBarState extends State<_SearchBar> {
+  final FocusNode _focusNode = FocusNode();
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    setState(() {
+      _isFocused = _focusNode.hasFocus;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final outlineColor = AppColors.outline(theme);
+    final outlineColor = _isFocused
+        ? AppColors.cobalt
+        : AppColors.outline(theme);
     final mutedColor = AppColors.mutedText(theme);
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
       decoration: BoxDecoration(
         color: AppColors.inputFill(theme),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: outlineColor),
+        borderRadius: _kCardRadius,
+        border: Border.all(
+          color: outlineColor,
+          width: _isFocused ? 1.5 : 1,
+        ),
+        boxShadow: _isFocused
+            ? <BoxShadow>[
+                BoxShadow(
+                  color: AppColors.cobalt.withValues(alpha: 0.10),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
       ),
       child: TextField(
-        controller: controller,
-        onChanged: onChanged,
+        controller: widget.controller,
+        focusNode: _focusNode,
+        onChanged: widget.onChanged,
         decoration: InputDecoration(
           hintText: 'Search name, project, namespace, repo, cluster, revision',
           hintStyle: theme.textTheme.bodyMedium?.copyWith(color: mutedColor),
           prefixIcon: Padding(
             padding: const EdgeInsets.only(left: 16, right: 8),
-            child: Icon(Icons.search_rounded, color: mutedColor),
+            child: Icon(
+              Icons.search_rounded,
+              color: _isFocused ? AppColors.cobalt : mutedColor,
+            ),
           ),
           prefixIconConstraints: const BoxConstraints(
             minWidth: 48,
             minHeight: 48,
           ),
-          suffixIcon: showClear
+          suffixIcon: widget.showClear
               ? IconButton(
                   icon: const Icon(Icons.close_rounded, size: 20),
                   color: mutedColor,
-                  onPressed: onClear,
+                  onPressed: widget.onClear,
                 )
               : null,
           border: InputBorder.none,
@@ -488,7 +585,7 @@ class _OverviewStrip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.headerDark,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: _kCardRadius,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -618,18 +715,21 @@ class _ApplicationCard extends StatelessWidget {
 
     return Material(
       color: theme.colorScheme.surface,
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: _kCardRadius,
       clipBehavior: Clip.antiAlias,
+      elevation: 0,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: _kCardRadius,
+        splashColor: AppColors.cobalt.withValues(alpha: 0.06),
+        highlightColor: AppColors.cobalt.withValues(alpha: 0.04),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.dividerColor),
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: _kCardRadius,
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: _kCardRadius,
             child: Container(
               decoration: BoxDecoration(
                 border: Border(left: BorderSide(color: healthColor, width: 3)),
@@ -669,20 +769,19 @@ class _ApplicationCard extends StatelessWidget {
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    crossAxisAlignment: WrapCrossAlignment.center,
+                  const SizedBox(height: 6),
+                  Row(
                     children: <Widget>[
                       StatusChip(
                         label: application.healthStatus,
                         color: healthColor,
                       ),
+                      const SizedBox(width: 6),
                       StatusChip(
                         label: application.syncStatus,
                         color: AppColors.syncColor(application.syncStatus),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         application.operationPhase,
                         style: theme.textTheme.bodySmall?.copyWith(
@@ -690,6 +789,7 @@ class _ApplicationCard extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
+                      const Spacer(),
                       Text(
                         _shortRevision(application.targetRevision),
                         style: theme.textTheme.bodySmall?.copyWith(
@@ -779,18 +879,21 @@ class _ApplicationGridCard extends StatelessWidget {
 
     return Material(
       color: theme.colorScheme.surface,
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: _kCardRadius,
       clipBehavior: Clip.antiAlias,
+      elevation: 0,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: _kCardRadius,
+        splashColor: AppColors.cobalt.withValues(alpha: 0.06),
+        highlightColor: AppColors.cobalt.withValues(alpha: 0.04),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.dividerColor),
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: _kCardRadius,
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: _kCardRadius,
             child: Container(
               decoration: BoxDecoration(
                 border: Border(left: BorderSide(color: healthColor, width: 3)),
@@ -816,7 +919,7 @@ class _ApplicationGridCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Row(
                     children: <Widget>[
                       Icon(
@@ -825,11 +928,9 @@ class _ApplicationGridCard extends StatelessWidget {
                         color: healthColor,
                       ),
                       const SizedBox(width: 4),
-                      Expanded(
-                        child: StatusChip(
-                          label: application.healthStatus,
-                          color: healthColor,
-                        ),
+                      StatusChip(
+                        label: application.healthStatus,
+                        color: healthColor,
                       ),
                     ],
                   ),
@@ -842,11 +943,9 @@ class _ApplicationGridCard extends StatelessWidget {
                         color: AppColors.syncColor(application.syncStatus),
                       ),
                       const SizedBox(width: 4),
-                      Expanded(
-                        child: StatusChip(
-                          label: application.syncStatus,
-                          color: AppColors.syncColor(application.syncStatus),
-                        ),
+                      StatusChip(
+                        label: application.syncStatus,
+                        color: AppColors.syncColor(application.syncStatus),
                       ),
                     ],
                   ),
@@ -923,7 +1022,7 @@ class _ColoredFactBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: _kCardRadius,
         border: Border.all(color: color.withValues(alpha: 0.16)),
       ),
       child: Row(
@@ -977,28 +1076,42 @@ class _EmptyState extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: _kCardRadius,
         border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
         children: <Widget>[
-          Icon(icon, size: 36, color: AppColors.greyLight),
-          const SizedBox(height: 8),
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: AppColors.greyLight.withValues(alpha: 0.10),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 32, color: AppColors.greyLight),
+          ),
+          const SizedBox(height: 16),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: theme.textTheme.titleSmall?.copyWith(
+            style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 6),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall?.copyWith(color: AppColors.grey),
+          SizedBox(
+            width: 320,
+            child: Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.grey,
+                height: 1.4,
+              ),
+            ),
           ),
         ],
       ),
@@ -1100,7 +1213,7 @@ class _SkeletonCardState extends State<_SkeletonCard>
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: _kCardRadius,
               border: Border.all(color: theme.dividerColor),
             ),
             child: Column(
@@ -1144,14 +1257,14 @@ class _SkeletonCardState extends State<_SkeletonCard>
                       width: 60,
                       height: 22,
                       alpha: _animation.value,
-                      borderRadius: 4,
+                      borderRadius: 8,
                     ),
                     const SizedBox(width: 6),
                     _SkeletonLine(
                       width: 60,
                       height: 22,
                       alpha: _animation.value,
-                      borderRadius: 4,
+                      borderRadius: 8,
                     ),
                   ],
                 ),
@@ -1163,11 +1276,11 @@ class _SkeletonCardState extends State<_SkeletonCard>
         return Container(
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: _kCardRadius,
             border: Border.all(color: theme.dividerColor),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: _kCardRadius,
             child: Container(
               decoration: BoxDecoration(
                 border: Border(
@@ -1202,14 +1315,14 @@ class _SkeletonCardState extends State<_SkeletonCard>
                         width: 64,
                         height: 22,
                         alpha: _animation.value,
-                        borderRadius: 4,
+                        borderRadius: 8,
                       ),
                       const SizedBox(width: 6),
                       _SkeletonLine(
                         width: 64,
                         height: 22,
                         alpha: _animation.value,
-                        borderRadius: 4,
+                        borderRadius: 8,
                       ),
                       const Spacer(),
                       _SkeletonLine(
@@ -1226,21 +1339,21 @@ class _SkeletonCardState extends State<_SkeletonCard>
                         width: 72,
                         height: 22,
                         alpha: _animation.value,
-                        borderRadius: 4,
+                        borderRadius: 8,
                       ),
                       const SizedBox(width: 8),
                       _SkeletonLine(
                         width: 72,
                         height: 22,
                         alpha: _animation.value,
-                        borderRadius: 4,
+                        borderRadius: 8,
                       ),
                       const SizedBox(width: 8),
                       _SkeletonLine(
                         width: 72,
                         height: 22,
                         alpha: _animation.value,
-                        borderRadius: 4,
+                        borderRadius: 8,
                       ),
                     ],
                   ),

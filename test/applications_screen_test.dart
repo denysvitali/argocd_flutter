@@ -301,7 +301,17 @@ Finder _filterChipFinder(String labelPrefix) {
       return false;
     }
     final label = widget.label;
-    return label is Text && (label.data?.startsWith(labelPrefix) ?? false);
+    if (label is Text) {
+      return label.data?.startsWith(labelPrefix) ?? false;
+    }
+    if (label is Row) {
+      for (final child in label.children) {
+        if (child is Text && (child.data?.startsWith(labelPrefix) ?? false)) {
+          return true;
+        }
+      }
+    }
+    return false;
   });
 }
 
