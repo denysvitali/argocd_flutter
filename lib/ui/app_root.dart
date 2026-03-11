@@ -10,12 +10,24 @@ import 'package:argocd_flutter/features/settings/settings_screen.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:flutter/material.dart';
 
-ThemeData buildLightAppTheme() {
-  final lightBaseTextTheme = ThemeData.light().textTheme.apply(
-    bodyColor: AppColors.ink,
-    displayColor: AppColors.ink,
+/// Builds the app TextTheme with the given [color].
+TextTheme _buildAppTextTheme(Color color, TextTheme base) {
+  final themed = base.apply(bodyColor: color, displayColor: color);
+  return themed.copyWith(
+    bodySmall: TextStyle(color: color, fontSize: 12),
+    bodyMedium: TextStyle(color: color, fontSize: 14),
+    bodyLarge: TextStyle(color: color, fontSize: 16),
+    labelSmall: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w500),
+    labelMedium: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w500),
+    labelLarge: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w500),
+    titleSmall: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w600),
+    titleMedium: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w600),
+    titleLarge: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.w700),
+    headlineSmall: TextStyle(color: color, fontSize: 24, fontWeight: FontWeight.w700),
   );
+}
 
+ThemeData buildLightAppTheme() {
   return ThemeData(
     useMaterial3: true,
     splashFactory: InkRipple.splashFactory,
@@ -28,64 +40,13 @@ ThemeData buildLightAppTheme() {
       onSecondary: Colors.white,
       onSurface: AppColors.ink,
     ),
-    textTheme: lightBaseTextTheme.copyWith(
-      bodySmall: const TextStyle(
-        color: AppColors.ink,
-        fontSize: 12,
-      ),
-      bodyMedium: const TextStyle(
-        color: AppColors.ink,
-        fontSize: 14,
-      ),
-      bodyLarge: const TextStyle(
-        color: AppColors.ink,
-        fontSize: 16,
-      ),
-      labelSmall: const TextStyle(
-        color: AppColors.ink,
-        fontSize: 11,
-        fontWeight: FontWeight.w500,
-      ),
-      labelMedium: const TextStyle(
-        color: AppColors.ink,
-        fontSize: 12,
-        fontWeight: FontWeight.w500,
-      ),
-      labelLarge: const TextStyle(
-        color: AppColors.ink,
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-      ),
-      titleSmall: const TextStyle(
-        color: AppColors.ink,
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-      ),
-      titleMedium: const TextStyle(
-        color: AppColors.ink,
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-      ),
-      titleLarge: const TextStyle(
-        color: AppColors.ink,
-        fontSize: 20,
-        fontWeight: FontWeight.w700,
-      ),
-      headlineSmall: const TextStyle(
-        color: AppColors.ink,
-        fontSize: 24,
-        fontWeight: FontWeight.w700,
-      ),
-    ),
+    textTheme: _buildAppTextTheme(AppColors.ink, ThemeData.light().textTheme),
     dividerColor: AppColors.border,
     appBarTheme: const AppBarTheme(toolbarHeight: 48),
     navigationBarTheme: NavigationBarThemeData(
       height: 56,
       labelTextStyle: const WidgetStatePropertyAll<TextStyle>(
-        TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
+        TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
       ),
       iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
         final color = states.contains(WidgetState.selected)
@@ -98,11 +59,6 @@ ThemeData buildLightAppTheme() {
 }
 
 ThemeData buildDarkAppTheme() {
-  final darkBaseTextTheme = ThemeData.dark().textTheme.apply(
-    bodyColor: AppColors.border,
-    displayColor: AppColors.border,
-  );
-
   return ThemeData(
     useMaterial3: true,
     splashFactory: InkRipple.splashFactory,
@@ -115,64 +71,13 @@ ThemeData buildDarkAppTheme() {
       onSecondary: Colors.white,
       onSurface: AppColors.border,
     ),
-    textTheme: darkBaseTextTheme.copyWith(
-      bodySmall: const TextStyle(
-        color: AppColors.border,
-        fontSize: 12,
-      ),
-      bodyMedium: const TextStyle(
-        color: AppColors.border,
-        fontSize: 14,
-      ),
-      bodyLarge: const TextStyle(
-        color: AppColors.border,
-        fontSize: 16,
-      ),
-      labelSmall: const TextStyle(
-        color: AppColors.border,
-        fontSize: 11,
-        fontWeight: FontWeight.w500,
-      ),
-      labelMedium: const TextStyle(
-        color: AppColors.border,
-        fontSize: 12,
-        fontWeight: FontWeight.w500,
-      ),
-      labelLarge: const TextStyle(
-        color: AppColors.border,
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-      ),
-      titleSmall: const TextStyle(
-        color: AppColors.border,
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-      ),
-      titleMedium: const TextStyle(
-        color: AppColors.border,
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-      ),
-      titleLarge: const TextStyle(
-        color: AppColors.border,
-        fontSize: 20,
-        fontWeight: FontWeight.w700,
-      ),
-      headlineSmall: const TextStyle(
-        color: AppColors.border,
-        fontSize: 24,
-        fontWeight: FontWeight.w700,
-      ),
-    ),
+    textTheme: _buildAppTextTheme(AppColors.border, ThemeData.dark().textTheme),
     dividerColor: AppColors.darkBorder,
     appBarTheme: const AppBarTheme(toolbarHeight: 48),
     navigationBarTheme: NavigationBarThemeData(
       height: 56,
       labelTextStyle: const WidgetStatePropertyAll<TextStyle>(
-        TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
+        TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
       ),
       iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
         final color = states.contains(WidgetState.selected)
