@@ -282,6 +282,7 @@ class _DetailBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return Column(
       children: <Widget>[
@@ -290,7 +291,7 @@ class _DetailBody extends StatelessWidget {
             headerSliverBuilder: (context, innerBoxIsScrolled) {
               return <Widget>[
                 SliverAppBar(
-                  expandedHeight: 180,
+                  expandedHeight: screenHeight < 600 ? 160 : 200,
                   pinned: true,
                   forceElevated: innerBoxIsScrolled,
                   flexibleSpace: FlexibleSpaceBar(
@@ -299,13 +300,17 @@ class _DetailBody extends StatelessWidget {
                   title: innerBoxIsScrolled
                       ? Text(
                           application.name,
-                          style: const TextStyle(fontSize: 16),
+                          style: theme.textTheme.titleMedium,
                         )
                       : null,
                   bottom: TabBar(
                     controller: tabController,
                     labelColor: theme.colorScheme.onSurface,
                     unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+                    labelStyle: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    unselectedLabelStyle: theme.textTheme.labelLarge,
                     indicatorColor: AppColors.cobalt,
                     tabs: const <Widget>[
                       Tab(text: 'Overview'),
@@ -362,10 +367,10 @@ class _HeroHeader extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.only(
-        top: topPadding + 52,
-        left: 16,
-        right: 16,
-        bottom: 52,
+        top: topPadding + 56,
+        left: 20,
+        right: 20,
+        bottom: 56,
       ),
       decoration: const BoxDecoration(
         color: AppColors.headerDark,
@@ -383,7 +388,7 @@ class _HeroHeader extends StatelessWidget {
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             '${application.project}  \u2022  ${application.namespace}  \u2022  ${_shortCluster(application.cluster)}',
             maxLines: 1,
@@ -392,10 +397,10 @@ class _HeroHeader extends StatelessWidget {
               color: AppColors.textOnDarkMuted,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Wrap(
-            spacing: 6,
-            runSpacing: 4,
+            spacing: 8,
+            runSpacing: 6,
             children: <Widget>[
               StatusChip(
                 label: application.healthStatus,
@@ -520,9 +525,19 @@ class _StatusIndicator extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: color.withValues(alpha: 0.4),
+                blurRadius: 6,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
         ),
         const SizedBox(width: 8),
         Column(
@@ -629,6 +644,13 @@ class _ResourceTreeCard extends StatelessWidget {
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: theme.dividerColor),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: theme.colorScheme.shadow.withValues(alpha: 0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             children: <Widget>[
@@ -759,7 +781,14 @@ class _ResourceCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: kindColor.withValues(alpha: 0.3)),
+            border: Border.all(color: theme.dividerColor),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: theme.colorScheme.shadow.withValues(alpha: 0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             children: <Widget>[
@@ -945,8 +974,8 @@ class _TimelineEntry extends StatelessWidget {
               children: <Widget>[
                 const SizedBox(height: 4),
                 Container(
-                  width: 10,
-                  height: 10,
+                  width: isCurrent ? 12 : 10,
+                  height: isCurrent ? 12 : 10,
                   decoration: BoxDecoration(
                     color: dotColor,
                     shape: BoxShape.circle,
@@ -955,6 +984,15 @@ class _TimelineEntry extends StatelessWidget {
                             color: dotColor.withValues(alpha: 0.4),
                             width: 2,
                           )
+                        : null,
+                    boxShadow: isCurrent
+                        ? <BoxShadow>[
+                            BoxShadow(
+                              color: dotColor.withValues(alpha: 0.4),
+                              blurRadius: 6,
+                              spreadRadius: 1,
+                            ),
+                          ]
                         : null,
                   ),
                 ),
@@ -971,13 +1009,31 @@ class _TimelineEntry extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
+                color: isCurrent
+                    ? AppColors.teal.withValues(alpha: 0.04)
+                    : theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isCurrent
-                      ? AppColors.teal.withValues(alpha: 0.3)
+                      ? AppColors.teal.withValues(alpha: 0.5)
                       : theme.dividerColor,
+                  width: isCurrent ? 1.5 : 1.0,
                 ),
+                boxShadow: <BoxShadow>[
+                  if (isCurrent)
+                    BoxShadow(
+                      color: AppColors.teal.withValues(alpha: 0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    )
+                  else
+                    BoxShadow(
+                      color:
+                          theme.colorScheme.shadow.withValues(alpha: 0.04),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -995,7 +1051,10 @@ class _TimelineEntry extends StatelessWidget {
                       Text(
                         'Deploy #${entry.id}',
                         style: theme.textTheme.labelMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                          color: isCurrent
+                              ? theme.colorScheme.onSurface
+                              : theme.colorScheme.onSurfaceVariant,
+                          fontWeight: isCurrent ? FontWeight.w600 : null,
                         ),
                       ),
                     ],
@@ -1133,46 +1192,84 @@ class _BottomActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    const buttonHeight = 44.0;
 
     return Container(
       padding: EdgeInsets.only(
         left: 16,
         right: 16,
-        top: 8,
-        bottom: 8 + MediaQuery.of(context).padding.bottom,
+        top: 12,
+        bottom: 12 + MediaQuery.of(context).padding.bottom,
       ),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         border: Border(top: BorderSide(color: theme.dividerColor)),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: theme.colorScheme.shadow.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
       ),
       child: Row(
         children: <Widget>[
           Expanded(
-            child: FilledButton.icon(
-              onPressed: actionInFlight ? null : onRefresh,
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Refresh'),
-              style: FilledButton.styleFrom(backgroundColor: AppColors.cobalt),
+            child: SizedBox(
+              height: buttonHeight,
+              child: FilledButton.icon(
+                onPressed: actionInFlight ? null : onRefresh,
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Refresh'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.cobalt,
+                  textStyle: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: FilledButton.icon(
-              onPressed: actionInFlight ? null : onSync,
-              icon: const Icon(Icons.sync, size: 18),
-              label: const Text('Sync'),
-              style: FilledButton.styleFrom(backgroundColor: AppColors.teal),
+            child: SizedBox(
+              height: buttonHeight,
+              child: FilledButton.icon(
+                onPressed: actionInFlight ? null : onSync,
+                icon: const Icon(Icons.sync, size: 18),
+                label: const Text('Sync'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.teal,
+                  textStyle: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 12),
-          IconButton(
-            tooltip: 'Delete',
-            onPressed: actionInFlight ? null : onDelete,
-            icon: Icon(
-              Icons.delete_outline,
-              color: actionInFlight
-                  ? theme.disabledColor
-                  : theme.colorScheme.error,
+          SizedBox(
+            height: buttonHeight,
+            width: buttonHeight,
+            child: IconButton(
+              tooltip: 'Delete',
+              onPressed: actionInFlight ? null : onDelete,
+              style: IconButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(
+                    color: actionInFlight
+                        ? theme.disabledColor
+                        : theme.colorScheme.error.withValues(alpha: 0.3),
+                  ),
+                ),
+              ),
+              icon: Icon(
+                Icons.delete_outline,
+                color: actionInFlight
+                    ? theme.disabledColor
+                    : theme.colorScheme.error,
+              ),
             ),
           ),
         ],
@@ -1199,9 +1296,30 @@ class _DetailPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: theme.dividerColor.withValues(alpha: 0.6),
+        ),
       ),
-      child: Text('$label: $value'),
+      child: Text.rich(
+        TextSpan(
+          children: <TextSpan>[
+            TextSpan(
+              text: '$label: ',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            TextSpan(
+              text: value,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1214,21 +1332,33 @@ class _LabeledText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Divider(height: 1, color: AppColors.border),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(value),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
