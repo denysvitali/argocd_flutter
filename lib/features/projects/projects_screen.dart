@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:argocd_flutter/core/models/argo_project.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
+import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:argocd_flutter/ui/error_retry_widget.dart';
 import 'package:argocd_flutter/ui/last_updated_text.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
@@ -164,7 +165,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                 (count, project) => count + project.sourceRepos.length,
               ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: AppSpacing.lg),
             _SearchBar(
               controller: _searchController,
               onChanged: _onSearchChanged,
@@ -177,7 +178,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               },
               showClear: _query.isNotEmpty,
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: AppSpacing.lg),
             _ProjectFilterChips(
               activeFilter: _activeFilter,
               counts: filterCounts,
@@ -187,7 +188,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                 });
               },
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: AppSpacing.lg),
             LayoutBuilder(
               builder: (BuildContext context, BoxConstraints constraints) {
                 final stackedControls = constraints.maxWidth < 700;
@@ -246,7 +247,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: AppSpacing.md),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -260,7 +261,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                 );
               },
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: AppSpacing.lg),
             if (widget.controller.errorMessage != null)
               ErrorRetryWidget(
                 message: widget.controller.errorMessage!,
@@ -282,7 +283,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
             else
               ...projects.map(
                 (project) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
+                  padding: EdgeInsets.only(bottom: AppSpacing.md),
                   child: _ProjectCard(
                     project: project,
                     onTap: () => widget.onOpenProject(project.name),
@@ -333,20 +334,20 @@ class _SearchBar extends StatelessWidget {
             : null,
         filled: true,
         fillColor: AppColors.inputFill(theme),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 10,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.lg,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: AppRadius.md,
           borderSide: BorderSide(color: outlineColor),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: AppRadius.md,
           borderSide: BorderSide(color: outlineColor),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: AppRadius.md,
           borderSide: const BorderSide(color: AppColors.cobalt, width: 1.5),
         ),
       ),
@@ -372,11 +373,11 @@ class _ProjectFilterChips extends StatelessWidget {
       child: Row(
         children: <Widget>[
           _buildChip(context, 'All', _ProjectFilter.all),
-          const SizedBox(width: 8),
+          SizedBox(width: AppSpacing.md),
           _buildChip(context, 'Multi-dest', _ProjectFilter.multiDestination),
-          const SizedBox(width: 8),
+          SizedBox(width: AppSpacing.md),
           _buildChip(context, 'Wildcard repo', _ProjectFilter.wildcardRepo),
-          const SizedBox(width: 8),
+          SizedBox(width: AppSpacing.md),
           _buildChip(context, 'Cluster rules', _ProjectFilter.clusterScoped),
         ],
       ),
@@ -391,7 +392,7 @@ class _ProjectFilterChips extends StatelessWidget {
       selected: selected,
       onSelected: (_) => onSelected(filter),
       visualDensity: VisualDensity.compact,
-      selectedColor: AppColors.teal.withValues(alpha: 0.16),
+      selectedColor: AppColors.teal.withValues(alpha: AppOpacity.moderate),
       checkmarkColor: AppColors.teal,
       labelStyle: TextStyle(
         color: selected ? AppColors.teal : AppColors.grey,
@@ -400,7 +401,7 @@ class _ProjectFilterChips extends StatelessWidget {
       side: BorderSide(
         color: selected ? AppColors.teal : AppColors.outline(theme),
       ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(borderRadius: AppRadius.sm),
     );
   }
 }
@@ -462,7 +463,10 @@ class _OverviewStrip extends StatelessWidget {
     final session = controller.session;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.lg,
+      ),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
@@ -472,7 +476,7 @@ class _OverviewStrip extends StatelessWidget {
             Color(0xFF0B1A12),
           ],
         ),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.md,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -480,10 +484,10 @@ class _OverviewStrip extends StatelessWidget {
           Row(
             children: <Widget>[
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(4),
+                  color: Colors.white.withValues(alpha: AppOpacity.soft),
+                  borderRadius: AppRadius.sm,
                 ),
                 child: const Icon(
                   Icons.account_tree_outlined,
@@ -491,7 +495,7 @@ class _OverviewStrip extends StatelessWidget {
                   size: 18,
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: AppSpacing.lg),
               Expanded(
                 child: Text(
                   session == null
@@ -506,7 +510,7 @@ class _OverviewStrip extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: AppSpacing.lg),
           Wrap(
             spacing: 12,
             runSpacing: 8,
@@ -563,17 +567,17 @@ class _ProjectCard extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
-      splashColor: accent.withValues(alpha: 0.12),
-      highlightColor: accent.withValues(alpha: 0.06),
+      borderRadius: AppRadius.md,
+      splashColor: accent.withValues(alpha: AppOpacity.medium),
+      highlightColor: accent.withValues(alpha: AppOpacity.subtle),
       child: Ink(
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: AppRadius.md,
           border: Border.all(color: outlineColor),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(AppSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -583,8 +587,8 @@ class _ProjectCard extends StatelessWidget {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(6),
+                      color: accent.withValues(alpha: AppOpacity.medium),
+                      borderRadius: AppRadius.md,
                     ),
                     child: Icon(
                       Icons.account_tree_outlined,
@@ -592,7 +596,7 @@ class _ProjectCard extends StatelessWidget {
                       color: accent,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: _HighlightedText(
                       text: project.name,
@@ -606,7 +610,7 @@ class _ProjectCard extends StatelessWidget {
                 ],
               ),
               if (project.description.isNotEmpty) ...<Widget>[
-                const SizedBox(height: 6),
+                SizedBox(height: AppSpacing.md),
                 _HighlightedText(
                   text: project.description,
                   query: searchQuery,
@@ -615,12 +619,12 @@ class _ProjectCard extends StatelessWidget {
                   ),
                 ),
               ],
-              const SizedBox(height: 8),
+              SizedBox(height: AppSpacing.md),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Icon(Icons.code_outlined, size: 14, color: mutedColor),
-                  const SizedBox(width: 6),
+                  SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Text(
                       'Repos: ${_projectRepoPreview(project)}',
@@ -633,12 +637,12 @@ class _ProjectCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: AppSpacing.sm),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Icon(Icons.dns_outlined, size: 14, color: mutedColor),
-                  const SizedBox(width: 6),
+                  SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Text(
                       'Scope: ${_projectDestinationPreview(project)}',
@@ -651,7 +655,7 @@ class _ProjectCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: AppSpacing.lg),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -703,16 +707,19 @@ class _CountBadge extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(6),
+        color: color.withValues(alpha: AppOpacity.light),
+        borderRadius: AppRadius.sm,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Icon(icon, size: 16, color: color),
-          const SizedBox(width: 6),
+          SizedBox(width: AppSpacing.md),
           Text(
             '$count',
             style: theme.textTheme.labelLarge?.copyWith(
@@ -720,7 +727,7 @@ class _CountBadge extends StatelessWidget {
               color: color,
             ),
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: AppSpacing.sm),
           Text(
             label,
             style: theme.textTheme.bodySmall?.copyWith(
@@ -766,7 +773,7 @@ class _HighlightedText extends StatelessWidget {
         TextSpan(
           text: text.substring(index, index + query.length),
           style: TextStyle(
-            backgroundColor: AppColors.amber.withValues(alpha: 0.45),
+            backgroundColor: AppColors.amber.withValues(alpha: AppOpacity.bold),
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -806,11 +813,11 @@ class _EmptyState extends StatelessWidget {
         : 'Connect to ArgoCD, then pull to refresh once your RBAC scope has visible projects.';
 
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: EdgeInsets.only(top: AppSpacing.lg),
       child: Column(
         children: <Widget>[
           Icon(icon, size: 36, color: AppColors.greyLight),
-          const SizedBox(height: 8),
+          SizedBox(height: AppSpacing.md),
           EmptyStateCard(title: title, subtitle: subtitle),
         ],
       ),
@@ -861,7 +868,7 @@ class _MetricChip extends StatelessWidget {
             fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(width: 4),
+        SizedBox(width: AppSpacing.sm),
         Text(
           label,
           style: Theme.of(
