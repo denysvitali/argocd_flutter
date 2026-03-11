@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
@@ -31,14 +33,25 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
   bool _isGridView = false;
   ApplicationSortField _sortField = ApplicationSortField.name;
   ApplicationFilterChip _activeFilter = ApplicationFilterChip.all;
+  Timer? _searchDebounce;
 
   bool get _hasActiveControls =>
       _query.trim().isNotEmpty || _activeFilter != ApplicationFilterChip.all;
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 250), () {
+      setState(() {
+        _query = value;
+      });
+    });
   }
 
   List<ArgoApplication> _applyFilter(List<ArgoApplication> applications) {
@@ -179,12 +192,9 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
             SizedBox(height: AppSpacing.lg),
             _SearchBar(
               controller: _searchController,
-              onChanged: (value) {
-                setState(() {
-                  _query = value;
-                });
-              },
+              onChanged: _onSearchChanged,
               onClear: () {
+                _searchDebounce?.cancel();
                 _searchController.clear();
                 setState(() {
                   _query = '';
@@ -211,6 +221,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                 final clearButton = _hasActiveControls
                     ? TextButton.icon(
                         onPressed: () {
+                          _searchDebounce?.cancel();
                           _searchController.clear();
                           setState(() {
                             _query = '';

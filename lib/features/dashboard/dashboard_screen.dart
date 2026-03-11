@@ -24,29 +24,7 @@ class DashboardScreen extends StatelessWidget {
       animation: controller,
       builder: (context, _) {
         final applications = controller.applications;
-        final totalApps = applications.length;
-        final healthyCount = applications
-            .where(
-              (application) =>
-                  _normalized(application.healthStatus) == 'healthy',
-            )
-            .length;
-        final outOfSyncCount = applications
-            .where(
-              (application) => _normalized(application.syncStatus) != 'synced',
-            )
-            .length;
-        final degradedCount = applications
-            .where(
-              (application) =>
-                  _normalized(application.healthStatus) == 'degraded',
-            )
-            .length;
-        final healthSegments = _buildHealthSegments(applications);
-        final syncSegments = _buildSyncSegments(applications);
-        final needsAttention = _prioritizeAttention(applications);
-
-        final recentlySynced = _buildRecentlySynced(applications);
+        final stats = _computeDashboardStats(applications);
 
         return Scaffold(
           appBar: AppBar(title: const Text('Dashboard')),
@@ -54,14 +32,14 @@ class DashboardScreen extends StatelessWidget {
             onRefresh: () => controller.refreshApplications(),
             child: _buildBody(
               context,
-              totalApps: totalApps,
-              healthyCount: healthyCount,
-              outOfSyncCount: outOfSyncCount,
-              degradedCount: degradedCount,
-              healthSegments: healthSegments,
-              syncSegments: syncSegments,
-              needsAttention: needsAttention,
-              recentlySynced: recentlySynced,
+              totalApps: stats.totalApps,
+              healthyCount: stats.healthyCount,
+              outOfSyncCount: stats.outOfSyncCount,
+              degradedCount: stats.degradedCount,
+              healthSegments: stats.healthSegments,
+              syncSegments: stats.syncSegments,
+              needsAttention: stats.needsAttention,
+              recentlySynced: stats.recentlySynced,
             ),
           ),
         );
@@ -777,24 +755,6 @@ class _BreakdownSegment {
   final int count;
 }
 
-List<ArgoApplication> _prioritizeAttention(List<ArgoApplication> applications) {
-  final issues = applications
-      .where(
-        (application) =>
-            _normalized(application.syncStatus) != 'synced' ||
-            _normalized(application.healthStatus) != 'healthy',
-      )
-      .toList();
-  issues.sort((a, b) {
-    final severity = _attentionSeverity(a).compareTo(_attentionSeverity(b));
-    if (severity != 0) {
-      return severity;
-    }
-    return (b.lastSyncedAt ?? '').compareTo(a.lastSyncedAt ?? '');
-  });
-  return issues;
-}
-
 int _attentionSeverity(ArgoApplication application) {
   final health = _normalized(application.healthStatus);
   if (health == 'degraded') {
@@ -823,120 +783,110 @@ String _shortRevision(String revision) {
   return revision.length <= 8 ? revision : revision.substring(0, 8);
 }
 
-List<_BreakdownSegment> _buildHealthSegments(
-  List<ArgoApplication> applications,
-) {
-  return <_BreakdownSegment>[
-    _BreakdownSegment(
-      label: 'Healthy',
-      color: AppColors.teal,
-      count: applications
-          .where(
-            (application) => _normalized(application.healthStatus) == 'healthy',
-          )
-          .length,
-    ),
-    _BreakdownSegment(
-      label: 'Progressing',
-      color: AppColors.amber,
-      count: applications
-          .where(
-            (application) =>
-                _normalized(application.healthStatus) == 'progressing',
-          )
-          .length,
-    ),
-    _BreakdownSegment(
-      label: 'Degraded',
-      color: AppColors.coral,
-      count: applications
-          .where(
-            (application) =>
-                _normalized(application.healthStatus) == 'degraded',
-          )
-          .length,
-    ),
-    _BreakdownSegment(
-      label: 'Missing',
-      color: AppColors.greyLight,
-      count: applications
-          .where(
-            (application) => _normalized(application.healthStatus) == 'missing',
-          )
-          .length,
-    ),
-    _BreakdownSegment(
-      label: 'Unknown',
-      color: AppColors.grey,
-      count: applications
-          .where(
-            (application) => !_knownHealthStatuses.contains(
-              _normalized(application.healthStatus),
-            ),
-          )
-          .length,
-    ),
-  ];
-}
-
-List<_BreakdownSegment> _buildSyncSegments(List<ArgoApplication> applications) {
-  return <_BreakdownSegment>[
-    _BreakdownSegment(
-      label: 'Synced',
-      color: AppColors.cobalt,
-      count: applications
-          .where(
-            (application) => _normalized(application.syncStatus) == 'synced',
-          )
-          .length,
-    ),
-    _BreakdownSegment(
-      label: 'OutOfSync',
-      color: AppColors.coral,
-      count: applications
-          .where(
-            (application) => _normalized(application.syncStatus) != 'synced',
-          )
-          .length,
-    ),
-  ];
-}
-
 String _normalized(String value) => value.toLowerCase();
 
-const Set<String> _knownHealthStatuses = <String>{
-  'healthy',
-  'progressing',
-  'degraded',
-  'missing',
-};
 
-List<ArgoApplication> _buildRecentlySynced(
-  List<ArgoApplication> applications,
-) {
-  final withSync = applications
-      .where(
-        (application) =>
-            application.lastSyncedAt != null &&
-            application.lastSyncedAt!.isNotEmpty,
-      )
-      .toList();
+class _DashboardStats {
+  const _DashboardStats({
+    required this.totalApps,
+    required this.healthyCount,
+    required this.outOfSyncCount,
+    required this.degradedCount,
+    required this.healthSegments,
+    required this.syncSegments,
+    required this.needsAttention,
+    required this.recentlySynced,
+  });
+
+  final int totalApps;
+  final int healthyCount;
+  final int outOfSyncCount;
+  final int degradedCount;
+  final List<_BreakdownSegment> healthSegments;
+  final List<_BreakdownSegment> syncSegments;
+  final List<ArgoApplication> needsAttention;
+  final List<ArgoApplication> recentlySynced;
+}
+
+_DashboardStats _computeDashboardStats(List<ArgoApplication> applications) {
+  var healthyCount = 0;
+  var progressingCount = 0;
+  var degradedCount = 0;
+  var missingCount = 0;
+  var unknownHealthCount = 0;
+  var syncedCount = 0;
+  var outOfSyncCount = 0;
+
+  final attention = <ArgoApplication>[];
+  final withSync = <ArgoApplication>[];
+
+  for (final app in applications) {
+    final health = _normalized(app.healthStatus);
+    final sync = _normalized(app.syncStatus);
+
+    switch (health) {
+      case 'healthy':
+        healthyCount++;
+      case 'progressing':
+        progressingCount++;
+      case 'degraded':
+        degradedCount++;
+      case 'missing':
+        missingCount++;
+      default:
+        unknownHealthCount++;
+    }
+
+    if (sync == 'synced') {
+      syncedCount++;
+    } else {
+      outOfSyncCount++;
+    }
+
+    if (sync != 'synced' || health != 'healthy') {
+      attention.add(app);
+    }
+
+    if (app.lastSyncedAt != null && app.lastSyncedAt!.isNotEmpty) {
+      withSync.add(app);
+    }
+  }
+
+  attention.sort((a, b) {
+    final severity = _attentionSeverity(a).compareTo(_attentionSeverity(b));
+    if (severity != 0) {
+      return severity;
+    }
+    return (b.lastSyncedAt ?? '').compareTo(a.lastSyncedAt ?? '');
+  });
 
   withSync.sort((a, b) {
     final aTime = DateTime.tryParse(a.lastSyncedAt ?? '');
     final bTime = DateTime.tryParse(b.lastSyncedAt ?? '');
-    if (aTime == null && bTime == null) {
-      return 0;
-    }
-    if (aTime == null) {
-      return 1;
-    }
-    if (bTime == null) {
-      return -1;
-    }
+    if (aTime == null && bTime == null) return 0;
+    if (aTime == null) return 1;
+    if (bTime == null) return -1;
     return bTime.compareTo(aTime);
   });
 
-  return withSync.take(5).toList(growable: false);
+  return _DashboardStats(
+    totalApps: applications.length,
+    healthyCount: healthyCount,
+    outOfSyncCount: outOfSyncCount,
+    degradedCount: degradedCount,
+    healthSegments: <_BreakdownSegment>[
+      _BreakdownSegment(label: 'Healthy', color: AppColors.teal, count: healthyCount),
+      _BreakdownSegment(label: 'Progressing', color: AppColors.amber, count: progressingCount),
+      _BreakdownSegment(label: 'Degraded', color: AppColors.coral, count: degradedCount),
+      _BreakdownSegment(label: 'Missing', color: AppColors.greyLight, count: missingCount),
+      _BreakdownSegment(label: 'Unknown', color: AppColors.grey, count: unknownHealthCount),
+    ],
+    syncSegments: <_BreakdownSegment>[
+      _BreakdownSegment(label: 'Synced', color: AppColors.cobalt, count: syncedCount),
+      _BreakdownSegment(label: 'OutOfSync', color: AppColors.coral, count: outOfSyncCount),
+    ],
+    needsAttention: attention,
+    recentlySynced: withSync.take(5).toList(growable: false),
+  );
 }
 

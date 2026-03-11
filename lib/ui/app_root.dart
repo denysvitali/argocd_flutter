@@ -199,6 +199,9 @@ class ArgoCdApp extends StatefulWidget {
 }
 
 class _ArgoCdAppState extends State<ArgoCdApp> {
+  late final ThemeData _lightTheme = buildLightAppTheme();
+  late final ThemeData _darkTheme = buildDarkAppTheme();
+
   @override
   void initState() {
     super.initState();
@@ -208,9 +211,6 @@ class _ArgoCdAppState extends State<ArgoCdApp> {
 
   @override
   Widget build(BuildContext context) {
-    final baseTheme = buildLightAppTheme();
-    final darkTheme = buildDarkAppTheme();
-
     return AnimatedBuilder(
       animation: Listenable.merge(<Listenable>[
         widget.controller,
@@ -220,8 +220,8 @@ class _ArgoCdAppState extends State<ArgoCdApp> {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'ArgoCD Flutter',
-          theme: baseTheme,
-          darkTheme: darkTheme,
+          theme: _lightTheme,
+          darkTheme: _darkTheme,
           themeMode: widget.themeController.themeMode,
           home: switch (widget.controller.stage) {
             AppStage.booting => const _BootstrapScreen(),
@@ -255,6 +255,7 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+  List<Widget>? _cachedPages;
 
   void _openApplication(String applicationName) {
     Navigator.of(context).push(
@@ -269,10 +270,8 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final compactNav = MediaQuery.sizeOf(context).width < 600;
-    final pages = <Widget>[
+  List<Widget> _buildPages() {
+    _cachedPages ??= <Widget>[
       DashboardScreen(
         controller: widget.controller,
         onOpenApplication: _openApplication,
@@ -301,6 +300,13 @@ class _HomeShellState extends State<HomeShell> {
         themeController: widget.themeController,
       ),
     ];
+    return _cachedPages!;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final compactNav = MediaQuery.sizeOf(context).width < 600;
+    final pages = _buildPages();
 
     return Scaffold(
       body: IndexedStack(index: _index, children: pages),
