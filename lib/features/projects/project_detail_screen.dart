@@ -236,7 +236,7 @@ class _TabLabel extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: AppSpacing.xs),
           decoration: BoxDecoration(
             color: theme.colorScheme.primary.withValues(alpha: AppOpacity.medium),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: AppRadius.lg,
           ),
           child: Text(
             '$count',
@@ -401,7 +401,7 @@ class _OverviewTab extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: AppRadius.base,
             border: Border.all(color: theme.dividerColor),
           ),
           child: Column(
@@ -518,7 +518,7 @@ class _SourcesTab extends StatelessWidget {
             color: isWildcard
                 ? AppColors.amber.withValues(alpha: AppOpacity.subtle)
                 : theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: AppRadius.base,
             border: Border.all(
               color: isWildcard
                   ? AppColors.amber.withValues(alpha: AppOpacity.bold)
@@ -531,7 +531,7 @@ class _SourcesTab extends StatelessWidget {
                 padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
                   color: repoColor.withValues(alpha: AppOpacity.medium),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: AppRadius.base,
                 ),
                 child: Icon(
                   isWildcard ? Icons.all_inclusive : Icons.commit_outlined,
@@ -634,7 +634,7 @@ class _DestinationsTab extends StatelessWidget {
           padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: AppRadius.base,
             border: Border.all(color: outlineColor),
           ),
           child: Column(
@@ -647,7 +647,7 @@ class _DestinationsTab extends StatelessWidget {
                     height: 36,
                     decoration: BoxDecoration(
                       color: AppColors.teal.withValues(alpha: AppOpacity.soft),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: AppRadius.base,
                     ),
                     child: const Icon(
                       Icons.dns_outlined,
@@ -695,7 +695,7 @@ class _DestinationsTab extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.cobalt.withValues(alpha: AppOpacity.light),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: AppRadius.base,
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -752,7 +752,7 @@ class _PermissionsTab extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: AppRadius.base,
             border: Border.all(color: theme.dividerColor),
           ),
           child: Column(
@@ -778,7 +778,7 @@ class _PermissionsTab extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: kindColor.withValues(alpha: AppOpacity.light),
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: AppRadius.base,
                           border: Border.all(
                             color: kindColor.withValues(alpha: AppOpacity.strong),
                           ),
@@ -875,7 +875,7 @@ class _SectionHeader extends StatelessWidget {
           height: 36,
           decoration: BoxDecoration(
             color: iconColor.withValues(alpha: AppOpacity.medium),
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: AppRadius.base,
           ),
           child: Icon(icon, size: 20, color: iconColor),
         ),

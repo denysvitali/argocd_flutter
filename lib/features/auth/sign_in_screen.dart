@@ -445,7 +445,7 @@ class _ErrorBanner extends StatelessWidget {
 
     return Material(
       color: theme.colorScheme.errorContainer,
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: AppRadius.base,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
         child: Row(
@@ -491,7 +491,7 @@ class _CertificateBanner extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: AppRadius.base,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
