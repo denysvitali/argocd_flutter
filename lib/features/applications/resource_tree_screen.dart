@@ -170,6 +170,7 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
         prefixIcon: const Icon(Icons.search, size: 20),
         suffixIcon: _searchQuery.isNotEmpty
             ? IconButton(
+                tooltip: 'Clear search',
                 icon: const Icon(Icons.clear, size: 20),
                 onPressed: () {
                   setState(() {
@@ -181,7 +182,7 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
         filled: true,
         fillColor: theme.colorScheme.surfaceContainerHighest,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: AppRadius.base,
           borderSide: BorderSide.none,
         ),
         contentPadding: const EdgeInsets.symmetric(
@@ -419,7 +420,7 @@ class _SummaryHeader extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: AppRadius.base,
         border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
@@ -896,12 +897,12 @@ class _NodeCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: InkWell(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: AppRadius.base,
         onTap: () => _openManifest(context),
         onLongPress: () => _showDetailSheet(context),
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: AppRadius.base,
             border: Border.all(color: theme.dividerColor),
           ),
           clipBehavior: Clip.antiAlias,

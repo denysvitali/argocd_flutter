@@ -137,7 +137,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                                   ? 0.55
                                   : 0.9,
                             ),
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: AppRadius.pill,
                       ),
                       child: Text(
                         'Lines: $lineCount',
@@ -450,6 +450,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                 ),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
+                        tooltip: 'Clear search',
                         icon: Icon(
                           Icons.clear,
                           size: 18,
@@ -1644,7 +1645,7 @@ class _MiniMap extends StatelessWidget {
                 alpha: theme.brightness == Brightness.dark ? 0.9 : 0.95,
               ),
               border: Border.all(color: colorScheme.outlineVariant),
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: AppRadius.pill,
             ),
             child: Stack(
               children: <Widget>[
@@ -1659,7 +1660,7 @@ class _MiniMap extends StatelessWidget {
                         color: currentMatchLine == match
                             ? AppColors.amber
                             : AppColors.cobalt,
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: AppRadius.pill,
                       ),
                     ),
                   ),
