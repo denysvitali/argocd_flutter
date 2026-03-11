@@ -22,6 +22,7 @@ ThemeData buildLightAppTheme() {
 
   return ThemeData(
     useMaterial3: true,
+    splashFactory: InkRipple.splashFactory,
     scaffoldBackgroundColor: AppColors.canvas,
     colorScheme: const ColorScheme.light(
       primary: AppColors.cobalt,
@@ -44,13 +45,13 @@ ThemeData buildLightAppTheme() {
       ),
     ),
     dividerColor: AppColors.border,
-    appBarTheme: const AppBarTheme(toolbarHeight: 60),
+    appBarTheme: const AppBarTheme(toolbarHeight: 48),
     navigationBarTheme: NavigationBarThemeData(
-      height: 68,
+      height: 56,
       labelTextStyle: const MaterialStatePropertyAll<TextStyle>(
         TextStyle(
           fontFamily: _bodyFontFamily,
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -58,7 +59,7 @@ ThemeData buildLightAppTheme() {
         final color = states.contains(MaterialState.selected)
             ? Colors.white
             : AppColors.grey;
-        return IconThemeData(size: 22, color: color);
+        return IconThemeData(size: 20, color: color);
       }),
     ),
   );
@@ -73,6 +74,7 @@ ThemeData buildDarkAppTheme() {
 
   return ThemeData(
     useMaterial3: true,
+    splashFactory: InkRipple.splashFactory,
     scaffoldBackgroundColor: AppColors.ink,
     colorScheme: const ColorScheme.dark(
       primary: AppColors.cobalt,
@@ -95,13 +97,13 @@ ThemeData buildDarkAppTheme() {
       ),
     ),
     dividerColor: AppColors.darkBorder,
-    appBarTheme: const AppBarTheme(toolbarHeight: 60),
+    appBarTheme: const AppBarTheme(toolbarHeight: 48),
     navigationBarTheme: const NavigationBarThemeData(
-      height: 68,
+      height: 56,
       labelTextStyle: MaterialStatePropertyAll<TextStyle>(
         TextStyle(
           fontFamily: _bodyFontFamily,
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: FontWeight.w600,
         ),
       ),

@@ -21,10 +21,8 @@ abstract final class AppColors {
   static const Color peach = Color(0xFFFFF2E8);
   static const Color blueLight = Color(0xFFE8F0FF);
 
-  static const Color gradientAppStart = Color(0xFF0E1726);
-  static const Color gradientAppMid = Color(0xFF183153);
-  static const Color gradientProjectStart = Color(0xFF10233D);
-  static const Color gradientProjectMid = Color(0xFF14532D);
+  static const Color headerDark = Color(0xFF0F1923);
+  static const Color headerDarkAlt = Color(0xFF102218);
 
   static Color outline(ThemeData theme) {
     return theme.brightness == Brightness.dark ? darkBorder : border;

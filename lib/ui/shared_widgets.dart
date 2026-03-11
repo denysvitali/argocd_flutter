@@ -1,7 +1,7 @@
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:flutter/material.dart';
 
-const EdgeInsets kPagePadding = EdgeInsets.fromLTRB(16, 16, 16, 20);
+const EdgeInsets kPagePadding = EdgeInsets.fromLTRB(14, 10, 14, 16);
 
 /// Converts a decoded JSON value to a YAML-formatted string.
 String jsonToYaml(dynamic value, {int indent = 0}) {
@@ -362,18 +362,19 @@ class StatusChip extends StatelessWidget {
     return Semantics(
       label: 'Status: $label',
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
           color: color.withValues(
-            alpha: theme.brightness == Brightness.dark ? 0.24 : 0.12,
+            alpha: theme.brightness == Brightness.dark ? 0.20 : 0.10,
           ),
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(4),
         ),
         child: Text(
           label,
-          style: theme.textTheme.labelLarge?.copyWith(
+          style: theme.textTheme.labelSmall?.copyWith(
             color: color,
             fontWeight: FontWeight.w700,
+            letterSpacing: 0.3,
           ),
         ),
       ),
@@ -392,10 +393,10 @@ class SectionCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
@@ -404,11 +405,12 @@ class SectionCard extends StatelessWidget {
           if (title != null) ...<Widget>[
             Text(
               title!,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
           ],
           child,
         ],
@@ -432,10 +434,10 @@ class EmptyStateCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
@@ -443,10 +445,17 @@ class EmptyStateCard extends StatelessWidget {
         children: <Widget>[
           Text(
             title,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          const SizedBox(height: 8),
-          Text(subtitle),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.grey,
+            ),
+          ),
         ],
       ),
     );
@@ -470,10 +479,10 @@ class SummaryTile extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
@@ -481,18 +490,16 @@ class SummaryTile extends StatelessWidget {
         children: <Widget>[
           Text(
             '$value',
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontSize: 36,
+            style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w700,
               color: valueColor,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 2),
           Text(
             label,
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontSize: 14,
+            style: theme.textTheme.labelSmall?.copyWith(
               color: AppColors.grey,
             ),
           ),
@@ -513,17 +520,17 @@ class FactBadge extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          ExcludeSemantics(child: Icon(icon, size: 16)),
-          const SizedBox(width: 6),
-          Text(label),
+          ExcludeSemantics(child: Icon(icon, size: 14)),
+          const SizedBox(width: 4),
+          Text(label, style: theme.textTheme.bodySmall),
         ],
       ),
     );

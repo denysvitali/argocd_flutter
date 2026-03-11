@@ -475,9 +475,12 @@ class _NeedsAttentionList extends StatelessWidget {
           Icon(
             Icons.check_circle_rounded,
             color: AppColors.teal,
+            size: 18,
           ),
-          const SizedBox(width: 12),
-          const Text('All applications are healthy and synced!'),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text('All applications are healthy and synced!'),
+          ),
         ],
       );
     }

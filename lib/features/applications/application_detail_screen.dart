@@ -362,27 +362,28 @@ class _HeroHeader extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.only(
-        top: topPadding + 56,
-        left: 20,
-        right: 20,
-        bottom: 56,
+        top: topPadding + 52,
+        left: 16,
+        right: 16,
+        bottom: 52,
       ),
       decoration: const BoxDecoration(
         color: AppColors.headerDark,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Text(
             application.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.headlineSmall?.copyWith(
+            style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w700,
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             '${application.project}  \u2022  ${application.namespace}  \u2022  ${_shortCluster(application.cluster)}',
             maxLines: 1,
@@ -391,10 +392,10 @@ class _HeroHeader extends StatelessWidget {
               color: AppColors.textOnDarkMuted,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: 6,
+            runSpacing: 4,
             children: <Widget>[
               StatusChip(
                 label: application.healthStatus,
