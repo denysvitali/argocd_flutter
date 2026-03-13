@@ -1,8 +1,7 @@
 import 'package:argocd_flutter/ui/app_colors.dart';
-import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:flutter/material.dart';
 
-const EdgeInsets kPagePadding = EdgeInsets.fromLTRB(14, 10, 14, 16);
+const EdgeInsets kPagePadding = EdgeInsets.fromLTRB(12, 8, 12, 12);
 
 /// Converts a decoded JSON value to a YAML-formatted string.
 String jsonToYaml(dynamic value, {int indent = 0}) {
@@ -220,14 +219,27 @@ class YamlToken {
   final YamlTokenType? type;
 }
 
+/// Cache for tokenised YAML lines so that repeated calls with the same input
+/// (e.g. during widget rebuilds) skip re-tokenisation.
+final Map<String, List<YamlToken>> _yamlLineCache = <String, List<YamlToken>>{};
+
+/// Clears the YAML token cache. Visible for testing.
+void clearYamlTokenCache() => _yamlLineCache.clear();
+
 /// Tokenises a single line of YAML for syntax highlighting.
 List<YamlToken> tokenizeYamlLine(String line) {
+  final cached = _yamlLineCache[line];
+  if (cached != null) {
+    return cached;
+  }
+
   final tokens = <YamlToken>[];
   final trimmedLeft = line.trimLeft();
 
   // Full-line comment.
   if (trimmedLeft.startsWith('#')) {
     tokens.add(YamlToken(line, YamlTokenType.comment));
+    _yamlLineCache[line] = tokens;
     return tokens;
   }
 
@@ -241,10 +253,12 @@ List<YamlToken> tokenizeYamlLine(String line) {
     if (rest.isNotEmpty) {
       tokens.addAll(_tokenizeKeyValue(rest));
     }
+    _yamlLineCache[line] = tokens;
     return tokens;
   }
 
   tokens.addAll(_tokenizeKeyValue(line));
+  _yamlLineCache[line] = tokens;
   return tokens;
 }
 
@@ -340,13 +354,13 @@ List<YamlToken> _tokenizeValue(String text) {
 /// case) and are applied at ~92 % opacity by the caller in dark mode.
 Color yamlTokenColor(YamlTokenType? type) {
   return switch (type) {
-    YamlTokenType.key => const Color(0xFF0D47A1),
-    YamlTokenType.stringValue => const Color(0xFF1B5E20),
-    YamlTokenType.numberValue => const Color(0xFFBF360C),
-    YamlTokenType.boolNullValue => const Color(0xFF6A1B9A),
-    YamlTokenType.listDash => const Color(0xFF0D47A1),
-    YamlTokenType.comment => const Color(0xFF78909C),
-    null => const Color(0xFF37474F),
+    YamlTokenType.key => const Color(0xFF1565C0), // clear blue
+    YamlTokenType.stringValue => const Color(0xFF2E7D32), // green
+    YamlTokenType.numberValue => const Color(0xFFE65100), // deep orange
+    YamlTokenType.boolNullValue => const Color(0xFFE65100), // deep orange
+    YamlTokenType.listDash => const Color(0xFF1565C0), // match keys
+    YamlTokenType.comment => const Color(0xFF9E9E9E), // muted grey
+    null => const Color(0xFF37474F), // dark blue-grey for punctuation
   };
 }
 
@@ -363,7 +377,7 @@ class StatusChip extends StatelessWidget {
     return Semantics(
       label: 'Status: $label',
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
         decoration: BoxDecoration(
           color: color.withValues(
             alpha: theme.brightness == Brightness.dark ? 0.20 : 0.10,
@@ -394,7 +408,7 @@ class SectionCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: AppRadius.base,
@@ -411,7 +425,7 @@ class SectionCard extends StatelessWidget {
                 letterSpacing: 0.2,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
           ],
           child,
         ],
@@ -435,7 +449,7 @@ class EmptyStateCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: AppRadius.base,
@@ -480,7 +494,7 @@ class SummaryTile extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: AppRadius.base,
@@ -521,7 +535,7 @@ class FactBadge extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: AppRadius.sm,
@@ -534,146 +548,6 @@ class FactBadge extends StatelessWidget {
           Text(label, style: theme.textTheme.bodySmall),
         ],
       ),
-    );
-  }
-}
-
-/// A small pill showing a label-value pair, used for at-a-glance metadata.
-class DetailPill extends StatelessWidget {
-  const DetailPill({super.key, required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: AppRadius.sm,
-      ),
-      child: Text('$label: $value'),
-    );
-  }
-}
-
-/// A vertical label + value pair used for displaying detail fields.
-class LabeledText extends StatelessWidget {
-  const LabeledText({
-    super.key,
-    required this.label,
-    required this.value,
-    this.maxLines,
-  });
-
-  final String label;
-  final String value;
-  final int? maxLines;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            label,
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            maxLines: maxLines,
-            overflow: maxLines != null ? TextOverflow.ellipsis : null,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// A status indicator with a colored dot and label/value text.
-class StatusIndicator extends StatelessWidget {
-  const StatusIndicator({
-    super.key,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            Text(
-              value,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-/// A colored icon container used for resource type indicators and action cards.
-class IconBadge extends StatelessWidget {
-  const IconBadge({
-    super.key,
-    required this.icon,
-    required this.color,
-    this.size = 48,
-    this.iconSize = 24,
-    this.backgroundColor,
-  });
-
-  final IconData icon;
-  final Color color;
-  final double size;
-  final double iconSize;
-  final Color? backgroundColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: backgroundColor ?? color.withValues(alpha: 0.12),
-        borderRadius: AppRadius.base,
-      ),
-      child: Icon(icon, color: color, size: iconSize),
     );
   }
 }
