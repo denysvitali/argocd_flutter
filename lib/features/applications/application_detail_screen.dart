@@ -2,7 +2,6 @@ import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/core/utils/time_format.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
-import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:argocd_flutter/ui/resource_icons.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
@@ -58,7 +57,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen>
           if (snapshot.hasError) {
             return Center(
               child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.xxxl),
+                padding: const EdgeInsets.all(24),
                 child: Text(snapshot.error.toString()),
               ),
             );
@@ -284,6 +283,7 @@ class _DetailBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return Column(
       children: <Widget>[
@@ -292,7 +292,7 @@ class _DetailBody extends StatelessWidget {
             headerSliverBuilder: (context, innerBoxIsScrolled) {
               return <Widget>[
                 SliverAppBar(
-                  expandedHeight: 180,
+                  expandedHeight: screenHeight < 600 ? 160 : 200,
                   pinned: true,
                   forceElevated: innerBoxIsScrolled,
                   flexibleSpace: FlexibleSpaceBar(
@@ -308,6 +308,10 @@ class _DetailBody extends StatelessWidget {
                     controller: tabController,
                     labelColor: theme.colorScheme.onSurface,
                     unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+                    labelStyle: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    unselectedLabelStyle: theme.textTheme.labelLarge,
                     indicatorColor: AppColors.cobalt,
                     tabs: const <Widget>[
                       Tab(text: 'Overview'),
@@ -364,10 +368,10 @@ class _HeroHeader extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.only(
-        top: topPadding + 52,
-        left: 16,
-        right: 16,
-        bottom: 52,
+        top: topPadding + 56,
+        left: 18,
+        right: 18,
+        bottom: 54,
       ),
       decoration: const BoxDecoration(
         color: AppColors.headerDark,
@@ -394,10 +398,10 @@ class _HeroHeader extends StatelessWidget {
               color: AppColors.textOnDarkMuted,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Wrap(
             spacing: 6,
-            runSpacing: 4,
+            runSpacing: 6,
             children: <Widget>[
               StatusChip(
                 label: application.healthStatus,
@@ -442,14 +446,14 @@ class _OverviewTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(AppSpacing.xxl),
+      padding: const EdgeInsets.all(14),
       children: <Widget>[
         _SummarySection(application: application),
-        const SizedBox(height: AppSpacing.xxl),
+        const SizedBox(height: 14),
         _SourceSection(application: application),
-        const SizedBox(height: AppSpacing.xxl),
+        const SizedBox(height: 14),
         _DestinationSection(application: application),
-        const SizedBox(height: AppSpacing.xxl),
+        const SizedBox(height: 14),
         _ResourceTreeCard(
           controller: controller,
           applicationName: application.name,
@@ -472,26 +476,26 @@ class _SummarySection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Wrap(
-            spacing: 12,
-            runSpacing: 12,
+            spacing: 8,
+            runSpacing: 8,
             children: <Widget>[
-              DetailPill(label: 'Project', value: application.project),
-              DetailPill(label: 'Namespace', value: application.namespace),
-              DetailPill(label: 'Phase', value: application.operationPhase),
+              _DetailPill(label: 'Project', value: application.project),
+              _DetailPill(label: 'Namespace', value: application.namespace),
+              _DetailPill(label: 'Phase', value: application.operationPhase),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           const Divider(color: AppColors.border),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Row(
             children: <Widget>[
-              StatusIndicator(
+              _StatusIndicator(
                 label: 'Health',
                 value: application.healthStatus,
                 color: AppColors.healthColor(application.healthStatus),
               ),
               const SizedBox(width: 24),
-              StatusIndicator(
+              _StatusIndicator(
                 label: 'Sync',
                 value: application.syncStatus,
                 color: AppColors.syncColor(application.syncStatus),
@@ -504,6 +508,60 @@ class _SummarySection extends StatelessWidget {
   }
 }
 
+class _StatusIndicator extends StatelessWidget {
+  const _StatusIndicator({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: color.withValues(alpha: 0.4),
+                blurRadius: 6,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
 
 class _SourceSection extends StatelessWidget {
   const _SourceSection({required this.application});
@@ -517,9 +575,9 @@ class _SourceSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          LabeledText(label: 'Repository', value: application.repoUrl),
-          LabeledText(label: 'Path', value: application.path),
-          LabeledText(
+          _LabeledText(label: 'Repository', value: application.repoUrl),
+          _LabeledText(label: 'Path', value: application.path),
+          _LabeledText(
             label: 'Target revision',
             value: application.targetRevision,
           ),
@@ -541,10 +599,10 @@ class _DestinationSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          LabeledText(label: 'Cluster', value: application.cluster),
-          LabeledText(label: 'Namespace', value: application.namespace),
+          _LabeledText(label: 'Cluster', value: application.cluster),
+          _LabeledText(label: 'Namespace', value: application.namespace),
           if (application.lastSyncedAt != null)
-            LabeledText(
+            _LabeledText(
               label: 'Last reconciled',
               value: application.lastSyncedAt!,
             ),
@@ -587,13 +645,26 @@ class _ResourceTreeCard extends StatelessWidget {
             color: theme.colorScheme.surface,
             borderRadius: AppRadius.md,
             border: Border.all(color: theme.dividerColor),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: theme.colorScheme.shadow.withValues(alpha: 0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             children: <Widget>[
-              const IconBadge(
-                icon: Icons.account_tree,
-                color: AppColors.cobalt,
-                backgroundColor: AppColors.cobaltLight,
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.cobaltLight,
+                  borderRadius: AppRadius.base,
+                ),
+                child: const ExcludeSemantics(
+                  child: Icon(Icons.account_tree, color: AppColors.cobalt),
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -644,19 +715,19 @@ class _ResourcesTab extends StatelessWidget {
     if (resources.isEmpty) {
       return const Center(
         child: Padding(
-          padding: EdgeInsets.all(AppSpacing.xxxl),
+          padding: EdgeInsets.all(24),
           child: Text('No resources returned by the ArgoCD API.'),
         ),
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(AppSpacing.xxl),
+      padding: const EdgeInsets.all(14),
       itemCount: resources.length,
       itemBuilder: (context, index) {
         final resource = resources[index];
         return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.only(bottom: 10),
           child: _ResourceCard(
             controller: controller,
             applicationName: applicationName,
@@ -711,7 +782,14 @@ class _ResourceCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             borderRadius: AppRadius.md,
-            border: Border.all(color: kindColor.withValues(alpha: AppOpacity.bold)),
+            border: Border.all(color: theme.dividerColor),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: theme.colorScheme.shadow.withValues(alpha: 0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             children: <Widget>[
@@ -719,7 +797,7 @@ class _ResourceCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: kindColor.withValues(alpha: AppOpacity.medium),
+                  color: kindColor.withValues(alpha: 0.12),
                   borderRadius: AppRadius.base,
                 ),
                 child: Icon(kindIcon, color: kindColor, size: 22),
@@ -737,7 +815,7 @@ class _ResourceCard extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: kindColor.withValues(alpha: AppOpacity.medium),
+                            color: kindColor.withValues(alpha: 0.12),
                             borderRadius: AppRadius.xs,
                           ),
                           child: Text(
@@ -835,7 +913,7 @@ class _HistoryTab extends StatelessWidget {
     if (history.isEmpty) {
       return const Center(
         child: Padding(
-          padding: EdgeInsets.all(AppSpacing.xxxl),
+          padding: EdgeInsets.all(24),
           child: Text('No deployment history returned by the ArgoCD API.'),
         ),
       );
@@ -844,7 +922,7 @@ class _HistoryTab extends StatelessWidget {
     final currentEntry = history.last;
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       itemCount: history.length,
       itemBuilder: (context, index) {
         final entry = history[history.length - 1 - index];
@@ -897,16 +975,25 @@ class _TimelineEntry extends StatelessWidget {
               children: <Widget>[
                 const SizedBox(height: 4),
                 Container(
-                  width: 10,
-                  height: 10,
+                  width: isCurrent ? 12 : 10,
+                  height: isCurrent ? 12 : 10,
                   decoration: BoxDecoration(
                     color: dotColor,
                     shape: BoxShape.circle,
                     border: isCurrent
                         ? Border.all(
-                            color: dotColor.withValues(alpha: AppOpacity.heavy),
+                            color: dotColor.withValues(alpha: 0.4),
                             width: 2,
                           )
+                        : null,
+                    boxShadow: isCurrent
+                        ? <BoxShadow>[
+                            BoxShadow(
+                              color: dotColor.withValues(alpha: 0.4),
+                              blurRadius: 6,
+                              spreadRadius: 1,
+                            ),
+                          ]
                         : null,
                   ),
                 ),
@@ -920,16 +1007,34 @@ class _TimelineEntry extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
+                color: isCurrent
+                    ? AppColors.teal.withValues(alpha: 0.04)
+                    : theme.colorScheme.surface,
                 borderRadius: AppRadius.md,
                 border: Border.all(
                   color: isCurrent
-                      ? AppColors.teal.withValues(alpha: AppOpacity.bold)
+                      ? AppColors.teal.withValues(alpha: 0.5)
                       : theme.dividerColor,
+                  width: isCurrent ? 1.5 : 1.0,
                 ),
+                boxShadow: <BoxShadow>[
+                  if (isCurrent)
+                    BoxShadow(
+                      color: AppColors.teal.withValues(alpha: 0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    )
+                  else
+                    BoxShadow(
+                      color:
+                          theme.colorScheme.shadow.withValues(alpha: 0.04),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -947,12 +1052,15 @@ class _TimelineEntry extends StatelessWidget {
                       Text(
                         'Deploy #${entry.id}',
                         style: theme.textTheme.labelMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                          color: isCurrent
+                              ? theme.colorScheme.onSurface
+                              : theme.colorScheme.onSurfaceVariant,
+                          fontWeight: isCurrent ? FontWeight.w600 : null,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Row(
                     children: <Widget>[
                       const ExcludeSemantics(
@@ -994,7 +1102,7 @@ class _TimelineEntry extends StatelessWidget {
                     ],
                   ),
                   if (!isCurrent) ...<Widget>[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton.icon(
@@ -1085,46 +1193,84 @@ class _BottomActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    const buttonHeight = 44.0;
 
     return Container(
       padding: EdgeInsets.only(
         left: 16,
         right: 16,
-        top: 8,
-        bottom: 8 + MediaQuery.of(context).padding.bottom,
+        top: 10,
+        bottom: 10 + MediaQuery.of(context).padding.bottom,
       ),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         border: Border(top: BorderSide(color: theme.dividerColor)),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: theme.colorScheme.shadow.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
       ),
       child: Row(
         children: <Widget>[
           Expanded(
-            child: FilledButton.icon(
-              onPressed: actionInFlight ? null : onRefresh,
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Refresh'),
-              style: FilledButton.styleFrom(backgroundColor: AppColors.cobalt),
+            child: SizedBox(
+              height: buttonHeight,
+              child: FilledButton.icon(
+                onPressed: actionInFlight ? null : onRefresh,
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Refresh'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.cobalt,
+                  textStyle: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
-            child: FilledButton.icon(
-              onPressed: actionInFlight ? null : onSync,
-              icon: const Icon(Icons.sync, size: 18),
-              label: const Text('Sync'),
-              style: FilledButton.styleFrom(backgroundColor: AppColors.teal),
+            child: SizedBox(
+              height: buttonHeight,
+              child: FilledButton.icon(
+                onPressed: actionInFlight ? null : onSync,
+                icon: const Icon(Icons.sync, size: 18),
+                label: const Text('Sync'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.teal,
+                  textStyle: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ),
           ),
-          const SizedBox(width: 12),
-          IconButton(
-            tooltip: 'Delete',
-            onPressed: actionInFlight ? null : onDelete,
-            icon: Icon(
-              Icons.delete_outline,
-              color: actionInFlight
-                  ? theme.disabledColor
-                  : theme.colorScheme.error,
+          const SizedBox(width: 10),
+          SizedBox(
+            height: buttonHeight,
+            width: buttonHeight,
+            child: IconButton(
+              tooltip: 'Delete',
+              onPressed: actionInFlight ? null : onDelete,
+              style: IconButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: AppRadius.md,
+                  side: BorderSide(
+                    color: actionInFlight
+                        ? theme.disabledColor
+                        : theme.colorScheme.error.withValues(alpha: 0.3),
+                  ),
+                ),
+              ),
+              icon: Icon(
+                Icons.delete_outline,
+                color: actionInFlight
+                    ? theme.disabledColor
+                    : theme.colorScheme.error,
+              ),
             ),
           ),
         ],
@@ -1132,3 +1278,89 @@ class _BottomActionBar extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Shared helpers
+// ---------------------------------------------------------------------------
+
+class _DetailPill extends StatelessWidget {
+  const _DetailPill({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: AppRadius.base,
+        border: Border.all(
+          color: theme.dividerColor.withValues(alpha: 0.6),
+        ),
+      ),
+      child: Text.rich(
+        TextSpan(
+          children: <TextSpan>[
+            TextSpan(
+              text: '$label: ',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            TextSpan(
+              text: value,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LabeledText extends StatelessWidget {
+  const _LabeledText({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Divider(height: 1, color: AppColors.border),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
