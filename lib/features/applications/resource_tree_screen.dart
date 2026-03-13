@@ -9,7 +9,6 @@ import 'package:flutter/material.dart';
 
 import 'log_viewer_screen.dart';
 import 'manifest_viewer_screen.dart';
-import 'package:argocd_flutter/ui/design_tokens.dart';
 
 class ResourceTreeScreen extends StatefulWidget {
   const ResourceTreeScreen({
@@ -107,13 +106,13 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
                 padding: const EdgeInsets.all(14),
                 children: <Widget>[
                   _SummaryHeader(nodes: nodes),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   _buildSearchBar(theme),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   if (filteredRoots.isEmpty && _searchQuery.isNotEmpty)
                     Center(
                       child: Padding(
-                        padding: const EdgeInsets.all(AppSpacing.huge),
+                        padding: const EdgeInsets.all(32),
                         child: Column(
                           children: <Widget>[
                             Icon(
@@ -121,7 +120,7 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
                               size: 48,
                               color: AppColors.greyLight,
                             ),
-                            const SizedBox(height: AppSpacing.lg),
+                            const SizedBox(height: 12),
                             Text(
                               'No resources match "$_searchQuery"',
                               style: theme.textTheme.bodyMedium?.copyWith(
@@ -164,30 +163,43 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
   }
 
   Widget _buildSearchBar(ThemeData theme) {
+    final outlineColor = AppColors.outline(theme);
+    final mutedColor = AppColors.mutedText(theme);
+
     return TextField(
       decoration: InputDecoration(
         hintText: 'Filter by name or kind...',
-        prefixIcon: const Icon(Icons.search, size: 20),
+        hintStyle: theme.textTheme.bodyMedium?.copyWith(color: mutedColor),
+        prefixIcon: Icon(Icons.search, size: 20, color: mutedColor),
         suffixIcon: _searchQuery.isNotEmpty
             ? IconButton(
-                tooltip: 'Clear search',
-                icon: const Icon(Icons.clear, size: 20),
+                icon: const Icon(Icons.close, size: 18),
                 onPressed: () {
                   setState(() {
                     _searchQuery = '';
                   });
                 },
+                tooltip: 'Clear filter',
+                color: mutedColor,
               )
             : null,
         filled: true,
-        fillColor: theme.colorScheme.surfaceContainerHighest,
+        fillColor: AppColors.inputFill(theme),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 8,
+        ),
         border: OutlineInputBorder(
           borderRadius: AppRadius.base,
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: outlineColor),
         ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.md,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: AppRadius.base,
+          borderSide: BorderSide(color: outlineColor),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: AppRadius.base,
+          borderSide: const BorderSide(color: AppColors.cobalt, width: 1.5),
         ),
       ),
       onChanged: (String value) {
@@ -208,7 +220,7 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
             height: 48,
             child: CircularProgressIndicator(strokeWidth: 3),
           ),
-          const SizedBox(height: AppSpacing.xxl),
+          const SizedBox(height: 20),
           Text(
             'Loading resource tree...',
             style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.grey),
@@ -221,19 +233,19 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
   Widget _buildErrorState(Object? error, ThemeData theme) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xxxl),
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Icon(Icons.error_outline_rounded, size: 56, color: AppColors.coral),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: 16),
             Text(
               'Failed to load resources',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: 8),
             Text(
               error.toString(),
               textAlign: TextAlign.center,
@@ -241,7 +253,7 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
                 color: AppColors.grey,
               ),
             ),
-            const SizedBox(height: AppSpacing.xxl),
+            const SizedBox(height: 20),
             FilledButton.icon(
               onPressed: _refresh,
               icon: const Icon(Icons.refresh),
@@ -256,7 +268,7 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
   Widget _buildEmptyState(ThemeData theme) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.huge),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
@@ -265,14 +277,14 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
               size: 64,
               color: AppColors.greyLight,
             ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: 16),
             Text(
               'No resources found',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: 8),
             Text(
               'No resource tree data returned by the ArgoCD API.',
               textAlign: TextAlign.center,
@@ -280,7 +292,7 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
                 color: AppColors.grey,
               ),
             ),
-            const SizedBox(height: AppSpacing.xxl),
+            const SizedBox(height: 20),
             FilledButton.icon(
               onPressed: _refresh,
               icon: const Icon(Icons.refresh),
@@ -417,7 +429,7 @@ class _SummaryHeader extends StatelessWidget {
     ];
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: AppRadius.base,
@@ -432,7 +444,7 @@ class _SummaryHeader extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           Center(
             child: SizedBox(
               width: 140,
@@ -441,6 +453,7 @@ class _SummaryHeader extends StatelessWidget {
                 painter: _DonutChartPainter(
                   segments: healthSegments,
                   total: total.toDouble(),
+                  bgRingColor: theme.dividerColor.withValues(alpha: 0.3),
                 ),
                 child: Center(
                   child: Column(
@@ -448,8 +461,8 @@ class _SummaryHeader extends StatelessWidget {
                     children: <Widget>[
                       Text(
                         '$total',
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
+                        style: theme.textTheme.headlineLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                       Text(
@@ -464,10 +477,9 @@ class _SummaryHeader extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: AppSpacing.lg),
-          // Health legend
+          const SizedBox(height: 12),
           Wrap(
-            spacing: AppSpacing.lg,
+            spacing: 12,
             runSpacing: 6,
             children: <Widget>[
               for (final _DonutSegment segment in healthSegments)
@@ -477,10 +489,9 @@ class _SummaryHeader extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: 12),
           const Divider(),
-          const SizedBox(height: AppSpacing.md),
-          // Resource kind counts
+          const SizedBox(height: 8),
           Text(
             'Resources by Kind',
             style: theme.textTheme.titleSmall?.copyWith(
@@ -490,7 +501,7 @@ class _SummaryHeader extends StatelessWidget {
           const SizedBox(height: 6),
           Wrap(
             spacing: 6,
-            runSpacing: AppSpacing.sm,
+            runSpacing: 4,
             children: <Widget>[
               for (final MapEntry<String, int> entry in sortedKinds)
                 _KindCountBadge(kind: entry.key, count: entry.value),
@@ -519,10 +530,15 @@ class _DonutSegment {
 }
 
 class _DonutChartPainter extends CustomPainter {
-  _DonutChartPainter({required this.segments, required this.total});
+  _DonutChartPainter({
+    required this.segments,
+    required this.total,
+    required this.bgRingColor,
+  });
 
   final List<_DonutSegment> segments;
   final double total;
+  final Color bgRingColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -538,6 +554,13 @@ class _DonutChartPainter extends CustomPainter {
       radius: radius - strokeWidth / 2,
     );
 
+    final bgPaint = Paint()
+      ..color = bgRingColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..isAntiAlias = true;
+    canvas.drawArc(rect, 0, 2 * math.pi, false, bgPaint);
+
     const gapAngle = 0.04;
     final totalGap = gapAngle * segments.length;
     final availableSweep = 2 * math.pi - totalGap;
@@ -550,7 +573,8 @@ class _DonutChartPainter extends CustomPainter {
         ..color = segment.color
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth
-        ..strokeCap = StrokeCap.round;
+        ..strokeCap = StrokeCap.round
+        ..isAntiAlias = true;
 
       canvas.drawArc(rect, startAngle, sweepAngle, false, paint);
       startAngle += sweepAngle + gapAngle;
@@ -559,7 +583,9 @@ class _DonutChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_DonutChartPainter oldDelegate) {
-    return segments != oldDelegate.segments || total != oldDelegate.total;
+    return segments != oldDelegate.segments ||
+        total != oldDelegate.total ||
+        bgRingColor != oldDelegate.bgRingColor;
   }
 }
 
@@ -580,8 +606,8 @@ class _LegendItem extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Container(
-          width: 8,
-          height: 8,
+          width: 10,
+          height: 10,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 6),
@@ -608,16 +634,18 @@ class _KindCountBadge extends StatelessWidget {
     final Color kindColor = colorForResourceKind(kind);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 3),
+      height: 26,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        color: kindColor.withValues(alpha: AppOpacity.soft),
+        color: kindColor.withValues(alpha: 0.1),
         borderRadius: AppRadius.sm,
+        border: Border.all(color: kindColor.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Icon(iconForResourceKind(kind), size: 14, color: kindColor),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: 4),
           Text(
             '$count $kind',
             style: theme.textTheme.bodySmall?.copyWith(
@@ -751,15 +779,13 @@ class _ResourceNodeTileState extends State<_ResourceNodeTile> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        // The node row with tree connector
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              // Tree connector lines
               if (widget.depth > 0)
                 SizedBox(
-                  width: 24,
+                  width: 20,
                   child: CustomPaint(
                     painter: _NodeConnectorPainter(
                       color: theme.dividerColor,
@@ -767,15 +793,15 @@ class _ResourceNodeTileState extends State<_ResourceNodeTile> {
                     ),
                   ),
                 ),
-              // Expand/collapse arrow
               if (hasChildren)
                 GestureDetector(
                   onTap: _toggleExpanded,
                   child: Padding(
-                    padding: const EdgeInsets.only(top: AppSpacing.md),
+                    padding: const EdgeInsets.only(top: 6),
                     child: AnimatedRotation(
                       turns: _expanded ? 0.25 : 0.0,
-                      duration: const Duration(milliseconds: 200),
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOutCubic,
                       child: Icon(
                         Icons.chevron_right_rounded,
                         size: 20,
@@ -785,8 +811,7 @@ class _ResourceNodeTileState extends State<_ResourceNodeTile> {
                   ),
                 )
               else
-                const SizedBox(width: AppSpacing.xxl),
-              // Node card
+                const SizedBox(width: 20),
               Expanded(
                 child: _NodeCard(
                   controller: widget.controller,
@@ -800,14 +825,13 @@ class _ResourceNodeTileState extends State<_ResourceNodeTile> {
             ],
           ),
         ),
-        // Children with animated expand/collapse
         if (hasChildren && _expanded)
           AnimatedSize(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOutCubic,
             alignment: Alignment.topLeft,
             child: Padding(
-              padding: EdgeInsets.only(left: widget.depth > 0 ? 24.0 : 0.0),
+              padding: EdgeInsets.only(left: widget.depth > 0 ? 20.0 : 0.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
@@ -848,20 +872,46 @@ class _NodeConnectorPainter extends CustomPainter {
     final paint = Paint()
       ..color = color
       ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
+      ..style = PaintingStyle.stroke
+      ..isAntiAlias = true;
 
     final double midX = size.width / 2;
-    final double midY = 20; // align with icon center
+    final double midY = 20;
 
-    // Vertical line from top
     canvas.drawLine(Offset(midX, 0), Offset(midX, midY), paint);
 
-    // Horizontal line to the right
     canvas.drawLine(Offset(midX, midY), Offset(size.width, midY), paint);
 
-    // Continue vertical line down if not last child
     if (!isLastChild) {
-      canvas.drawLine(Offset(midX, midY), Offset(midX, size.height), paint);
+      _drawDashedLine(
+        canvas,
+        Offset(midX, midY),
+        Offset(midX, size.height),
+        paint,
+      );
+    }
+  }
+
+  void _drawDashedLine(
+    Canvas canvas,
+    Offset start,
+    Offset end,
+    Paint paint,
+  ) {
+    const double dashLength = 4.0;
+    const double gapLength = 3.0;
+    final double totalLength = (end - start).distance;
+    final Offset direction = (end - start) / totalLength;
+    double drawn = 0.0;
+
+    while (drawn < totalLength) {
+      final double segEnd = math.min(drawn + dashLength, totalLength);
+      canvas.drawLine(
+        start + direction * drawn,
+        start + direction * segEnd,
+        paint,
+      );
+      drawn = segEnd + gapLength;
     }
   }
 
@@ -895,7 +945,7 @@ class _NodeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(vertical: 1),
       child: InkWell(
         borderRadius: AppRadius.base,
         onTap: () => _openManifest(context),
@@ -910,15 +960,24 @@ class _NodeCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                Container(width: 3, color: kindColor),
-                const SizedBox(width: AppSpacing.md),
+                Container(
+                  width: 4,
+                  decoration: BoxDecoration(
+                    color: kindColor,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(6),
+                      bottomLeft: Radius.circular(6),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Container(
                     width: 28,
                     height: 28,
                     decoration: BoxDecoration(
-                      color: kindColor.withValues(alpha: AppOpacity.medium),
+                      color: kindColor.withValues(alpha: 0.12),
                       borderRadius: AppRadius.sm,
                     ),
                     child: Icon(
@@ -928,10 +987,10 @@ class _NodeCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: AppSpacing.md),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -944,7 +1003,7 @@ class _NodeCard extends StatelessWidget {
                             letterSpacing: 0.5,
                           ),
                         ),
-                        const SizedBox(height: AppSpacing.xs),
+                        const SizedBox(height: 2),
                         Text(
                           node.name,
                           style: theme.textTheme.bodyMedium?.copyWith(
@@ -958,9 +1017,9 @@ class _NodeCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: AppSpacing.md),
+                const SizedBox(width: 8),
                 Padding(
-                  padding: const EdgeInsets.only(right: AppSpacing.md),
+                  padding: const EdgeInsets.only(right: 8),
                   child: Tooltip(
                     message: node.healthStatus,
                     child: Container(
@@ -975,7 +1034,7 @@ class _NodeCard extends StatelessWidget {
                 ),
                 if (isPod)
                   Padding(
-                    padding: const EdgeInsets.only(right: AppSpacing.md),
+                    padding: const EdgeInsets.only(right: 8),
                     child: Center(
                       child: _SmallActionButton(
                         icon: Icons.article_outlined,
@@ -1010,15 +1069,15 @@ class _NodeCard extends StatelessWidget {
           builder: (BuildContext context, ScrollController scrollController) {
             return ListView(
               controller: scrollController,
-              padding: const EdgeInsets.all(AppSpacing.xl),
+              padding: const EdgeInsets.all(16),
               children: <Widget>[
                 Center(
                   child: Container(
-                    width: 32,
-                    height: 3,
+                    width: 40,
+                    height: 5,
                     margin: const EdgeInsets.only(bottom: 14),
                     decoration: BoxDecoration(
-                      color: AppColors.greyLight,
+                      color: AppColors.grey.withValues(alpha: 0.4),
                       borderRadius: AppRadius.sm,
                     ),
                   ),
@@ -1029,7 +1088,7 @@ class _NodeCard extends StatelessWidget {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: kindColor.withValues(alpha: AppOpacity.medium),
+                        color: kindColor.withValues(alpha: 0.12),
                         borderRadius: AppRadius.md,
                       ),
                       child: Icon(
@@ -1062,7 +1121,7 @@ class _NodeCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 const Divider(),
-                const SizedBox(height: AppSpacing.md),
+                const SizedBox(height: 8),
                 _DetailRow(label: 'Kind', value: node.kind),
                 _DetailRow(label: 'Name', value: node.name),
                 _DetailRow(label: 'Namespace', value: node.namespace),
@@ -1085,7 +1144,7 @@ class _NodeCard extends StatelessWidget {
                     label: 'Parent UIDs',
                     value: node.parentUids.join(', '),
                   ),
-                const SizedBox(height: AppSpacing.lg),
+                const SizedBox(height: 12),
                 Row(
                   children: <Widget>[
                     Expanded(
@@ -1099,7 +1158,7 @@ class _NodeCard extends StatelessWidget {
                       ),
                     ),
                     if (isPod) ...<Widget>[
-                      const SizedBox(width: AppSpacing.lg),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () {
@@ -1163,8 +1222,9 @@ class _MetadataRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = theme.textTheme.labelSmall?.copyWith(
+    final style = theme.textTheme.bodySmall?.copyWith(
       color: AppColors.mutedText(theme),
+      fontSize: 11,
     );
     final dotStyle = TextStyle(color: AppColors.mutedText(theme), fontSize: 11);
     final pieces = <Widget>[
@@ -1190,8 +1250,8 @@ class _MetadataRow extends StatelessWidget {
     }
 
     return Wrap(
-      spacing: AppSpacing.sm,
-      runSpacing: AppSpacing.xs,
+      spacing: 6,
+      runSpacing: 4,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: pieces,
     );
@@ -1215,7 +1275,7 @@ class _DetailRow extends StatelessWidget {
     final displayValue = value.isEmpty ? '-' : value;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -1269,16 +1329,16 @@ class _SmallActionButton extends StatelessWidget {
         borderRadius: AppRadius.sm,
         onTap: onPressed,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           decoration: BoxDecoration(
-            border: Border.all(color: color.withValues(alpha: AppOpacity.heavy)),
+            border: Border.all(color: color.withValues(alpha: 0.4)),
             borderRadius: AppRadius.sm,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Icon(icon, size: 14, color: color),
-              const SizedBox(width: AppSpacing.sm),
+              const SizedBox(width: 4),
               Text(
                 label,
                 style: TextStyle(
