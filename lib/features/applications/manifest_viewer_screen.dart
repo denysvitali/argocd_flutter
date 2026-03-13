@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
-import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,7 +22,6 @@ enum _ManifestAction {
   toggleFormat,
   toggleDiff,
   toggleSections,
-  toggleManagedFields,
   copy,
   refresh,
 }
@@ -70,7 +68,6 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
   _ManifestViewMode _lastNonDiffMode = _ManifestViewMode.yaml;
   bool _showSearch = false;
   bool _wrapLines = false;
-  bool _hideManagedFields = true;
   String _searchQuery = '';
   int _currentMatchIndex = 0;
   List<int> _activeMatches = const <int>[];
@@ -230,12 +227,6 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                           ),
                         ),
                       if (snapshot.hasData)
-                        CheckedPopupMenuItem<_ManifestAction>(
-                          value: _ManifestAction.toggleManagedFields,
-                          checked: _hideManagedFields,
-                          child: const Text('Hide managed fields'),
-                        ),
-                      if (snapshot.hasData)
                         const PopupMenuItem<_ManifestAction>(
                           value: _ManifestAction.copy,
                           child: Text('Copy'),
@@ -264,10 +255,6 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                         if (document != null) {
                           _toggleAllSections(document);
                         }
-                      case _ManifestAction.toggleManagedFields:
-                        setState(() {
-                          _hideManagedFields = !_hideManagedFields;
-                        });
                       case _ManifestAction.copy:
                         if (snapshot.hasData) {
                           _copyManifest(snapshot.requireData);
@@ -317,21 +304,6 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                 );
               },
             ),
-            IconButton(
-              tooltip: _hideManagedFields
-                  ? 'Show managed fields'
-                  : 'Hide managed fields',
-              onPressed: () {
-                setState(() {
-                  _hideManagedFields = !_hideManagedFields;
-                });
-              },
-              icon: Icon(
-                _hideManagedFields
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-              ),
-            ),
             FutureBuilder<String>(
               future: _future,
               builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
@@ -366,7 +338,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                 if (snapshot.hasError) {
                   return Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.xxxl),
+                      padding: const EdgeInsets.all(16),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
@@ -374,7 +346,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                             snapshot.error.toString(),
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: AppSpacing.xl),
+                          const SizedBox(height: 16),
                           FilledButton(
                             onPressed: _refreshManifest,
                             child: const Text('Retry'),
@@ -431,29 +403,26 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       color: colorScheme.surfaceContainerHighest.withValues(
         alpha: theme.brightness == Brightness.dark ? 0.65 : 0.9,
       ),
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.md),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Row(
         children: <Widget>[
           Expanded(
             child: TextField(
               controller: _searchController,
-              style: theme.textTheme.bodyMedium,
+              style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Search manifest...',
                 hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  color: colorScheme.onSurfaceVariant,
                 ),
                 prefixIcon: Icon(
                   Icons.search,
-                  size: 20,
                   color: colorScheme.onSurfaceVariant,
                 ),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
-                        tooltip: 'Clear search',
                         icon: Icon(
                           Icons.clear,
-                          size: 18,
                           color: colorScheme.onSurfaceVariant,
                         ),
                         onPressed: () {
@@ -467,7 +436,6 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                     : null,
                 filled: true,
                 fillColor: colorScheme.surface,
-                isDense: true,
                 border: OutlineInputBorder(
                   borderRadius: AppRadius.md,
                   borderSide: BorderSide(color: colorScheme.outlineVariant),
@@ -478,14 +446,11 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: AppRadius.md,
-                  borderSide: BorderSide(
-                    color: colorScheme.primary,
-                    width: 2,
-                  ),
+                  borderSide: BorderSide(color: colorScheme.primary),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: 10,
+                  horizontal: 12,
+                  vertical: 8,
                 ),
               ),
               onChanged: (String value) {
@@ -497,7 +462,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
               },
             ),
           ),
-          const SizedBox(width: AppSpacing.lg),
+          const SizedBox(width: 8),
           Text(
             currentLabel,
             style: theme.textTheme.labelMedium?.copyWith(
@@ -528,7 +493,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       lineCount: viewData.lines.length,
       matches: viewData.matches,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
@@ -562,7 +527,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       lineCount: document.yamlLines.length,
       matches: viewData.matches,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(0, AppSpacing.md, AppSpacing.lg, AppSpacing.md),
+        padding: const EdgeInsets.fromLTRB(0, 8, 12, 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
@@ -587,7 +552,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       final theme = Theme.of(context);
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xxxl),
+          padding: const EdgeInsets.all(24),
           child: Text(
             'Desired/live diff is not available for this manifest response.',
             style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
@@ -602,7 +567,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       lineCount: diff.lines.length,
       matches: viewData.matches,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
@@ -701,29 +666,21 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                   }
                 : null,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  if (section.expandable)
-                    AnimatedRotation(
-                      turns: isExpanded ? 0.25 : 0,
-                      duration: const Duration(milliseconds: 200),
-                      curve: Curves.easeOutCubic,
-                      child: Icon(
-                        Icons.chevron_right,
-                        size: 18,
-                        color: colorScheme.primary,
-                      ),
-                    )
-                  else
-                    Icon(
-                      Icons.horizontal_rule,
-                      size: 18,
-                      color: colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.5,
-                      ),
-                    ),
+                  Icon(
+                    section.expandable
+                        ? (isExpanded
+                              ? Icons.keyboard_arrow_down
+                              : Icons.keyboard_arrow_right)
+                        : Icons.drag_handle,
+                    size: 16,
+                    color: section.expandable
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     section.key,
@@ -758,7 +715,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
             secondChild: section.expandable
                 ? const SizedBox.shrink()
                 : Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 0, 0, AppSpacing.sm),
+                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
                     child: _buildScalarSectionLine(document, section, viewData),
                   ),
           ),
@@ -791,11 +748,11 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
               softWrap: _wrapLines,
               style: TextStyle(
                 fontFamily: 'monospace',
-                fontSize: 13,
+                fontSize: 12,
                 color: yamlTokenColor(token.type).withValues(
                   alpha: theme.brightness == Brightness.dark ? 1 : 0.92,
                 ),
-                height: 1.5,
+                height: 1.4,
               ),
             ),
         ],
@@ -821,9 +778,9 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
         softWrap: _wrapLines,
         style: TextStyle(
           fontFamily: 'monospace',
-          fontSize: 13,
+          fontSize: 12,
           color: theme.colorScheme.onSurface,
-          height: 1.5,
+          height: 1.4,
         ),
       ),
     );
@@ -837,75 +794,26 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     required bool isCurrentMatch,
   }) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final lineColor = switch (line.kind) {
       _DiffKind.added => AppColors.teal,
       _DiffKind.removed => AppColors.coral,
       _DiffKind.changed => AppColors.amber,
       _DiffKind.unchanged => theme.colorScheme.onSurface,
     };
-    final diffBgColor = switch (line.kind) {
-      _DiffKind.added => AppColors.teal.withValues(
-        alpha: isDark ? AppOpacity.soft : AppOpacity.light,
-      ),
-      _DiffKind.removed => AppColors.coral.withValues(
-        alpha: isDark ? AppOpacity.soft : AppOpacity.light,
-      ),
-      _DiffKind.changed => AppColors.amber.withValues(
-        alpha: isDark ? AppOpacity.soft : AppOpacity.light,
-      ),
-      _DiffKind.unchanged => null,
-    };
-    final prefixIcon = switch (line.kind) {
-      _DiffKind.added => Icons.add,
-      _DiffKind.removed => Icons.remove,
-      _DiffKind.changed => Icons.compare_arrows,
-      _DiffKind.unchanged => null,
-    };
 
-    return Container(
-      color: diffBgColor,
-      child: _buildLineFrame(
-        keyId: keyId,
-        lineNumber: lineNumber,
-        isMatch: isMatch,
-        isCurrentMatch: isCurrentMatch,
-        child: Row(
-          mainAxisSize: _wrapLines ? MainAxisSize.max : MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            if (prefixIcon != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 2, right: 4),
-                child: Icon(prefixIcon, size: 14, color: lineColor),
-              )
-            else
-              const SizedBox(width: 18),
-            if (_wrapLines)
-              Expanded(
-                child: Text(
-                  line.text,
-                  softWrap: true,
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 13,
-                    color: lineColor,
-                    height: 1.5,
-                  ),
-                ),
-              )
-            else
-              Text(
-                line.text,
-                softWrap: false,
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 13,
-                  color: lineColor,
-                  height: 1.5,
-                ),
-              ),
-          ],
+    return _buildLineFrame(
+      keyId: keyId,
+      lineNumber: lineNumber,
+      isMatch: isMatch,
+      isCurrentMatch: isCurrentMatch,
+      child: Text(
+        '${line.prefix} ${line.text}',
+        softWrap: _wrapLines,
+        style: TextStyle(
+          fontFamily: 'monospace',
+          fontSize: 12,
+          color: lineColor,
+          height: 1.4,
         ),
       ),
     );
@@ -920,48 +828,39 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
   }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
     final key = _lineKeys.putIfAbsent(keyId, GlobalKey.new);
-    final gutterColor =
-        isDark
-            ? colorScheme.surfaceContainerHighest
-            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.6);
 
     return Container(
       key: key,
       color: isCurrentMatch
-          ? AppColors.amber.withValues(alpha: isDark ? 0.22 : 0.28)
+          ? AppColors.amber.withValues(
+              alpha: theme.brightness == Brightness.dark ? 0.22 : 0.28,
+            )
           : isMatch
-              ? colorScheme.primary.withValues(alpha: isDark ? 0.16 : 0.12)
-              : null,
+          ? colorScheme.primary.withValues(
+              alpha: theme.brightness == Brightness.dark ? 0.16 : 0.12,
+            )
+          : null,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: Row(
         mainAxisSize: _wrapLines ? MainAxisSize.max : MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Container(
-            width: 52,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 2),
-            decoration: BoxDecoration(
-              color: gutterColor,
-              border: Border(
-                right: BorderSide(color: AppColors.outline(theme)),
-              ),
-            ),
+          SizedBox(
+            width: 48,
             child: Text(
               '$lineNumber',
               textAlign: TextAlign.right,
               style: theme.textTheme.bodySmall?.copyWith(
                 fontFamily: 'monospace',
-                fontSize: 13,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                height: 1.5,
+                fontSize: 12,
+                color: colorScheme.onSurfaceVariant,
+                height: 1.4,
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 2),
-            child: _wrapLines ? Expanded(child: child) : child,
-          ),
+          const SizedBox(width: 8),
+          if (_wrapLines) Expanded(child: child) else child,
         ],
       ),
     );
@@ -980,14 +879,16 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       );
     }
 
+    String formattedJson;
+    try {
+      formattedJson = const JsonEncoder.withIndent('  ').convert(decoded);
+    } catch (_) {
+      formattedJson = manifest;
+    }
+
+    final jsonLines = formattedJson.split('\n');
+
     if (decoded is! Map<String, dynamic>) {
-      String formattedJson;
-      try {
-        formattedJson = const JsonEncoder.withIndent('  ').convert(decoded);
-      } catch (_) {
-        formattedJson = manifest;
-      }
-      final jsonLines = formattedJson.split('\n');
       return _ManifestDocumentBundle(
         yamlLines: jsonLines,
         yamlSections: const <_YamlSection>[],
@@ -995,18 +896,6 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
         diff: null,
       );
     }
-
-    if (_hideManagedFields) {
-      decoded = _stripManagedFields(decoded);
-    }
-
-    String formattedJson;
-    try {
-      formattedJson = const JsonEncoder.withIndent('  ').convert(decoded);
-    } catch (_) {
-      formattedJson = manifest;
-    }
-    final jsonLines = formattedJson.split('\n');
 
     final yamlText = jsonToYaml(decoded);
     final yamlLines = _trimTrailingEmptyLine(yamlText.split('\n'));
@@ -1018,15 +907,6 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       jsonLines: jsonLines,
       diff: _extractDiffDocument(decoded),
     );
-  }
-
-  Map<String, dynamic> _stripManagedFields(Map<String, dynamic> obj) {
-    final result = Map<String, dynamic>.of(obj);
-    final metadata = result['metadata'];
-    if (metadata is Map<String, dynamic> && metadata.containsKey('managedFields')) {
-      result['metadata'] = Map<String, dynamic>.of(metadata)..remove('managedFields');
-    }
-    return result;
   }
 
   _DiffDocument? _extractDiffDocument(Map<String, dynamic> decoded) {
@@ -1195,7 +1075,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 0, 0, AppSpacing.sm),
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: widgets,
@@ -1230,7 +1110,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     final colorScheme = theme.colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Text(
         '... $hiddenLineCount lines hidden between $startLine and $endLine ...',
         style: theme.textTheme.labelSmall?.copyWith(
