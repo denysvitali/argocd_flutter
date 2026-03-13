@@ -5,7 +5,6 @@ import 'package:argocd_flutter/ui/error_retry_widget.dart';
 import 'package:argocd_flutter/ui/resource_icons.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:argocd_flutter/ui/design_tokens.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   const ProjectDetailScreen({
@@ -80,7 +79,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 CircularProgressIndicator(),
-                SizedBox(height: AppSpacing.xl),
+                SizedBox(height: 16),
                 Text('Loading project details...'),
               ],
             ),
@@ -107,7 +106,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         SliverFillRemaining(
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.xxxl),
+              padding: const EdgeInsets.all(24),
               child: ErrorRetryWidget(message: error, onRetry: _refresh),
             ),
           ),
@@ -134,7 +133,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, 0, AppSpacing.xxl, AppSpacing.xl),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
               child: _HeaderBanner(project: project),
             ),
           ),
@@ -147,23 +146,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                 tabAlignment: TabAlignment.start,
                 tabs: <Widget>[
                   const Tab(text: 'Overview'),
+                  Tab(text: 'Sources (${project.sourceRepos.length})'),
+                  Tab(text: 'Destinations (${project.destinations.length})'),
                   Tab(
-                    child: _TabLabel(
-                      label: 'Sources',
-                      count: project.sourceRepos.length,
-                    ),
-                  ),
-                  Tab(
-                    child: _TabLabel(
-                      label: 'Destinations',
-                      count: project.destinations.length,
-                    ),
-                  ),
-                  Tab(
-                    child: _TabLabel(
-                      label: 'Permissions',
-                      count: project.clusterResourceWhitelist.length,
-                    ),
+                    text:
+                        'Permissions (${project.clusterResourceWhitelist.length})',
                   ),
                 ],
               ),
@@ -218,39 +205,6 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   }
 }
 
-class _TabLabel extends StatelessWidget {
-  const _TabLabel({required this.label, required this.count});
-
-  final String label;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Text(label),
-        const SizedBox(width: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: AppSpacing.xs),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primary.withValues(alpha: AppOpacity.medium),
-            borderRadius: AppRadius.lg,
-          ),
-          child: Text(
-            '$count',
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _HeaderBanner extends StatelessWidget {
   const _HeaderBanner({required this.project});
 
@@ -261,16 +215,9 @@ class _HeaderBanner extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            AppColors.headerDarkAlt,
-            AppColors.headerDarkGreen,
-          ],
-        ),
+        color: AppColors.headerDarkAlt,
         borderRadius: AppRadius.md,
       ),
       child: Column(
@@ -279,46 +226,31 @@ class _HeaderBanner extends StatelessWidget {
           Row(
             children: <Widget>[
               Container(
-                width: 44,
-                height: 44,
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: AppOpacity.medium),
-                  borderRadius: AppRadius.md,
+                  color: Colors.white.withValues(alpha: 0.12),
+                  borderRadius: AppRadius.sm,
                 ),
                 child: const Icon(
                   Icons.account_tree_outlined,
                   color: Colors.white,
-                  size: 24,
+                  size: 22,
                 ),
               ),
               const SizedBox(width: 14),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'PROJECT',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: AppColors.textOnDarkGreen.withValues(alpha: AppOpacity.prominent),
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      project.name,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  project.name,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
           ),
           if (project.description.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             Text(
               project.description,
               style: theme.textTheme.bodyLarge?.copyWith(
@@ -326,10 +258,10 @@ class _HeaderBanner extends StatelessWidget {
               ),
             ),
           ],
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: 10),
           Wrap(
-            spacing: AppSpacing.md,
-            runSpacing: AppSpacing.md,
+            spacing: 8,
+            runSpacing: 8,
             children: <Widget>[
               _BannerChip(
                 icon: Icons.code_outlined,
@@ -361,17 +293,17 @@ class _BannerChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: AppOpacity.soft),
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: AppRadius.sm,
-        border: Border.all(color: Colors.white.withValues(alpha: AppOpacity.moderate)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Icon(icon, size: 16, color: AppColors.textOnDarkGreen),
-          const SizedBox(width: AppSpacing.md),
+          const SizedBox(width: 8),
           Text(
             label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -395,10 +327,10 @@ class _OverviewTab extends StatelessWidget {
     final theme = Theme.of(context);
 
     return ListView(
-      padding: const EdgeInsets.all(AppSpacing.xxl),
+      padding: const EdgeInsets.all(14),
       children: <Widget>[
         Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             borderRadius: AppRadius.base,
@@ -412,9 +344,9 @@ class _OverviewTab extends StatelessWidget {
                 iconColor: AppColors.cobalt,
                 title: 'Project Details',
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               _DetailRow(label: 'Name', value: project.name),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               _DetailRow(
                 label: 'Description',
                 value: project.description.isNotEmpty
@@ -424,7 +356,7 @@ class _OverviewTab extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: 8),
         Row(
           children: <Widget>[
             Expanded(
@@ -434,7 +366,7 @@ class _OverviewTab extends StatelessWidget {
                 valueColor: AppColors.cobalt,
               ),
             ),
-            const SizedBox(width: AppSpacing.lg),
+            const SizedBox(width: 8),
             Expanded(
               child: SummaryTile(
                 label: 'Destinations',
@@ -442,7 +374,7 @@ class _OverviewTab extends StatelessWidget {
                 valueColor: AppColors.teal,
               ),
             ),
-            const SizedBox(width: AppSpacing.lg),
+            const SizedBox(width: 8),
             Expanded(
               child: SummaryTile(
                 label: 'Resources',
@@ -477,7 +409,7 @@ class _DetailRow extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: 2),
         Text(value, style: theme.textTheme.bodyLarge),
       ],
     );
@@ -504,88 +436,54 @@ class _SourcesTab extends StatelessWidget {
     final mutedColor = AppColors.mutedText(theme);
 
     return ListView.separated(
-      padding: const EdgeInsets.all(AppSpacing.xxl),
+      padding: const EdgeInsets.all(14),
       itemCount: sourceRepos.length,
-      separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.lg),
+      separatorBuilder: (context, index) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final repo = sourceRepos[index];
         final isWildcard = repo == '*';
-        final repoColor = isWildcard ? AppColors.amber : AppColors.cobalt;
 
         return Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: isWildcard
-                ? AppColors.amber.withValues(alpha: AppOpacity.subtle)
-                : theme.colorScheme.surface,
+            color: theme.colorScheme.surface,
             borderRadius: AppRadius.base,
-            border: Border.all(
-              color: isWildcard
-                  ? AppColors.amber.withValues(alpha: AppOpacity.bold)
-                  : outlineColor,
-            ),
+            border: Border.all(color: outlineColor),
           ),
           child: Row(
             children: <Widget>[
               Container(
-                padding: const EdgeInsets.all(AppSpacing.md),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: repoColor.withValues(alpha: AppOpacity.medium),
+                  color: AppColors.cobalt.withValues(alpha: 0.1),
                   borderRadius: AppRadius.base,
                 ),
                 child: Icon(
                   isWildcard ? Icons.all_inclusive : Icons.commit_outlined,
                   size: 20,
-                  color: repoColor,
+                  color: AppColors.cobalt,
                 ),
               ),
-              const SizedBox(width: AppSpacing.lg),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        Flexible(
-                          child: Text(
-                            isWildcard ? 'All repositories (wildcard)' : repo,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: repoColor,
-                              decoration: isWildcard
-                                  ? null
-                                  : TextDecoration.underline,
-                              decorationColor: AppColors.cobalt.withValues(
-                                alpha: 0.4,
-                              ),
-                            ),
-                          ),
+                    Text(
+                      isWildcard ? 'All repositories (wildcard)' : repo,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: AppColors.cobalt,
+                        decoration: isWildcard
+                            ? null
+                            : TextDecoration.underline,
+                        decorationColor: AppColors.cobalt.withValues(
+                          alpha: 0.4,
                         ),
-                        if (isWildcard) ...<Widget>[
-                          const SizedBox(width: AppSpacing.md),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.md,
-                              vertical: AppSpacing.xs,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.amber.withValues(alpha: AppOpacity.moderate),
-                              borderRadius: AppRadius.sm,
-                            ),
-                            child: Text(
-                              'WILDCARD',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: AppColors.amber,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
+                      ),
                     ),
                     if (isWildcard)
                       Padding(
-                        padding: const EdgeInsets.only(top: AppSpacing.sm),
+                        padding: const EdgeInsets.only(top: 4),
                         child: Text(
                           'Any source repository is allowed',
                           style: theme.textTheme.bodySmall?.copyWith(
@@ -624,14 +522,14 @@ class _DestinationsTab extends StatelessWidget {
     final mutedColor = AppColors.mutedText(theme);
 
     return ListView.separated(
-      padding: const EdgeInsets.all(AppSpacing.xxl),
+      padding: const EdgeInsets.all(14),
       itemCount: destinations.length,
-      separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.lg),
+      separatorBuilder: (context, index) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final destination = destinations[index];
 
         return Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             borderRadius: AppRadius.base,
@@ -640,83 +538,65 @@ class _DestinationsTab extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.teal.withValues(alpha: AppOpacity.soft),
-                      borderRadius: AppRadius.base,
-                    ),
-                    child: const Icon(
-                      Icons.dns_outlined,
-                      size: 20,
-                      color: AppColors.teal,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.lg),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          destination.name.isNotEmpty
-                              ? destination.name
-                              : destination.server,
+              if (destination.name.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    children: <Widget>[
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.teal.withValues(alpha: 0.1),
+                          borderRadius: AppRadius.sm,
+                        ),
+                        child: const Icon(
+                          Icons.label_outline,
+                          size: 16,
+                          color: AppColors.teal,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          destination.name,
                           style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        if (destination.name.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: AppSpacing.xs),
-                            child: Text(
-                              destination.server,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: mutedColor,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                      ],
+                      ),
+                    ],
+                  ),
+                ),
+              Row(
+                children: <Widget>[
+                  Icon(Icons.cloud_outlined, size: 16, color: mutedColor),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      destination.server,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: mutedColor,
+                      ),
                     ),
                   ),
                 ],
               ),
               if (destination.namespace.isNotEmpty)
                 Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.cobalt.withValues(alpha: AppOpacity.light),
-                      borderRadius: AppRadius.base,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Icon(
-                          Icons.folder_outlined,
-                          size: 16,
-                          color: AppColors.cobalt,
-                        ),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            destination.namespace,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: AppColors.cobalt,
-                              fontWeight: FontWeight.w600,
-                            ),
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Row(
+                    children: <Widget>[
+                      Icon(Icons.folder_outlined, size: 16, color: mutedColor),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          destination.namespace,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: mutedColor,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
             ],
@@ -746,10 +626,10 @@ class _PermissionsTab extends StatelessWidget {
     final theme = Theme.of(context);
 
     return ListView(
-      padding: const EdgeInsets.all(AppSpacing.xxl),
+      padding: const EdgeInsets.all(14),
       children: <Widget>[
         Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             borderRadius: AppRadius.base,
@@ -764,23 +644,23 @@ class _PermissionsTab extends StatelessWidget {
                 title: 'Cluster Resource Whitelist',
                 count: resources.length,
               ),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: 12),
               Wrap(
-                spacing: AppSpacing.md,
-                runSpacing: AppSpacing.md,
+                spacing: 6,
+                runSpacing: 6,
                 children: resources
                     .map((resource) {
                       final kindColor = colorForResourceKind(resource.kind);
                       return Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.lg,
-                          vertical: 10,
+                          horizontal: 10,
+                          vertical: 7,
                         ),
                         decoration: BoxDecoration(
-                          color: kindColor.withValues(alpha: AppOpacity.light),
-                          borderRadius: AppRadius.base,
+                          color: kindColor.withValues(alpha: 0.08),
+                          borderRadius: AppRadius.sm,
                           border: Border.all(
-                            color: kindColor.withValues(alpha: AppOpacity.strong),
+                            color: kindColor.withValues(alpha: 0.2),
                           ),
                         ),
                         child: Row(
@@ -788,27 +668,25 @@ class _PermissionsTab extends StatelessWidget {
                           children: <Widget>[
                             Icon(
                               iconForResourceKind(resource.kind),
-                              size: 22,
+                              size: 18,
                               color: kindColor,
                             ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 8),
                             Column(
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
                                 Text(
                                   resource.kind.isEmpty ? '*' : resource.kind,
-                                  style: theme.textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w700,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                                 if (resource.group.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: AppSpacing.xs),
-                                    child: Text(
-                                      resource.group,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(color: AppColors.grey),
+                                  Text(
+                                    resource.group,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: AppColors.grey,
                                     ),
                                   ),
                               ],
@@ -841,10 +719,10 @@ class _TabEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(AppSpacing.huge),
+      padding: const EdgeInsets.all(32),
       children: <Widget>[
         Icon(icon, size: 56, color: AppColors.greyLight),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: 16),
         EmptyStateCard(title: title, subtitle: subtitle),
       ],
     );
@@ -871,15 +749,14 @@ class _SectionHeader extends StatelessWidget {
     return Row(
       children: <Widget>[
         Container(
-          width: 36,
-          height: 36,
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: iconColor.withValues(alpha: AppOpacity.medium),
+            color: iconColor.withValues(alpha: 0.12),
             borderRadius: AppRadius.base,
           ),
           child: Icon(icon, size: 20, color: iconColor),
         ),
-        const SizedBox(width: AppSpacing.lg),
+        const SizedBox(width: 12),
         Expanded(
           child: Text(
             title,
@@ -890,9 +767,9 @@ class _SectionHeader extends StatelessWidget {
         ),
         if (count != null)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: AppSpacing.sm),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: AppOpacity.soft),
+              color: iconColor.withValues(alpha: 0.1),
               borderRadius: AppRadius.sm,
             ),
             child: Text(
