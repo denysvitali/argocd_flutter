@@ -1,3 +1,5 @@
+import 'package:argocd_flutter/core/utils/json_parsing.dart';
+
 class ArgoProject {
   const ArgoProject({
     required this.name,
@@ -8,22 +10,22 @@ class ArgoProject {
   });
 
   factory ArgoProject.fromJson(Map<String, dynamic> json) {
-    final metadata = _map(json['metadata']);
-    final spec = _map(json['spec']);
+    final metadata = parseMap(json['metadata']);
+    final spec = parseMap(json['spec']);
 
     return ArgoProject(
-      name: _string(metadata['name'], fallback: 'Unknown'),
-      description: _string(spec['description'], fallback: 'No description'),
-      sourceRepos: _list(spec['sourceRepos'])
-          .map((dynamic item) => _string(item))
+      name: parseString(metadata['name'], fallback: 'Unknown'),
+      description: parseString(spec['description'], fallback: 'No description'),
+      sourceRepos: parseList(spec['sourceRepos'])
+          .map((dynamic item) => parseString(item))
           .where((item) => item.isNotEmpty)
           .toList(growable: false),
-      destinations: _list(spec['destinations'])
-          .map((dynamic item) => ArgoProjectDestination.fromJson(_map(item)))
+      destinations: parseList(spec['destinations'])
+          .map((dynamic item) => ArgoProjectDestination.fromJson(parseMap(item)))
           .toList(growable: false),
-      clusterResourceWhitelist: _list(spec['clusterResourceWhitelist'])
+      clusterResourceWhitelist: parseList(spec['clusterResourceWhitelist'])
           .map(
-            (dynamic item) => ArgoProjectClusterResource.fromJson(_map(item)),
+            (dynamic item) => ArgoProjectClusterResource.fromJson(parseMap(item)),
           )
           .toList(growable: false),
     );
@@ -45,9 +47,9 @@ class ArgoProjectDestination {
 
   factory ArgoProjectDestination.fromJson(Map<String, dynamic> json) {
     return ArgoProjectDestination(
-      server: _string(json['server'], fallback: '*'),
-      namespace: _string(json['namespace'], fallback: '*'),
-      name: _string(json['name'], fallback: ''),
+      server: parseString(json['server'], fallback: '*'),
+      namespace: parseString(json['namespace'], fallback: '*'),
+      name: parseString(json['name'], fallback: ''),
     );
   }
 
@@ -61,46 +63,11 @@ class ArgoProjectClusterResource {
 
   factory ArgoProjectClusterResource.fromJson(Map<String, dynamic> json) {
     return ArgoProjectClusterResource(
-      group: _string(json['group'], fallback: '*'),
-      kind: _string(json['kind'], fallback: '*'),
+      group: parseString(json['group'], fallback: '*'),
+      kind: parseString(json['kind'], fallback: '*'),
     );
   }
 
   final String group;
   final String kind;
-}
-
-Map<String, dynamic> _map(dynamic value) {
-  if (value is Map<String, dynamic>) {
-    return value;
-  }
-  if (value is Map) {
-    return value.map(
-      (dynamic key, dynamic val) => MapEntry(key.toString(), val),
-    );
-  }
-  return const <String, dynamic>{};
-}
-
-List<dynamic> _list(dynamic value) {
-  if (value is List<dynamic>) {
-    return value;
-  }
-  if (value is List) {
-    return List<dynamic>.from(value);
-  }
-  return const <dynamic>[];
-}
-
-String _string(dynamic value, {String? fallback}) {
-  if (value is String && value.trim().isNotEmpty) {
-    return value;
-  }
-  if (value != null) {
-    final stringValue = value.toString();
-    if (stringValue.trim().isNotEmpty) {
-      return stringValue;
-    }
-  }
-  return fallback ?? '';
 }

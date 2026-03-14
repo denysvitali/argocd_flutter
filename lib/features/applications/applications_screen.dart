@@ -194,11 +194,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
             const SizedBox(height: 8),
             _SearchBar(
               controller: _searchController,
-              onChanged: (value) {
-                setState(() {
-                  _query = value;
-                });
-              },
+              onChanged: _onSearchChanged,
               onClear: () {
                 _searchController.clear();
                 setState(() {

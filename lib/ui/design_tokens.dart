@@ -1,5 +1,5 @@
-/// Design tokens for consistent spacing, border radius, and opacity values
-/// across the application.
+/// Design tokens for consistent spacing, border radius, opacity values,
+/// elevation/shadows, and shared card decorations across the application.
 ///
 /// All values are compile-time constants and can be used in `const` contexts.
 
@@ -17,12 +17,12 @@ abstract final class AppSpacing {
 }
 
 abstract final class AppRadius {
-  static final BorderRadius xs = BorderRadius.circular(3);
+  static final BorderRadius xs = BorderRadius.circular(2);
   static final BorderRadius sm = BorderRadius.circular(4);
   static final BorderRadius base = BorderRadius.circular(6);
   static final BorderRadius md = BorderRadius.circular(8);
   static final BorderRadius lg = BorderRadius.circular(12);
-  static final BorderRadius pill = BorderRadius.circular(999);
+  static final BorderRadius pill = BorderRadius.circular(100);
 }
 
 abstract final class AppOpacity {
@@ -49,4 +49,72 @@ abstract final class AppIconSize {
   static const double xl = 28;
   static const double xxl = 32;
   static const double huge = 48;
+}
+
+/// Consistent elevation/shadow tokens for cards and surfaces.
+///
+/// Use [AppCardDecoration.card] for standard surface cards (border only).
+/// Use [AppCardDecoration.elevated] for cards that need depth (border + shadow).
+abstract final class AppElevation {
+  /// No elevation -- border only, no shadows. Used for standard section cards.
+  static const List<BoxShadow> none = <BoxShadow>[];
+
+  /// Subtle elevation for cards that need gentle depth perception.
+  /// Two-layer shadow for a more natural, diffused look.
+  static List<BoxShadow> subtle(Color shadowColor) => <BoxShadow>[
+        BoxShadow(
+          color: shadowColor.withValues(alpha: 0.06),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
+        ),
+        BoxShadow(
+          color: shadowColor.withValues(alpha: 0.03),
+          blurRadius: 4,
+          offset: const Offset(0, 2),
+        ),
+      ];
+
+  /// Light elevation for attention items or interactive cards.
+  static List<BoxShadow> light(Color shadowColor, {double alpha = 0.08}) =>
+      <BoxShadow>[
+        BoxShadow(
+          color: shadowColor.withValues(alpha: alpha),
+          blurRadius: 4,
+          offset: const Offset(0, 1),
+        ),
+      ];
+}
+
+/// Shared card decoration factory for consistent styling across all screens.
+///
+/// All cards use `borderRadius: AppRadius.base` (6px) and a standard border.
+/// Elevated variants add subtle two-layer shadows for depth.
+abstract final class AppCardDecoration {
+  /// Standard surface card: solid background, border, no shadow.
+  /// Used for SectionCard, SummaryTile, EmptyStateCard, and most content cards.
+  static BoxDecoration card({
+    required Color backgroundColor,
+    required Color borderColor,
+  }) {
+    return BoxDecoration(
+      color: backgroundColor,
+      borderRadius: AppRadius.base,
+      border: Border.all(color: borderColor),
+    );
+  }
+
+  /// Elevated surface card: border plus subtle two-layer shadow.
+  /// Used for the sign-in form card and other cards that need depth.
+  static BoxDecoration elevated({
+    required Color backgroundColor,
+    required Color borderColor,
+    required Color shadowColor,
+  }) {
+    return BoxDecoration(
+      color: backgroundColor,
+      borderRadius: AppRadius.base,
+      border: Border.all(color: borderColor),
+      boxShadow: AppElevation.subtle(shadowColor),
+    );
+  }
 }

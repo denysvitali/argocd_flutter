@@ -102,28 +102,6 @@ class MemorySessionStorage implements SessionStorage {
     _session = session;
     _serverUrl = session.serverUrl;
   }
-
-  void seedServerUrl(String serverUrl) {
-    _serverUrl = serverUrl;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// LogRequest — captures log fetch parameters for assertions
-// ---------------------------------------------------------------------------
-
-class LogRequest {
-  const LogRequest({
-    required this.applicationName,
-    required this.namespace,
-    required this.podName,
-    required this.containerName,
-  });
-
-  final String applicationName;
-  final String namespace;
-  final String podName;
-  final String? containerName;
 }
 
 // ---------------------------------------------------------------------------
@@ -134,54 +112,35 @@ class FakeArgoCdApi implements ArgoCdApi {
   FakeArgoCdApi({
     List<ArgoApplication> applications = const <ArgoApplication>[],
     List<ArgoProject> projects = const <ArgoProject>[],
-    List<ArgoResourceNode> resourceNodes = const <ArgoResourceNode>[],
-    this.logsToReturn = '',
-    this.manifestToReturn = '',
     this.signInError,
     this.fetchApplicationsError,
     this.fetchProjectsError,
-    this.fetchManifestError,
   }) : applications = List<ArgoApplication>.of(applications),
-       projects = List<ArgoProject>.of(projects),
-       resourceNodes = List<ArgoResourceNode>.of(resourceNodes);
+       projects = List<ArgoProject>.of(projects);
 
   FakeArgoCdApi.withSeedData()
     : applications = <ArgoApplication>[seedApp],
       projects = <ArgoProject>[seedProject],
-      resourceNodes = const <ArgoResourceNode>[],
-      logsToReturn = '',
-      manifestToReturn = '',
       signInError = null,
       fetchApplicationsError = null,
-      fetchProjectsError = null,
-      fetchManifestError = null;
+      fetchProjectsError = null;
 
   FakeArgoCdApi.empty()
     : applications = <ArgoApplication>[],
       projects = <ArgoProject>[],
-      resourceNodes = const <ArgoResourceNode>[],
-      logsToReturn = '',
-      manifestToReturn = '',
       signInError = null,
       fetchApplicationsError = null,
-      fetchProjectsError = null,
-      fetchManifestError = null;
+      fetchProjectsError = null;
 
   List<ArgoApplication> applications;
   List<ArgoProject> projects;
-  List<ArgoResourceNode> resourceNodes;
-  String logsToReturn;
-  String manifestToReturn;
 
   final ArgoCdException? signInError;
   final ArgoCdException? fetchApplicationsError;
   final ArgoCdException? fetchProjectsError;
-  final ArgoCdException? fetchManifestError;
 
   final List<String> syncedApplications = <String>[];
   final List<String> deletedApplications = <String>[];
-
-  LogRequest? lastLogRequest;
 
   void Function(String name)? onDelete;
 
@@ -246,7 +205,7 @@ class FakeArgoCdApi implements ArgoCdApi {
     AppSession session,
     String applicationName,
   ) async {
-    return resourceNodes;
+    return const <ArgoResourceNode>[];
   }
 
   @override
@@ -258,13 +217,7 @@ class FakeArgoCdApi implements ArgoCdApi {
     String? containerName,
     int tailLines = 500,
   }) async {
-    lastLogRequest = LogRequest(
-      applicationName: applicationName,
-      namespace: namespace,
-      podName: podName,
-      containerName: containerName,
-    );
-    return logsToReturn;
+    return '';
   }
 
   @override
@@ -277,10 +230,7 @@ class FakeArgoCdApi implements ArgoCdApi {
     required String group,
     required String version,
   }) async {
-    if (fetchManifestError != null) {
-      throw fetchManifestError!;
-    }
-    return manifestToReturn;
+    return '';
   }
 
   @override

@@ -813,8 +813,7 @@ class _TimelineEntry extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 }
 

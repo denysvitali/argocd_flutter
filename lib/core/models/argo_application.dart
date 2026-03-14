@@ -1,3 +1,5 @@
+import 'package:argocd_flutter/core/utils/json_parsing.dart';
+
 class ArgoApplication {
   const ArgoApplication({
     required this.name,
@@ -16,38 +18,38 @@ class ArgoApplication {
   });
 
   factory ArgoApplication.fromJson(Map<String, dynamic> json) {
-    final metadata = _map(json['metadata']);
-    final spec = _map(json['spec']);
-    final destination = _map(spec['destination']);
+    final metadata = parseMap(json['metadata']);
+    final spec = parseMap(json['spec']);
+    final destination = parseMap(spec['destination']);
     final source = _sourceMap(spec);
-    final status = _map(json['status']);
-    final sync = _map(status['sync']);
-    final health = _map(status['health']);
-    final operationState = _map(status['operationState']);
+    final status = parseMap(json['status']);
+    final sync = parseMap(status['sync']);
+    final health = parseMap(status['health']);
+    final operationState = parseMap(status['operationState']);
 
     return ArgoApplication(
-      name: _string(metadata['name'], fallback: 'Unknown'),
-      project: _string(spec['project'], fallback: 'default'),
-      namespace: _string(destination['namespace'], fallback: 'default'),
-      cluster: _string(
+      name: parseString(metadata['name'], fallback: 'Unknown'),
+      project: parseString(spec['project'], fallback: 'default'),
+      namespace: parseString(destination['namespace'], fallback: 'default'),
+      cluster: parseString(
         destination['server'],
-        fallback: _string(destination['name'], fallback: 'in-cluster'),
+        fallback: parseString(destination['name'], fallback: 'in-cluster'),
       ),
-      repoUrl: _string(source['repoURL'], fallback: 'Unknown'),
-      path: _string(source['path'], fallback: '/'),
-      targetRevision: _string(source['targetRevision'], fallback: 'HEAD'),
-      syncStatus: _string(sync['status'], fallback: 'Unknown'),
-      healthStatus: _string(health['status'], fallback: 'Unknown'),
-      operationPhase: _string(
+      repoUrl: parseString(source['repoURL'], fallback: 'Unknown'),
+      path: parseString(source['path'], fallback: '/'),
+      targetRevision: parseString(source['targetRevision'], fallback: 'HEAD'),
+      syncStatus: parseString(sync['status'], fallback: 'Unknown'),
+      healthStatus: parseString(health['status'], fallback: 'Unknown'),
+      operationPhase: parseString(
         operationState['phase'],
         fallback: status['operationState'] == null ? 'Idle' : 'Unknown',
       ),
-      lastSyncedAt: _string(sync['reconciledAt']),
-      resources: _list(status['resources'])
-          .map((dynamic item) => ArgoResource.fromJson(_map(item)))
+      lastSyncedAt: parseString(sync['reconciledAt']),
+      resources: parseList(status['resources'])
+          .map((dynamic item) => ArgoResource.fromJson(parseMap(item)))
           .toList(growable: false),
-      history: _list(status['history'])
-          .map((dynamic item) => ArgoHistoryEntry.fromJson(_map(item)))
+      history: parseList(status['history'])
+          .map((dynamic item) => ArgoHistoryEntry.fromJson(parseMap(item)))
           .toList(growable: false),
     );
   }
@@ -83,13 +85,13 @@ class ArgoResource {
 
   factory ArgoResource.fromJson(Map<String, dynamic> json) {
     return ArgoResource(
-      kind: _string(json['kind'], fallback: 'Resource'),
-      name: _string(json['name'], fallback: 'Unknown'),
-      namespace: _string(json['namespace'], fallback: '-'),
-      group: _string(json['group'], fallback: ''),
-      version: _string(json['version'], fallback: ''),
-      status: _string(json['status'], fallback: 'Unknown'),
-      health: _string(json['health'], fallback: 'Unknown'),
+      kind: parseString(json['kind'], fallback: 'Resource'),
+      name: parseString(json['name'], fallback: 'Unknown'),
+      namespace: parseString(json['namespace'], fallback: '-'),
+      group: parseString(json['group'], fallback: ''),
+      version: parseString(json['version'], fallback: ''),
+      status: parseString(json['status'], fallback: 'Unknown'),
+      health: parseString(json['health'], fallback: 'Unknown'),
     );
   }
 
@@ -112,8 +114,8 @@ class ArgoHistoryEntry {
   factory ArgoHistoryEntry.fromJson(Map<String, dynamic> json) {
     return ArgoHistoryEntry(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
-      revision: _string(json['revision'], fallback: '-'),
-      deployedAt: _string(json['deployedAt'], fallback: '-'),
+      revision: parseString(json['revision'], fallback: '-'),
+      deployedAt: parseString(json['deployedAt'], fallback: '-'),
     );
   }
 
@@ -123,50 +125,15 @@ class ArgoHistoryEntry {
 }
 
 Map<String, dynamic> _sourceMap(Map<String, dynamic> spec) {
-  final source = _map(spec['source']);
+  final source = parseMap(spec['source']);
   if (source.isNotEmpty) {
     return source;
   }
 
-  final sources = _list(spec['sources']);
+  final sources = parseList(spec['sources']);
   if (sources.isNotEmpty) {
-    return _map(sources.first);
+    return parseMap(sources.first);
   }
 
   return const <String, dynamic>{};
-}
-
-Map<String, dynamic> _map(dynamic value) {
-  if (value is Map<String, dynamic>) {
-    return value;
-  }
-  if (value is Map) {
-    return value.map(
-      (dynamic key, dynamic val) => MapEntry(key.toString(), val),
-    );
-  }
-  return const <String, dynamic>{};
-}
-
-List<dynamic> _list(dynamic value) {
-  if (value is List<dynamic>) {
-    return value;
-  }
-  if (value is List) {
-    return List<dynamic>.from(value);
-  }
-  return const <dynamic>[];
-}
-
-String _string(dynamic value, {String? fallback}) {
-  if (value is String && value.trim().isNotEmpty) {
-    return value;
-  }
-  if (value != null) {
-    final stringValue = value.toString();
-    if (stringValue.trim().isNotEmpty) {
-      return stringValue;
-    }
-  }
-  return fallback ?? '';
 }

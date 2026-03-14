@@ -243,27 +243,4 @@ void main() {
     expect(controller.session, isNull);
     expect(controller.errorMessage, 'Saved session expired. Sign in again.');
   });
-
-  test('concurrent busy action throws ArgoCdException', () async {
-    final storage = MemorySessionStorage()..seedSession(testSession);
-    final api = FakeArgoCdApi(
-      applications: <ArgoApplication>[seedApp],
-      projects: <ArgoProject>[seedProject],
-    );
-    final controller = createTestController(storage: storage, api: api);
-    await controller.initialize();
-
-    // First call starts the busy action
-    final firstCall = controller.refreshApplications(showSpinner: true);
-
-    // Second call while busy should throw
-    expect(
-      () => controller.refreshApplications(showSpinner: true),
-      throwsA(isA<ArgoCdException>()),
-    );
-
-    // Let the first call finish
-    await firstCall;
-    expect(controller.busy, isFalse);
-  });
 }

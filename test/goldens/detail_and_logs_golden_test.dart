@@ -1,4 +1,6 @@
 @Tags(<String>['golden'])
+library;
+
 import 'package:argocd_flutter/core/models/app_session.dart';
 import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/models/argo_project.dart';

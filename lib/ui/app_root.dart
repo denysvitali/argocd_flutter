@@ -10,24 +10,16 @@ import 'package:argocd_flutter/features/settings/settings_screen.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:flutter/material.dart';
 
-/// Builds the app TextTheme with the given [color].
-TextTheme _buildAppTextTheme(Color color, TextTheme base) {
-  final themed = base.apply(bodyColor: color, displayColor: color);
-  return themed.copyWith(
-    bodySmall: TextStyle(color: color, fontSize: 12),
-    bodyMedium: TextStyle(color: color, fontSize: 14),
-    bodyLarge: TextStyle(color: color, fontSize: 16),
-    labelSmall: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w500),
-    labelMedium: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w500),
-    labelLarge: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w500),
-    titleSmall: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w600),
-    titleMedium: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w600),
-    titleLarge: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.w700),
-    headlineSmall: TextStyle(color: color, fontSize: 24, fontWeight: FontWeight.w700),
-  );
-}
+const _displayFontFamily = 'SpaceGrotesk';
+const _bodyFontFamily = 'DMSans';
 
 ThemeData buildLightAppTheme() {
+  final lightBaseTextTheme = ThemeData.light().textTheme.apply(
+    bodyColor: AppColors.ink,
+    displayColor: AppColors.ink,
+    fontFamily: _displayFontFamily,
+  );
+
   return ThemeData(
     useMaterial3: true,
     splashFactory: InkRipple.splashFactory,
@@ -40,25 +32,46 @@ ThemeData buildLightAppTheme() {
       onSecondary: Colors.white,
       onSurface: AppColors.ink,
     ),
-    textTheme: _buildAppTextTheme(AppColors.ink, ThemeData.light().textTheme),
+    textTheme: lightBaseTextTheme.copyWith(
+      bodyMedium: const TextStyle(
+        fontFamily: _bodyFontFamily,
+        color: AppColors.ink,
+        fontSize: 16,
+      ),
+      bodyLarge: const TextStyle(
+        fontFamily: _bodyFontFamily,
+        color: AppColors.ink,
+        fontSize: 18,
+      ),
+    ),
     dividerColor: AppColors.border,
     appBarTheme: const AppBarTheme(toolbarHeight: 48),
     navigationBarTheme: NavigationBarThemeData(
       height: 56,
       labelTextStyle: const WidgetStatePropertyAll<TextStyle>(
-        TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+        TextStyle(
+          fontFamily: _bodyFontFamily,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
       ),
       iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
         final color = states.contains(WidgetState.selected)
             ? Colors.white
             : AppColors.grey;
-        return IconThemeData(size: 20, color: color);
+        return IconThemeData(size: 24, color: color);
       }),
     ),
   );
 }
 
 ThemeData buildDarkAppTheme() {
+  final darkBaseTextTheme = ThemeData.dark().textTheme.apply(
+    bodyColor: AppColors.border,
+    displayColor: AppColors.border,
+    fontFamily: _displayFontFamily,
+  );
+
   return ThemeData(
     useMaterial3: true,
     splashFactory: InkRipple.splashFactory,
@@ -71,20 +84,29 @@ ThemeData buildDarkAppTheme() {
       onSecondary: Colors.white,
       onSurface: AppColors.border,
     ),
-    textTheme: _buildAppTextTheme(AppColors.border, ThemeData.dark().textTheme),
+    textTheme: darkBaseTextTheme.copyWith(
+      bodyMedium: const TextStyle(
+        fontFamily: _bodyFontFamily,
+        color: AppColors.border,
+        fontSize: 16,
+      ),
+      bodyLarge: const TextStyle(
+        fontFamily: _bodyFontFamily,
+        color: AppColors.border,
+        fontSize: 18,
+      ),
+    ),
     dividerColor: AppColors.darkBorder,
     appBarTheme: const AppBarTheme(toolbarHeight: 48),
-    navigationBarTheme: NavigationBarThemeData(
+    navigationBarTheme: const NavigationBarThemeData(
       height: 56,
-      labelTextStyle: const WidgetStatePropertyAll<TextStyle>(
-        TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+      labelTextStyle: WidgetStatePropertyAll<TextStyle>(
+        TextStyle(
+          fontFamily: _bodyFontFamily,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
       ),
-      iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
-        final color = states.contains(WidgetState.selected)
-            ? Colors.white
-            : AppColors.greyLight;
-        return IconThemeData(size: 20, color: color);
-      }),
     ),
   );
 }
@@ -104,9 +126,6 @@ class ArgoCdApp extends StatefulWidget {
 }
 
 class _ArgoCdAppState extends State<ArgoCdApp> {
-  late final ThemeData _lightTheme = buildLightAppTheme();
-  late final ThemeData _darkTheme = buildDarkAppTheme();
-
   @override
   void initState() {
     super.initState();
@@ -116,6 +135,9 @@ class _ArgoCdAppState extends State<ArgoCdApp> {
 
   @override
   Widget build(BuildContext context) {
+    final baseTheme = buildLightAppTheme();
+    final darkTheme = buildDarkAppTheme();
+
     return AnimatedBuilder(
       animation: Listenable.merge(<Listenable>[
         widget.controller,
@@ -125,8 +147,8 @@ class _ArgoCdAppState extends State<ArgoCdApp> {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'ArgoCD Flutter',
-          theme: _lightTheme,
-          darkTheme: _darkTheme,
+          theme: baseTheme,
+          darkTheme: darkTheme,
           themeMode: widget.themeController.themeMode,
           home: switch (widget.controller.stage) {
             AppStage.booting => const _BootstrapScreen(),
@@ -160,7 +182,7 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
-  List<Widget>? _cachedPages;
+  late final List<Widget> _pages;
 
   void _openApplication(String applicationName) {
     Navigator.of(context).push(
@@ -175,89 +197,169 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 
-  List<Widget> _buildPages() {
-    _cachedPages ??= <Widget>[
-      DashboardScreen(
-        controller: widget.controller,
-        onOpenApplication: _openApplication,
-      ),
-      ApplicationsScreen(
-        controller: widget.controller,
-        onOpenApplication: _openApplication,
-      ),
-      ProjectsScreen(
-        controller: widget.controller,
-        onOpenProject: (projectName) {
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (context) {
-                return ProjectDetailScreen(
-                  controller: widget.controller,
-                  projectName: projectName,
-                );
-              },
-            ),
-          );
-        },
-      ),
-      SettingsScreen(
-        controller: widget.controller,
-        themeController: widget.themeController,
-      ),
-    ];
-    return _cachedPages!;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Cache tab pages once so they are not rebuilt on every setState.
+    if (!_pagesInitialized) {
+      _pages = <Widget>[
+        DashboardScreen(
+          controller: widget.controller,
+          onOpenApplication: _openApplication,
+        ),
+        ApplicationsScreen(
+          controller: widget.controller,
+          onOpenApplication: _openApplication,
+        ),
+        ProjectsScreen(
+          controller: widget.controller,
+          onOpenProject: (projectName) {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (context) {
+                  return ProjectDetailScreen(
+                    controller: widget.controller,
+                    projectName: projectName,
+                  );
+                },
+              ),
+            );
+          },
+        ),
+        SettingsScreen(
+          controller: widget.controller,
+          themeController: widget.themeController,
+        ),
+      ];
+      _pagesInitialized = true;
+    }
   }
+
+  bool _pagesInitialized = false;
 
   @override
   Widget build(BuildContext context) {
     final compactNav = MediaQuery.sizeOf(context).width < 600;
-    final pages = _buildPages();
 
     return Scaffold(
-      body: IndexedStack(index: _index, children: pages),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        indicatorColor: AppColors.cobalt,
-        labelBehavior: compactNav
-            ? NavigationDestinationLabelBehavior.onlyShowSelected
-            : NavigationDestinationLabelBehavior.alwaysShow,
-        onDestinationSelected: (value) {
-          setState(() {
-            _index = value;
-          });
-        },
-        destinations: const <NavigationDestination>[
-          NavigationDestination(
-            icon: Icon(Icons.analytics_outlined),
-            selectedIcon: Icon(Icons.analytics),
-            label: 'Dashboard',
+      body: IndexedStack(index: _index, children: _pages),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              color: Theme.of(context).dividerColor,
+              width: 1,
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard_rounded),
-            label: 'Applications',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.folder_outlined),
-            selectedIcon: Icon(Icons.folder),
-            label: 'Projects',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
+        ),
+        child: NavigationBar(
+          selectedIndex: _index,
+          indicatorColor: AppColors.cobalt,
+          animationDuration: const Duration(milliseconds: 400),
+          labelBehavior: compactNav
+              ? NavigationDestinationLabelBehavior.onlyShowSelected
+              : NavigationDestinationLabelBehavior.alwaysShow,
+          onDestinationSelected: (value) {
+            setState(() {
+              _index = value;
+            });
+          },
+          destinations: const <NavigationDestination>[
+            NavigationDestination(
+              icon: Icon(Icons.analytics_outlined),
+              selectedIcon: Icon(Icons.analytics),
+              label: 'Dashboard',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.dashboard_outlined),
+              selectedIcon: Icon(Icons.dashboard_rounded),
+              label: 'Applications',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.folder_outlined),
+              selectedIcon: Icon(Icons.folder),
+              label: 'Projects',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.settings_outlined),
+              selectedIcon: Icon(Icons.settings),
+              label: 'Settings',
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _BootstrapScreen extends StatelessWidget {
+class _BootstrapScreen extends StatefulWidget {
   const _BootstrapScreen();
 
   @override
+  State<_BootstrapScreen> createState() => _BootstrapScreenState();
+}
+
+class _BootstrapScreenState extends State<_BootstrapScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _opacity = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Scaffold(
+      body: Center(
+        child: FadeTransition(
+          opacity: _opacity,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.cloud_queue_rounded,
+                size: 64,
+                color: colorScheme.primary,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'ArgoCD Flutter',
+                style: TextStyle(
+                  fontFamily: _displayFontFamily,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: 32,
+                height: 32,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  color: colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

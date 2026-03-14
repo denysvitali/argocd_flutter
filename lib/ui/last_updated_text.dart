@@ -1,22 +1,9 @@
+import 'package:argocd_flutter/core/utils/time_format.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:flutter/material.dart';
-import 'package:argocd_flutter/ui/design_tokens.dart';
 
 String formatTimeAgo(DateTime timestamp) {
-  final difference = DateTime.now().difference(timestamp);
-
-  if (difference.inSeconds < 60) {
-    return 'just now';
-  } else if (difference.inMinutes < 60) {
-    final minutes = difference.inMinutes;
-    return '$minutes min${minutes == 1 ? '' : 's'} ago';
-  } else if (difference.inHours < 24) {
-    final hours = difference.inHours;
-    return '$hours hour${hours == 1 ? '' : 's'} ago';
-  } else {
-    final days = difference.inDays;
-    return '$days day${days == 1 ? '' : 's'} ago';
-  }
+  return formatRelativeTime(timestamp.toUtc().toIso8601String());
 }
 
 class LastUpdatedText extends StatelessWidget {
@@ -31,7 +18,7 @@ class LastUpdatedText extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Text(
         'Updated ${formatTimeAgo(timestamp!)}',
         style: Theme.of(context).textTheme.bodySmall?.copyWith(

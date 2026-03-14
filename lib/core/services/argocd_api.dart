@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 
 import '../api/native_adapter_helper.dart'
     if (dart.library.js_interop) '../api/native_adapter_helper_web.dart';
+import '../utils/json_parsing.dart';
 
 abstract class ArgoCdApi {
   Future<void> verifyServer(String serverUrl);
@@ -59,9 +60,55 @@ abstract class ArgoCdApi {
 }
 
 class NetworkArgoCdApi implements ArgoCdApi {
+  Dio? _cachedDio;
+  String? _cachedServerUrl;
+  String? _cachedToken;
+
+  final Map<String, ({dynamic data, DateTime expiry})> _cache = {};
+
+  /// Clears all cached API responses. Call this for pull-to-refresh scenarios.
+  void clearCache() {
+    _cache.clear();
+  }
+
+  T? _getCached<T>(String key) {
+    final entry = _cache[key];
+    if (entry == null) {
+      return null;
+    }
+    if (DateTime.now().isAfter(entry.expiry)) {
+      _cache.remove(key);
+      return null;
+    }
+    return entry.data as T;
+  }
+
+  void _setCache(String key, dynamic data, Duration ttl) {
+    _cache[key] = (data: data, expiry: DateTime.now().add(ttl));
+  }
+
+  Dio _getDio(String serverUrl, {String? token}) {
+    final normalized = _normalizedServerUrl(serverUrl);
+    if (_cachedDio != null &&
+        _cachedServerUrl == normalized &&
+        _cachedToken == token) {
+      return _cachedDio!;
+    }
+    _cachedDio?.close(force: true);
+    _cachedDio = _createDio(serverUrl, token: token);
+    _cachedServerUrl = normalized;
+    _cachedToken = token;
+    return _cachedDio!;
+  }
+
+  void dispose() {
+    _cachedDio?.close(force: true);
+    _cachedDio = null;
+  }
+
   @override
   Future<void> verifyServer(String serverUrl) async {
-    final dio = _createDio(serverUrl);
+    final dio = _getDio(serverUrl);
     try {
       final response = await dio.get<dynamic>('/api/version');
       final status = response.statusCode ?? 0;
@@ -72,8 +119,6 @@ class NetworkArgoCdApi implements ArgoCdApi {
       }
     } on DioException catch (error) {
       throw ArgoCdException(_formatDioError(error));
-    } finally {
-      dio.close(force: true);
     }
   }
 
@@ -83,14 +128,14 @@ class NetworkArgoCdApi implements ArgoCdApi {
     required String username,
     required String password,
   }) async {
-    final dio = _createDio(serverUrl);
+    final dio = _getDio(serverUrl);
     try {
       final response = await dio.post<dynamic>(
         '/api/v1/session',
         data: <String, String>{'username': username, 'password': password},
       );
 
-      final body = _map(response.data);
+      final body = parseMap(response.data);
       final token = body['token']?.toString();
       if (response.statusCode != 200 || token == null || token.isEmpty) {
         throw ArgoCdException(
@@ -111,44 +156,54 @@ class NetworkArgoCdApi implements ArgoCdApi {
       );
     } on DioException catch (error) {
       throw ArgoCdException(_formatDioError(error));
-    } finally {
-      dio.close(force: true);
     }
   }
 
   @override
   Future<List<ArgoApplication>> fetchApplications(AppSession session) async {
-    final dio = _createDio(session.serverUrl, token: session.token);
+    final cacheKey = 'apps:${session.serverUrl}';
+    final cached = _getCached<List<ArgoApplication>>(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    final dio = _getDio(session.serverUrl, token: session.token);
     try {
       final response = await dio.get<dynamic>('/api/v1/applications');
       _throwIfRequestFailed(response);
-      final body = _map(response.data);
+      final body = parseMap(response.data);
       final items = body['items'] as List<dynamic>? ?? const <dynamic>[];
-      return items
-          .map((dynamic item) => ArgoApplication.fromJson(_map(item)))
+      final result = items
+          .map((dynamic item) => ArgoApplication.fromJson(parseMap(item)))
           .toList(growable: false);
+      _setCache(cacheKey, result, const Duration(seconds: 10));
+      return result;
     } on DioException catch (error) {
       throw ArgoCdException(_formatDioError(error));
-    } finally {
-      dio.close(force: true);
     }
   }
 
   @override
   Future<List<ArgoProject>> fetchProjects(AppSession session) async {
-    final dio = _createDio(session.serverUrl, token: session.token);
+    final cacheKey = 'projects:${session.serverUrl}';
+    final cached = _getCached<List<ArgoProject>>(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    final dio = _getDio(session.serverUrl, token: session.token);
     try {
       final response = await dio.get<dynamic>('/api/v1/projects');
       _throwIfRequestFailed(response);
-      final body = _map(response.data);
+      final body = parseMap(response.data);
       final items = body['items'] as List<dynamic>? ?? const <dynamic>[];
-      return items
-          .map((dynamic item) => ArgoProject.fromJson(_map(item)))
+      final result = items
+          .map((dynamic item) => ArgoProject.fromJson(parseMap(item)))
           .toList(growable: false);
+      _setCache(cacheKey, result, const Duration(seconds: 30));
+      return result;
     } on DioException catch (error) {
       throw ArgoCdException(_formatDioError(error));
-    } finally {
-      dio.close(force: true);
     }
   }
 
@@ -158,7 +213,7 @@ class NetworkArgoCdApi implements ArgoCdApi {
     String applicationName, {
     bool refresh = false,
   }) async {
-    final dio = _createDio(session.serverUrl, token: session.token);
+    final dio = _getDio(session.serverUrl, token: session.token);
     try {
       final response = await dio.get<dynamic>(
         '/api/v1/applications/${Uri.encodeComponent(applicationName)}',
@@ -167,11 +222,9 @@ class NetworkArgoCdApi implements ArgoCdApi {
             : null,
       );
       _throwIfRequestFailed(response);
-      return ArgoApplication.fromJson(_map(response.data));
+      return ArgoApplication.fromJson(parseMap(response.data));
     } on DioException catch (error) {
       throw ArgoCdException(_formatDioError(error));
-    } finally {
-      dio.close(force: true);
     }
   }
 
@@ -180,17 +233,15 @@ class NetworkArgoCdApi implements ArgoCdApi {
     AppSession session,
     String projectName,
   ) async {
-    final dio = _createDio(session.serverUrl, token: session.token);
+    final dio = _getDio(session.serverUrl, token: session.token);
     try {
       final response = await dio.get<dynamic>(
         '/api/v1/projects/${Uri.encodeComponent(projectName)}',
       );
       _throwIfRequestFailed(response);
-      return ArgoProject.fromJson(_map(response.data));
+      return ArgoProject.fromJson(parseMap(response.data));
     } on DioException catch (error) {
       throw ArgoCdException(_formatDioError(error));
-    } finally {
-      dio.close(force: true);
     }
   }
 
@@ -199,20 +250,18 @@ class NetworkArgoCdApi implements ArgoCdApi {
     AppSession session,
     String applicationName,
   ) async {
-    final dio = _createDio(session.serverUrl, token: session.token);
+    final dio = _getDio(session.serverUrl, token: session.token);
     try {
       final response = await dio.get<dynamic>(
         '/api/v1/applications/${Uri.encodeComponent(applicationName)}/resource-tree',
       );
       _throwIfRequestFailed(response);
-      final body = _map(response.data);
-      return _list(body['nodes'])
-          .map((dynamic item) => ArgoResourceNode.fromJson(_map(item)))
+      final body = parseMap(response.data);
+      return parseList(body['nodes'])
+          .map((dynamic item) => ArgoResourceNode.fromJson(parseMap(item)))
           .toList(growable: false);
     } on DioException catch (error) {
       throw ArgoCdException(_formatDioError(error));
-    } finally {
-      dio.close(force: true);
     }
   }
 
@@ -221,7 +270,7 @@ class NetworkArgoCdApi implements ArgoCdApi {
     AppSession session,
     String applicationName,
   ) async {
-    final dio = _createDio(session.serverUrl, token: session.token);
+    final dio = _getDio(session.serverUrl, token: session.token);
     try {
       final response = await dio.post<dynamic>(
         '/api/v1/applications/${Uri.encodeComponent(applicationName)}/sync',
@@ -230,8 +279,6 @@ class NetworkArgoCdApi implements ArgoCdApi {
       _throwIfRequestFailed(response);
     } on DioException catch (error) {
       throw ArgoCdException(_formatDioError(error));
-    } finally {
-      dio.close(force: true);
     }
   }
 
@@ -241,7 +288,7 @@ class NetworkArgoCdApi implements ArgoCdApi {
     String applicationName,
     int historyId,
   ) async {
-    final dio = _createDio(session.serverUrl, token: session.token);
+    final dio = _getDio(session.serverUrl, token: session.token);
     try {
       final response = await dio.put<dynamic>(
         '/api/v1/applications/${Uri.encodeComponent(applicationName)}/rollback',
@@ -250,8 +297,6 @@ class NetworkArgoCdApi implements ArgoCdApi {
       _throwIfRequestFailed(response);
     } on DioException catch (error) {
       throw ArgoCdException(_formatDioError(error));
-    } finally {
-      dio.close(force: true);
     }
   }
 
@@ -261,7 +306,7 @@ class NetworkArgoCdApi implements ArgoCdApi {
     String applicationName, {
     bool cascade = true,
   }) async {
-    final dio = _createDio(session.serverUrl, token: session.token);
+    final dio = _getDio(session.serverUrl, token: session.token);
     try {
       final response = await dio.delete<dynamic>(
         '/api/v1/applications/${Uri.encodeComponent(applicationName)}',
@@ -270,8 +315,6 @@ class NetworkArgoCdApi implements ArgoCdApi {
       _throwIfRequestFailed(response);
     } on DioException catch (error) {
       throw ArgoCdException(_formatDioError(error));
-    } finally {
-      dio.close(force: true);
     }
   }
 
@@ -284,7 +327,7 @@ class NetworkArgoCdApi implements ArgoCdApi {
     String? containerName,
     int tailLines = 500,
   }) async {
-    final dio = _createDio(session.serverUrl, token: session.token);
+    final dio = _getDio(session.serverUrl, token: session.token);
     try {
       final response = await dio.get<dynamic>(
         '/api/v1/applications/${Uri.encodeComponent(applicationName)}/logs',
@@ -309,8 +352,6 @@ class NetworkArgoCdApi implements ArgoCdApi {
         rethrow;
       }
       throw ArgoCdException('Failed to load resource logs.');
-    } finally {
-      dio.close(force: true);
     }
   }
 
@@ -324,7 +365,7 @@ class NetworkArgoCdApi implements ArgoCdApi {
     required String group,
     required String version,
   }) async {
-    final dio = _createDio(session.serverUrl, token: session.token);
+    final dio = _getDio(session.serverUrl, token: session.token);
     try {
       final response = await dio.get<dynamic>(
         '/api/v1/applications/${Uri.encodeComponent(applicationName)}/resource',
@@ -337,7 +378,7 @@ class NetworkArgoCdApi implements ArgoCdApi {
         },
       );
       _throwIfRequestFailed(response);
-      final body = _map(response.data);
+      final body = parseMap(response.data);
       final manifest = body['manifest'];
       if (manifest is String) {
         return manifest;
@@ -353,8 +394,6 @@ class NetworkArgoCdApi implements ArgoCdApi {
         rethrow;
       }
       throw const ArgoCdException('Failed to load resource manifest.');
-    } finally {
-      dio.close(force: true);
     }
   }
 
@@ -363,19 +402,17 @@ class NetworkArgoCdApi implements ArgoCdApi {
     required String token,
     required String fallback,
   }) async {
-    final dio = _createDio(serverUrl, token: token);
+    final dio = _getDio(serverUrl, token: token);
     try {
       final response = await dio.get<dynamic>('/api/v1/account/userinfo');
       if ((response.statusCode ?? 500) >= 400) {
         return fallback;
       }
 
-      final body = _map(response.data);
+      final body = parseMap(response.data);
       return body['username']?.toString() ?? fallback;
     } catch (_) {
       return fallback;
-    } finally {
-      dio.close(force: true);
     }
   }
 
@@ -403,7 +440,7 @@ class NetworkArgoCdApi implements ArgoCdApi {
   void _throwIfRequestFailed(Response<dynamic> response) {
     final status = response.statusCode ?? 500;
     if (status >= 400) {
-      final body = _map(response.data);
+      final body = parseMap(response.data);
       throw ArgoCdException(
         _extractErrorMessage(body) ?? 'Request failed with HTTP $status.',
       );
@@ -425,7 +462,7 @@ String _normalizedServerUrl(String serverUrl) {
 }
 
 String _formatDioError(DioException error) {
-  final responseBody = _map(error.response?.data);
+  final responseBody = parseMap(error.response?.data);
   final apiMessage = _extractErrorMessage(responseBody);
   if (apiMessage != null) {
     return apiMessage;
@@ -452,28 +489,6 @@ String? _extractErrorMessage(Map<String, dynamic> body) {
   }
 
   return null;
-}
-
-Map<String, dynamic> _map(dynamic value) {
-  if (value is Map<String, dynamic>) {
-    return value;
-  }
-  if (value is Map) {
-    return value.map(
-      (dynamic key, dynamic val) => MapEntry(key.toString(), val),
-    );
-  }
-  return const <String, dynamic>{};
-}
-
-List<dynamic> _list(dynamic value) {
-  if (value is List<dynamic>) {
-    return value;
-  }
-  if (value is List) {
-    return List<dynamic>.from(value);
-  }
-  return const <dynamic>[];
 }
 
 String _extractLogContent(dynamic data) {
@@ -505,7 +520,7 @@ String _extractLogContent(dynamic data) {
 }
 
 String _extractLogLineContent(dynamic item) {
-  final result = _map(_map(item)['result']);
+  final result = parseMap(parseMap(item)['result']);
   final content = result['content'];
   if (content is String) {
     return content;

@@ -89,7 +89,7 @@ class AppController extends ChangeNotifier {
         refreshApplications(showSpinner: false),
         refreshProjects(showSpinner: false),
       ]);
-    } on Exception {
+    } catch (_) {
       _stage = AppStage.unauthenticated;
       _session = null;
       _applications = const <ArgoApplication>[];
@@ -331,18 +331,16 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> _runBusyAction(Future<void> Function() action) async {
-    if (_busy) {
-      throw const ArgoCdException('Another action is in progress.');
-    }
     _busy = true;
     _errorMessage = null;
     notifyListeners();
     try {
       await action();
+      _errorMessage = null;
     } on ArgoCdException catch (error) {
       _errorMessage = error.message;
       rethrow;
-    } on Exception {
+    } catch (_) {
       _errorMessage = 'Something went wrong while contacting ArgoCD.';
       rethrow;
     } finally {
@@ -360,12 +358,6 @@ class AppController extends ChangeNotifier {
       _hasLoadedApplications = true;
       _lastRefreshedAt = DateTime.now();
       _errorMessage = null;
-    } on ArgoCdException catch (error) {
-      _errorMessage = error.message;
-      rethrow;
-    } on Exception {
-      _errorMessage = 'Failed to load applications.';
-      rethrow;
     } finally {
       _loadingApplications = false;
       notifyListeners();
@@ -381,12 +373,6 @@ class AppController extends ChangeNotifier {
       _hasLoadedProjects = true;
       _lastRefreshedAt = DateTime.now();
       _errorMessage = null;
-    } on ArgoCdException catch (error) {
-      _errorMessage = error.message;
-      rethrow;
-    } on Exception {
-      _errorMessage = 'Failed to load projects.';
-      rethrow;
     } finally {
       _loadingProjects = false;
       notifyListeners();

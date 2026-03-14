@@ -1,4 +1,6 @@
 @Tags(<String>['golden'])
+library;
+
 import 'dart:convert';
 
 import 'package:argocd_flutter/core/models/app_session.dart';
@@ -6,6 +8,7 @@ import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/models/argo_project.dart';
 import 'package:argocd_flutter/core/models/argo_resource_node.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
+
 import 'package:argocd_flutter/features/applications/manifest_viewer_screen.dart';
 import 'package:argocd_flutter/features/applications/resource_tree_screen.dart';
 import 'package:argocd_flutter/features/projects/project_detail_screen.dart';

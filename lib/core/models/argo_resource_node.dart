@@ -1,3 +1,5 @@
+import 'package:argocd_flutter/core/utils/json_parsing.dart';
+
 class ArgoResourceNode {
   const ArgoResourceNode({
     required this.group,
@@ -13,23 +15,23 @@ class ArgoResourceNode {
   });
 
   factory ArgoResourceNode.fromJson(Map<String, dynamic> json) {
-    final health = _map(json['health']);
-    final parentRefs = _list(json['parentRefs']);
+    final health = parseMap(json['health']);
+    final parentRefs = parseList(json['parentRefs']);
 
     return ArgoResourceNode(
-      group: _string(json['group']),
-      version: _string(json['version']),
-      kind: _string(json['kind'], fallback: 'Resource'),
-      namespace: _string(json['namespace'], fallback: '-'),
-      name: _string(json['name'], fallback: 'Unknown'),
-      uid: _string(json['uid']),
+      group: parseString(json['group']),
+      version: parseString(json['version']),
+      kind: parseString(json['kind'], fallback: 'Resource'),
+      namespace: parseString(json['namespace'], fallback: '-'),
+      name: parseString(json['name'], fallback: 'Unknown'),
+      uid: parseString(json['uid']),
       parentUids: parentRefs
-          .map((dynamic item) => _string(_map(item)['uid']))
+          .map((dynamic item) => parseString(parseMap(item)['uid']))
           .where((String uid) => uid.isNotEmpty)
           .toList(growable: false),
-      healthStatus: _string(health['status'], fallback: 'Unknown'),
-      healthMessage: _string(health['message']),
-      createdAt: _string(json['createdAt']),
+      healthStatus: parseString(health['status'], fallback: 'Unknown'),
+      healthMessage: parseString(health['message']),
+      createdAt: parseString(json['createdAt']),
     );
   }
 
@@ -46,39 +48,4 @@ class ArgoResourceNode {
 
   bool get isRoot => parentUids.isEmpty;
   String get displayKind => group.isNotEmpty ? '$kind.$group' : kind;
-}
-
-Map<String, dynamic> _map(dynamic value) {
-  if (value is Map<String, dynamic>) {
-    return value;
-  }
-  if (value is Map) {
-    return value.map(
-      (dynamic key, dynamic val) => MapEntry(key.toString(), val),
-    );
-  }
-  return const <String, dynamic>{};
-}
-
-List<dynamic> _list(dynamic value) {
-  if (value is List<dynamic>) {
-    return value;
-  }
-  if (value is List) {
-    return List<dynamic>.from(value);
-  }
-  return const <dynamic>[];
-}
-
-String _string(dynamic value, {String? fallback}) {
-  if (value is String && value.trim().isNotEmpty) {
-    return value;
-  }
-  if (value != null) {
-    final stringValue = value.toString();
-    if (stringValue.trim().isNotEmpty) {
-      return stringValue;
-    }
-  }
-  return fallback ?? '';
 }
