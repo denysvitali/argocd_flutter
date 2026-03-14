@@ -106,6 +106,13 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: widget.controller,
+      builder: (context, _) => _buildContent(context),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     final normalizedQuery = _query.trim().toLowerCase();
     final allApplications = widget.controller.applications;
     final unhealthyCount = allApplications

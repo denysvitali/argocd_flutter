@@ -92,6 +92,13 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: widget.controller,
+      builder: (context, _) => _buildContent(context),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     final normalizedQuery = _query.trim().toLowerCase();
     final allProjects = widget.controller.projects;
     final filtered = allProjects
