@@ -1,0 +1,49 @@
+name: Update Golden Images
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-goldens:
+    name: Regenerate Golden Images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+
+      - name: Install devenv
+        run: nix profile install nixpkgs#devenv
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.yaml', '**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Get dependencies
+        run: devenv shell -- flutter pub get
+
+      - name: Regenerate golden images
+        run: devenv shell -- flutter test --update-goldens test/goldens/
+
+      - name: Commit updated goldens
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add test/goldens/goldens/
+          if git diff --cached --quiet; then
+            echo "No golden changes detected"
+          else
+            git commit -m "Regenerate golden images from CI
+
+            Co-Authored-By: github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
+            git push
+          fi
