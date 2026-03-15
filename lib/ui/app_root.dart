@@ -4,7 +4,6 @@ import 'package:argocd_flutter/features/applications/application_detail_screen.d
 import 'package:argocd_flutter/features/applications/applications_screen.dart';
 import 'package:argocd_flutter/features/auth/sign_in_screen.dart';
 import 'package:argocd_flutter/features/dashboard/dashboard_screen.dart';
-import 'package:argocd_flutter/features/drift/drift_radar_screen.dart';
 import 'package:argocd_flutter/features/projects/project_detail_screen.dart';
 import 'package:argocd_flutter/features/projects/projects_screen.dart';
 import 'package:argocd_flutter/features/settings/settings_screen.dart';
@@ -216,10 +215,6 @@ class _HomeShellState extends State<HomeShell> {
           controller: widget.controller,
           onOpenApplication: _openApplication,
         ),
-        DriftRadarScreen(
-          controller: widget.controller,
-          onOpenApplication: _openApplication,
-        ),
         ApplicationsScreen(
           controller: widget.controller,
           onOpenApplication: _openApplication,
@@ -284,12 +279,6 @@ class _HomeShellState extends State<HomeShell> {
               selectedIcon: Icon(Icons.analytics),
               label: 'Dashboard',
               tooltip: 'Dashboard',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.track_changes_outlined),
-              selectedIcon: Icon(Icons.track_changes),
-              label: 'Drift',
-              tooltip: 'Drift Radar',
             ),
             NavigationDestination(
               icon: Icon(Icons.dashboard_outlined),
