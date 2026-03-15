@@ -414,6 +414,90 @@ void main() {
       // The section header should still be visible
       expect(find.text('metadata'), findsWidgets);
     });
+
+    testWidgets('diff view is available when envelope has targetState and liveState', (
+      WidgetTester tester,
+    ) async {
+      final targetManifest = jsonEncode(<String, dynamic>{
+        'apiVersion': 'v1',
+        'kind': 'Service',
+        'metadata': <String, dynamic>{'name': 'my-svc', 'namespace': 'default'},
+        'spec': <String, dynamic>{'replicas': 2},
+      });
+      final liveManifest = jsonEncode(<String, dynamic>{
+        'apiVersion': 'v1',
+        'kind': 'Service',
+        'metadata': <String, dynamic>{'name': 'my-svc', 'namespace': 'default'},
+        'spec': <String, dynamic>{'replicas': 3},
+      });
+      final envelope = jsonEncode(<String, dynamic>{
+        'manifest': liveManifest,
+        'targetState': targetManifest,
+        'liveState': liveManifest,
+      });
+
+      final storage = _MemorySessionStorage()
+        ..seedSession(
+          const AppSession(
+            serverUrl: 'https://argocd.example.com',
+            username: 'ops',
+            token: 'token',
+          ),
+        );
+      final diffController = AppController(
+        storage: storage,
+        api: _FakeArgoCdApi(manifest: envelope),
+        certificateProvider: const CertificateProvider(),
+      );
+      await diffController.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
+          home: ManifestViewerScreen(
+            controller: diffController,
+            applicationName: 'my-app',
+            namespace: 'default',
+            resourceName: 'my-svc',
+            kind: 'Service',
+            group: '',
+            version: 'v1',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap the diff toggle button (compare_arrows icon)
+      final diffButton = find.byIcon(Icons.compare_arrows);
+      expect(diffButton, findsOneWidget);
+      await tester.tap(diffButton);
+      await tester.pumpAndSettle();
+
+      // Diff view should show lines with + and - prefixes for differences
+      // The replicas field differs: 2 in target vs 3 in live
+      expect(find.textContaining('replicas'), findsWidgets);
+    });
+
+    testWidgets('diff view shows unavailable message without diff data', (
+      WidgetTester tester,
+    ) async {
+      // The default _sampleManifest has no targetState/liveState
+      await controller.initialize();
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      // Tap the diff toggle button
+      final diffButton = find.byIcon(Icons.compare_arrows);
+      expect(diffButton, findsOneWidget);
+      await tester.tap(diffButton);
+      await tester.pumpAndSettle();
+
+      // Should show the unavailable message
+      expect(
+        find.textContaining('not available'),
+        findsOneWidget,
+      );
+    });
   });
 }
 

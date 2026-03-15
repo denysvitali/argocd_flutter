@@ -369,8 +369,48 @@ class NetworkArgoCdApi implements ArgoCdApi {
   }) async {
     final dio = _createDio(session.serverUrl, token: session.token);
     try {
+      final encodedApp = Uri.encodeComponent(applicationName);
+      final queryParams = <String, dynamic>{
+        'namespace': namespace,
+        'name': resourceName,
+        'kind': kind,
+        'group': group,
+        'version': version,
+      };
+
+      // Try managed-resources endpoint first — it returns both targetState
+      // and liveState which enables the diff view for out-of-sync resources.
+      final managedResponse = await dio.get<dynamic>(
+        '/api/v1/applications/$encodedApp/managed-resources',
+        queryParameters: queryParams,
+      );
+
+      if ((managedResponse.statusCode ?? 500) < 400) {
+        final body = parseMap(managedResponse.data);
+        final items = parseList(body['items']);
+
+        for (final dynamic item in items) {
+          final map = parseMap(item);
+          if (map['name']?.toString() == resourceName &&
+              map['kind']?.toString() == kind &&
+              map['namespace']?.toString() == namespace) {
+            final liveState = map['liveState'];
+            final targetState = map['targetState'];
+            if (liveState != null) {
+              final envelope = <String, dynamic>{
+                'manifest': liveState,
+                'targetState': targetState,
+                'liveState': liveState,
+              };
+              return jsonEncode(envelope);
+            }
+          }
+        }
+      }
+
+      // Fall back to the resource endpoint (no diff data, but manifest works).
       final response = await dio.get<dynamic>(
-        '/api/v1/applications/${Uri.encodeComponent(applicationName)}/resource',
+        '/api/v1/applications/$encodedApp/resource',
         queryParameters: <String, dynamic>{
           'namespace': namespace,
           'resourceName': resourceName,
