@@ -1,5 +1,7 @@
 import 'package:argocd_flutter/core/models/argo_application.dart';
+import 'package:argocd_flutter/core/models/health_event.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
+import 'package:argocd_flutter/core/services/health_monitor.dart';
 import 'package:argocd_flutter/core/utils/time_format.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:argocd_flutter/ui/design_tokens.dart';
@@ -167,6 +169,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             total: totalApps,
           ),
         ),
+        if (widget.controller.healthMonitor != null)
+          _IncidentFeedSection(
+            monitor: widget.controller.healthMonitor!,
+            controller: widget.controller,
+            onOpenApplication: widget.onOpenApplication,
+          ),
         const SizedBox(height: 10),
         _SectionHeader(title: 'Needs Attention'),
         const SizedBox(height: 6),
@@ -174,6 +182,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           title: null,
           child: _NeedsAttentionList(
             applications: needsAttention,
+            controller: widget.controller,
             onOpenApplication: widget.onOpenApplication,
           ),
         ),
@@ -514,10 +523,12 @@ class _BreakdownRow extends StatelessWidget {
 class _NeedsAttentionList extends StatelessWidget {
   const _NeedsAttentionList({
     required this.applications,
+    required this.controller,
     required this.onOpenApplication,
   });
 
   final List<ArgoApplication> applications;
+  final AppController controller;
   final ValueChanged<String> onOpenApplication;
 
   @override
@@ -540,8 +551,9 @@ class _NeedsAttentionList extends StatelessWidget {
     return Column(
       children: <Widget>[
         ...visibleApplications.map(
-          (application) => _AttentionItem(
+          (application) => _SwipeableAttentionItem(
             application: application,
+            controller: controller,
             onTap: () => onOpenApplication(application.name),
           ),
         ),
@@ -563,10 +575,15 @@ class _NeedsAttentionList extends StatelessWidget {
 }
 
 class _AttentionItem extends StatelessWidget {
-  const _AttentionItem({required this.application, required this.onTap});
+  const _AttentionItem({
+    required this.application,
+    required this.onTap,
+    this.hint,
+  });
 
   final ArgoApplication application;
   final VoidCallback onTap;
+  final String? hint;
 
   Color _severityColor() {
     final health = _normalized(application.healthStatus);
@@ -648,6 +665,365 @@ class _AttentionItem extends StatelessWidget {
                   '${application.project} / ${application.namespace} • ${_attentionReason(application)}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: AppColors.grey,
+                  ),
+                ),
+                if (hint != null) ...<Widget>[
+                  const SizedBox(height: 2),
+                  Text(
+                    hint!,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: AppColors.greyLight,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Swipeable attention item (swipe right = sync, swipe left = view detail)
+// ---------------------------------------------------------------------------
+
+class _SwipeableAttentionItem extends StatelessWidget {
+  const _SwipeableAttentionItem({
+    required this.application,
+    required this.controller,
+    required this.onTap,
+  });
+
+  final ArgoApplication application;
+  final AppController controller;
+  final VoidCallback onTap;
+
+  String get _swipeHint {
+    if (application.isOutOfSync) {
+      return 'Swipe right to sync';
+    }
+    return 'Tap to view details';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Dismissible(
+      key: ValueKey<String>('attention-${application.name}'),
+      direction: application.isOutOfSync
+          ? DismissDirection.startToEnd
+          : DismissDirection.none,
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.startToEnd &&
+            application.isOutOfSync) {
+          try {
+            await controller.syncApplication(application.name);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Syncing ${application.name}...'),
+                  backgroundColor: AppColors.cobalt,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          } on Exception {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to sync ${application.name}'),
+                  backgroundColor: AppColors.coral,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          }
+        }
+        return false; // Don't dismiss — the list rebuilds on refresh.
+      },
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 16),
+        margin: const EdgeInsets.only(bottom: 4),
+        decoration: BoxDecoration(
+          color: AppColors.cobalt.withValues(alpha: 0.15),
+          borderRadius: AppRadius.base,
+        ),
+        child: Row(
+          children: <Widget>[
+            const Icon(Icons.sync, color: AppColors.cobalt, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'Sync',
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: AppColors.cobalt,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+      child: _AttentionItem(
+        application: application,
+        onTap: onTap,
+        hint: _swipeHint,
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Incident feed section (live events from HealthMonitor)
+// ---------------------------------------------------------------------------
+
+class _IncidentFeedSection extends StatelessWidget {
+  const _IncidentFeedSection({
+    required this.monitor,
+    required this.controller,
+    required this.onOpenApplication,
+  });
+
+  final HealthMonitor monitor;
+  final AppController controller;
+  final ValueChanged<String> onOpenApplication;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: monitor,
+      builder: (context, _) {
+        if (!monitor.enabled || monitor.events.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final theme = Theme.of(context);
+        final events = monitor.events;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const SizedBox(height: 10),
+            Row(
+              children: <Widget>[
+                _SectionHeader(title: 'Incidents'),
+                const Spacer(),
+                if (events.isNotEmpty)
+                  TextButton.icon(
+                    onPressed: () => monitor.acknowledgeAll(),
+                    icon: const Icon(Icons.done_all, size: 16),
+                    label: const Text('Clear'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            SectionCard(
+              title: null,
+              child: Column(
+                children: <Widget>[
+                  for (var i = 0; i < events.length && i < 10; i++)
+                    _IncidentCard(
+                      event: events[i],
+                      index: i,
+                      monitor: monitor,
+                      controller: controller,
+                      onOpenApplication: onOpenApplication,
+                    ),
+                  if (events.length > 10)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        'and ${events.length - 10} more...',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.grey,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _IncidentCard extends StatelessWidget {
+  const _IncidentCard({
+    required this.event,
+    required this.index,
+    required this.monitor,
+    required this.controller,
+    required this.onOpenApplication,
+  });
+
+  final HealthEvent event;
+  final int index;
+  final HealthMonitor monitor;
+  final AppController controller;
+  final ValueChanged<String> onOpenApplication;
+
+  Color get _eventColor {
+    return switch (event.kind) {
+      HealthEventKind.degraded => AppColors.coral,
+      HealthEventKind.drifted => AppColors.amber,
+      HealthEventKind.failed => AppColors.coral,
+      HealthEventKind.operationFailed => AppColors.coral,
+      HealthEventKind.recovered => AppColors.teal,
+      HealthEventKind.synced => AppColors.cobalt,
+    };
+  }
+
+  IconData get _eventIcon {
+    return switch (event.kind) {
+      HealthEventKind.degraded => Icons.error_outline,
+      HealthEventKind.drifted => Icons.sync_problem,
+      HealthEventKind.failed => Icons.cancel_outlined,
+      HealthEventKind.operationFailed => Icons.cancel_outlined,
+      HealthEventKind.recovered => Icons.check_circle_outline,
+      HealthEventKind.synced => Icons.check_circle_outline,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final elapsed = DateTime.now().difference(event.detectedAt);
+    final timeAgo = elapsed.inMinutes < 1
+        ? 'just now'
+        : elapsed.inMinutes < 60
+            ? '${elapsed.inMinutes}m ago'
+            : '${elapsed.inHours}h ago';
+
+    return Dismissible(
+      key: ValueKey<String>(
+        'incident-${event.applicationName}-${event.detectedAt.toIso8601String()}',
+      ),
+      direction: event.kind == HealthEventKind.drifted
+          ? DismissDirection.startToEnd
+          : DismissDirection.endToStart,
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.startToEnd &&
+            event.kind == HealthEventKind.drifted) {
+          try {
+            await controller.syncApplication(event.applicationName);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Syncing ${event.applicationName}...'),
+                  backgroundColor: AppColors.cobalt,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          } on Exception {
+            // Error handled by controller.
+          }
+        } else if (direction == DismissDirection.endToStart) {
+          monitor.acknowledgeEvent(index);
+        }
+        return false;
+      },
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 16),
+        decoration: BoxDecoration(
+          color: AppColors.cobalt.withValues(alpha: 0.15),
+          borderRadius: AppRadius.base,
+        ),
+        child: Row(
+          children: <Widget>[
+            const Icon(Icons.sync, color: AppColors.cobalt, size: 18),
+            const SizedBox(width: 6),
+            Text(
+              'Sync',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: AppColors.cobalt,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 16),
+        decoration: BoxDecoration(
+          color: AppColors.grey.withValues(alpha: 0.12),
+          borderRadius: AppRadius.base,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: <Widget>[
+            Text(
+              'Dismiss',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: AppColors.grey,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 6),
+            const Icon(Icons.close, color: AppColors.grey, size: 18),
+          ],
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: InkWell(
+          onTap: () => onOpenApplication(event.applicationName),
+          borderRadius: AppRadius.base,
+          child: Ink(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: <Color>[
+                  _eventColor.withValues(alpha: 0.10),
+                  _eventColor.withValues(alpha: 0.03),
+                ],
+              ),
+              borderRadius: AppRadius.base,
+              border: Border(
+                left: BorderSide(color: _eventColor, width: 3),
+              ),
+            ),
+            child: Row(
+              children: <Widget>[
+                Icon(_eventIcon, color: _eventColor, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        event.applicationName,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        event.summary,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  timeAgo,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.greyLight,
                   ),
                 ),
               ],

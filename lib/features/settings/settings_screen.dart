@@ -1,4 +1,5 @@
 import 'package:argocd_flutter/core/services/app_controller.dart';
+import 'package:argocd_flutter/core/services/health_monitor.dart';
 import 'package:argocd_flutter/core/services/theme_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:argocd_flutter/ui/design_tokens.dart';
@@ -31,6 +32,10 @@ class SettingsScreen extends StatelessWidget {
               _ThemePicker(themeController: themeController),
             ],
           ),
+          if (controller.healthMonitor != null) ...<Widget>[
+            const SizedBox(height: 8),
+            _NotificationsSection(monitor: controller.healthMonitor!),
+          ],
           const SizedBox(height: 8),
           _SectionCard(
             title: 'Connection',
@@ -578,6 +583,135 @@ class _VersionBadge extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Notifications settings section
+// ---------------------------------------------------------------------------
+
+class _NotificationsSection extends StatelessWidget {
+  const _NotificationsSection({required this.monitor});
+
+  final HealthMonitor monitor;
+
+  static const _intervals = <int>[1, 2, 5, 10, 15, 30];
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: monitor,
+      builder: (context, _) {
+        final theme = Theme.of(context);
+
+        return _SectionCard(
+          title: 'Health Monitor',
+          icon: Icons.monitor_heart_outlined,
+          children: <Widget>[
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Enable monitoring'),
+              subtitle: Text(
+                monitor.enabled
+                    ? 'Polling every ${monitor.pollInterval.inMinutes} min'
+                    : 'Disabled',
+              ),
+              value: monitor.enabled,
+              onChanged: (value) => monitor.setEnabled(value),
+            ),
+            if (monitor.enabled) ...<Widget>[
+              const Divider(height: 1),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.timer_outlined),
+                title: const Text('Poll interval'),
+                trailing: DropdownButton<int>(
+                  value: _closestInterval(monitor.pollInterval.inMinutes),
+                  underline: const SizedBox.shrink(),
+                  items: _intervals
+                      .map(
+                        (minutes) => DropdownMenuItem<int>(
+                          value: minutes,
+                          child: Text('$minutes min'),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: (value) {
+                    if (value != null) {
+                      monitor.setPollInterval(Duration(minutes: value));
+                    }
+                  },
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.notifications_active_outlined),
+                title: const Text('Active events'),
+                subtitle: Text(
+                  monitor.events.isEmpty
+                      ? 'No events detected'
+                      : '${monitor.events.length} event(s)',
+                ),
+                trailing: monitor.events.isNotEmpty
+                    ? TextButton(
+                        onPressed: () => monitor.acknowledgeAll(),
+                        child: const Text('Clear'),
+                      )
+                    : null,
+              ),
+              if (monitor.mutedApps.isNotEmpty) ...<Widget>[
+                const Divider(height: 1),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.notifications_off_outlined),
+                  title: const Text('Muted apps'),
+                  subtitle: Text(monitor.mutedApps.join(', ')),
+                  trailing: TextButton(
+                    onPressed: () {
+                      for (final app in monitor.mutedApps.toList()) {
+                        monitor.unmuteApp(app);
+                      }
+                    },
+                    child: const Text('Unmute all'),
+                  ),
+                ),
+              ],
+            ],
+            if (monitor.isPolling)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(
+                  children: <Widget>[
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.teal,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Polling active',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.teal,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  int _closestInterval(int minutes) {
+    return _intervals.reduce(
+      (a, b) => (a - minutes).abs() < (b - minutes).abs() ? a : b,
     );
   }
 }

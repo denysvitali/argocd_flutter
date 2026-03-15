@@ -1,3 +1,4 @@
+import 'package:argocd_flutter/core/models/health_event.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/core/services/theme_controller.dart';
 import 'package:argocd_flutter/features/applications/application_detail_screen.dart';
@@ -138,6 +139,7 @@ class _ArgoCdAppState extends State<ArgoCdApp> {
     super.initState();
     widget.controller.initialize();
     widget.themeController.initialize();
+    widget.controller.healthMonitor?.initialize();
   }
 
   @override
@@ -201,6 +203,34 @@ class _HomeShellState extends State<HomeShell> {
             applicationName: applicationName,
           );
         },
+      ),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.healthMonitor?.onNewEvents = _onNewHealthEvents;
+  }
+
+  void _onNewHealthEvents(List<HealthEvent> events) {
+    if (!mounted) {
+      return;
+    }
+    final event = events.first;
+    final remaining = events.length - 1;
+    final suffix = remaining > 0 ? ' (+$remaining more)' : '';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${event.summary}$suffix'),
+        backgroundColor: AppColors.coral,
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'View',
+          textColor: AppColors.white,
+          onPressed: () => _openApplication(event.applicationName),
+        ),
+        duration: const Duration(seconds: 5),
       ),
     );
   }

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 
 import 'argocd_api.dart';
 import 'certificate_provider.dart';
+import 'health_monitor.dart';
 import 'session_storage.dart';
 
 enum AppStage { booting, unauthenticated, authenticated }
@@ -15,13 +16,18 @@ class AppController extends ChangeNotifier {
     required SessionStorage storage,
     required ArgoCdApi api,
     required CertificateProvider certificateProvider,
+    HealthMonitor? healthMonitor,
   }) : _storage = storage,
        _api = api,
-       _certificateProvider = certificateProvider;
+       _certificateProvider = certificateProvider,
+       _healthMonitor = healthMonitor;
 
   final SessionStorage _storage;
   final ArgoCdApi _api;
   final CertificateProvider _certificateProvider;
+  final HealthMonitor? _healthMonitor;
+
+  HealthMonitor? get healthMonitor => _healthMonitor;
 
   AppStage _stage = AppStage.booting;
   AppStage get stage => _stage;
@@ -293,6 +299,7 @@ class AppController extends ChangeNotifier {
     _loadingProjects = false;
     _lastRefreshedAt = null;
     _stage = AppStage.unauthenticated;
+    _healthMonitor?.reset();
     await _storage.clearSession();
     notifyListeners();
   }
@@ -360,6 +367,7 @@ class AppController extends ChangeNotifier {
       _hasLoadedApplications = true;
       _lastRefreshedAt = DateTime.now();
       _errorMessage = null;
+      _healthMonitor?.processApplications(_applications);
     } on ArgoCdException catch (error) {
       _errorMessage = error.message;
       rethrow;
