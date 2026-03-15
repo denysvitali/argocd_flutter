@@ -68,6 +68,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
 
   _ManifestViewMode _viewMode = _ManifestViewMode.yaml;
   _ManifestViewMode _lastNonDiffMode = _ManifestViewMode.yaml;
+  bool _didAutoSwitchToDiff = false;
   bool _showSearch = false;
   bool _wrapLines = false;
   bool _hideManagedFields = true;
@@ -387,6 +388,19 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
 
                 final manifest = snapshot.requireData;
                 final document = _buildDocumentBundle(manifest);
+
+                // Auto-switch to diff view on first load when diff data exists.
+                if (!_didAutoSwitchToDiff && document.diff != null) {
+                  _didAutoSwitchToDiff = true;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      setState(() {
+                        _viewMode = _ManifestViewMode.diff;
+                      });
+                    }
+                  });
+                }
+
                 final viewData = _activeViewData(document);
                 _activeMatches = viewData.matches;
                 _syncCurrentMatch(viewData.matches.length);
@@ -984,7 +998,25 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     if (desired == null || live == null) {
       return null;
     }
-    return _DiffDocument(_buildDiffLines(desired, live));
+    return _DiffDocument(
+      _buildDiffLines(_formatForDiff(desired), _formatForDiff(live)),
+    );
+  }
+
+  /// Normalizes a manifest string to pretty-printed YAML for readable diffs.
+  /// Compact JSON from ArgoCD would otherwise compare as single-line blobs.
+  String _formatForDiff(String text) {
+    try {
+      final parsed = jsonDecode(text);
+      if (parsed is Map<String, dynamic>) {
+        final cleaned =
+            _hideManagedFields ? _stripManagedFields(parsed) : parsed;
+        return jsonToYaml(cleaned);
+      }
+    } catch (_) {
+      // Not JSON — return as-is (already YAML or plain text).
+    }
+    return text;
   }
 
   Map<String, dynamic> _stripManagedFields(Map<String, dynamic> obj) {
