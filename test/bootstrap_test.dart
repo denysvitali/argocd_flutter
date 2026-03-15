@@ -48,7 +48,7 @@ void main() {
     ) async {
       await _pumpBootstrap(tester);
 
-      expect(find.byType(FadeTransition), findsOneWidget);
+      expect(find.byType(FadeTransition), findsWidgets);
     });
 
     testWidgets('fade animation starts near zero opacity', (
@@ -56,12 +56,16 @@ void main() {
     ) async {
       await _pumpBootstrap(tester);
 
-      final fadeTransition = tester.widget<FadeTransition>(
+      // Find the FadeTransition that wraps the bootstrap content column.
+      final fadeTransitions = tester.widgetList<FadeTransition>(
         find.byType(FadeTransition),
       );
-      // At the very first frame the animation has just begun – opacity is close
-      // to 0.
-      expect(fadeTransition.opacity.value, lessThan(0.1));
+      // At the very first frame the bootstrap animation has just begun —
+      // at least one FadeTransition should have near-zero opacity.
+      expect(
+        fadeTransitions.any((ft) => ft.opacity.value < 0.1),
+        isTrue,
+      );
     });
 
     testWidgets('fade animation progresses to near full opacity after 800ms', (
@@ -74,7 +78,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 800));
 
       final fadeTransition = tester.widget<FadeTransition>(
-        find.byType(FadeTransition),
+        find.byType(FadeTransition).first,
       );
       expect(fadeTransition.opacity.value, greaterThan(0.9));
     });

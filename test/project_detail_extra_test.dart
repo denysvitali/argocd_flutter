@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:argocd_flutter/core/models/app_session.dart';
 import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/models/argo_project.dart';
@@ -28,10 +30,10 @@ void main() {
     testWidgets('shows loading indicator while fetching project', (
       WidgetTester tester,
     ) async {
-      final completer = _SlowArgoCdApi();
+      final api = _SlowArgoCdApi();
       final controller = AppController(
         storage: storage,
-        api: completer,
+        api: api,
         certificateProvider: const CertificateProvider(),
       );
       await controller.initialize();
@@ -51,6 +53,10 @@ void main() {
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       expect(find.text('Loading project details...'), findsOneWidget);
+
+      // Complete the pending future so the test can cleanly dispose.
+      api.completeAll();
+      await tester.pumpAndSettle();
     });
 
     testWidgets('shows error state when project fetch fails', (
@@ -136,7 +142,7 @@ void main() {
       final api = _CountingArgoCdApi(
         onFetch: () {
           callCount++;
-          return const ArgoProject(
+          return ArgoProject(
             name: 'platform',
             description: 'Version $callCount',
             sourceRepos: <String>[],
@@ -215,12 +221,30 @@ class _MemorySessionStorage implements SessionStorage {
 
 /// An API that never resolves fetchProject, simulating a slow network.
 class _SlowArgoCdApi implements ArgoCdApi {
+  final List<Completer<ArgoProject>> _completers = <Completer<ArgoProject>>[];
+
+  void completeAll() {
+    for (final c in _completers) {
+      if (!c.isCompleted) {
+        c.complete(const ArgoProject(
+          name: 'platform',
+          description: '',
+          sourceRepos: <String>[],
+          destinations: <ArgoProjectDestination>[],
+          clusterResourceWhitelist: <ArgoProjectClusterResource>[],
+        ));
+      }
+    }
+  }
+
   @override
   Future<ArgoProject> fetchProject(
     AppSession session,
     String projectName,
   ) {
-    return Completer<ArgoProject>().future;
+    final c = Completer<ArgoProject>();
+    _completers.add(c);
+    return c.future;
   }
 
   @override
@@ -484,20 +508,3 @@ class _CountingArgoCdApi implements ArgoCdApi {
   }) async {}
 }
 
-class Completer<T> {
-  Future<T> get future => _completer.future;
-  final _completer = _CompleterImpl<T>();
-}
-
-class _CompleterImpl<T> {
-  late void Function(T) _resolve;
-  late void Function(Object) _reject;
-
-  _CompleterImpl();
-
-  Future<T> get future => _future;
-  final Future<T> _future = Future<T>(
-    // This future never resolves, used to simulate slow network
-    () => Future<T>.delayed(const Duration(hours: 1)),
-  ).then((v) => v);
-}

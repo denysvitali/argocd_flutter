@@ -124,7 +124,17 @@ void main() {
     testWidgets('retry button triggers reload after error', (
       WidgetTester tester,
     ) async {
-      final api = _CountingLogApi(shouldFail: true);
+      // First call fails (shows error), second call succeeds (shows logs).
+      var callCount = 0;
+      final api = _ToggleLogApi(
+        onFetch: () {
+          callCount++;
+          if (callCount == 1) {
+            throw const ArgoCdException('Failed to load logs');
+          }
+          return _sampleLogs;
+        },
+      );
       final storage = _MemorySessionStorage()..seedSession(_testSession);
       final controller = AppController(
         storage: storage,
@@ -133,39 +143,30 @@ void main() {
       );
       await controller.initialize();
 
-      // Flutter test framework reports FutureBuilder errors as unhandled; allow
-      // them so we can test the retry flow without the test itself failing.
-      final originalOnError = FlutterError.onError;
-      FlutterError.onError = (FlutterErrorDetails details) {};
-
-      try {
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: ThemeData(splashFactory: InkRipple.splashFactory),
-            home: LogViewerScreen(
-              controller: controller,
-              applicationName: 'payments-api',
-              namespace: 'payments',
-              podName: 'payments-api-7f9d9c',
-            ),
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
+          home: LogViewerScreen(
+            controller: controller,
+            applicationName: 'payments-api',
+            namespace: 'payments',
+            podName: 'payments-api-7f9d9c',
           ),
-        );
-        await tester.pump();
-        await tester.pump(const Duration(seconds: 1));
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        expect(find.text('Retry'), findsOneWidget);
-        final callsBefore = api.callCount;
+      // First load failed — error state is shown.
+      expect(find.text('Retry'), findsOneWidget);
+      expect(callCount, 1);
 
-        await tester.tap(find.text('Retry'));
-        await tester.pump();
-        await tester.pump(const Duration(seconds: 1));
+      // Tap Retry — second fetch succeeds.
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
 
-        expect(api.callCount, greaterThan(callsBefore));
-        // Error message is shown again after the retry also fails.
-        expect(find.text('Retry'), findsOneWidget);
-      } finally {
-        FlutterError.onError = originalOnError;
-      }
+      expect(callCount, 2);
+      expect(find.text('Retry'), findsNothing);
+      expect(find.textContaining('INFO started'), findsOneWidget);
     });
 
     testWidgets('copy button is present in app bar', (
@@ -364,6 +365,26 @@ class _FakeLogApi implements ArgoCdApi {
 
   @override
   Future<void> verifyServer(String serverUrl) async {}
+}
+
+/// An API fake whose fetchResourceLogs behaviour is controlled by a callback.
+class _ToggleLogApi extends _FakeLogApi {
+  _ToggleLogApi({required String Function() onFetch})
+      : _onFetch = onFetch,
+        super(logs: '');
+
+  final String Function() _onFetch;
+
+  @override
+  Future<String> fetchResourceLogs(
+    AppSession session, {
+    required String applicationName,
+    required String namespace,
+    required String podName,
+    String? containerName,
+    int tailLines = 500,
+  }) async =>
+      _onFetch();
 }
 
 /// An API fake that counts how many times fetchResourceLogs has been called.

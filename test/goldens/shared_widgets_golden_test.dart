@@ -1,6 +1,7 @@
 @Tags(<String>['golden'])
 library;
 
+import 'package:argocd_flutter/ui/app_root.dart';
 import 'package:argocd_flutter/ui/error_retry_widget.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';

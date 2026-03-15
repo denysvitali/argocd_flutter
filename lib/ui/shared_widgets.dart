@@ -552,7 +552,13 @@ class FactBadge extends StatelessWidget {
         children: <Widget>[
           ExcludeSemantics(child: Icon(icon, size: 14)),
           const SizedBox(width: 4),
-          Text(label, style: theme.textTheme.bodySmall),
+          Flexible(
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );

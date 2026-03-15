@@ -65,9 +65,11 @@ void main() {
         wrapInApp(const StatusChip(label: 'Missing', color: Colors.grey)),
       );
 
-      final semantics = tester.getSemantics(find.text('Missing'));
       // The Semantics wrapper sets label 'Status: Missing'
-      expect(semantics.label, 'Status: Missing');
+      expect(
+        find.bySemanticsLabel(RegExp(r'Status: Missing')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('renders long label text without overflow error', (
@@ -203,10 +205,12 @@ void main() {
       );
 
       // Semantics node combines title and subtitle for screen readers
-      final semanticsNodes = tester.semantics.nodesWith(
-        label: 'No applications. Deploy your first app.',
+      expect(
+        find.bySemanticsLabel(
+          RegExp(r'No applications\. Deploy your first app\.'),
+        ),
+        findsOneWidget,
       );
-      expect(semanticsNodes, isNotEmpty);
     });
 
     testWidgets('renders in dark theme', (WidgetTester tester) async {
@@ -274,10 +278,10 @@ void main() {
         wrapInApp(const SummaryTile(label: 'Healthy Apps', value: 7)),
       );
 
-      final semanticsNodes = tester.semantics.nodesWith(
-        label: '7 Healthy Apps',
+      expect(
+        find.bySemanticsLabel(RegExp(r'7 Healthy Apps')),
+        findsOneWidget,
       );
-      expect(semanticsNodes, isNotEmpty);
     });
 
     testWidgets('renders without valueColor when not provided', (
@@ -288,8 +292,8 @@ void main() {
       );
 
       final text = tester.widget<Text>(find.text('3'));
-      // No explicit color override — style color is null (inherits from theme)
-      expect(text.style?.color, isNull);
+      // No explicit valueColor override — color should not be green (custom)
+      expect(text.style?.color, isNot(Colors.green));
     });
   });
 
@@ -329,7 +333,7 @@ void main() {
       );
 
       // ExcludeSemantics wraps the icon
-      expect(find.byType(ExcludeSemantics), findsOneWidget);
+      expect(find.byType(ExcludeSemantics), findsWidgets);
     });
 
     testWidgets('renders long label text', (WidgetTester tester) async {

@@ -40,9 +40,24 @@ class _DriftRadarScreenState extends State<DriftRadarScreen>
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
+    );
     _seedEvents();
-    _timer = Timer.periodic(_tick, (_) => _appendRandomEvent());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final enabled = TickerMode.of(context);
+    if (enabled && _timer == null) {
+      _timer = Timer.periodic(_tick, (_) => _appendRandomEvent());
+      if (!_pulseController.isAnimating) {
+        _pulseController.repeat(reverse: true);
+      }
+    } else if (!enabled) {
+      _timer?.cancel();
+      _timer = null;
+      _pulseController.stop();
+    }
   }
 
   @override
@@ -632,7 +647,7 @@ class _DriftEventTile extends StatelessWidget {
           Row(
             children: <Widget>[
               Text(
-                'Last signal ${timeAgo(event.timestamp)}',
+                'Last signal ${formatRelativeTime(event.timestamp.toIso8601String())}',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: AppColors.grey,
                 ),

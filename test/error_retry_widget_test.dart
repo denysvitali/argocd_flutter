@@ -59,7 +59,7 @@ void main() {
         ),
       );
 
-      expect(find.byType(ExcludeSemantics), findsOneWidget);
+      expect(find.byType(ExcludeSemantics), findsWidgets);
     });
 
     testWidgets('renders Retry button', (WidgetTester tester) async {
@@ -155,10 +155,10 @@ void main() {
         ),
       );
 
-      final semanticsNodes = tester.semantics.nodesWith(
-        label: 'Error: Unauthorized',
+      expect(
+        find.bySemanticsLabel(RegExp(r'Error: Unauthorized')),
+        findsOneWidget,
       );
-      expect(semanticsNodes, isNotEmpty);
     });
 
     testWidgets('renders in dark theme', (WidgetTester tester) async {

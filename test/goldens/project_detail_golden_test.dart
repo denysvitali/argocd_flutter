@@ -2,6 +2,7 @@
 library;
 
 import 'package:argocd_flutter/core/models/argo_project.dart';
+import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/features/projects/project_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

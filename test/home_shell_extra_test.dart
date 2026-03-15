@@ -135,7 +135,11 @@ void main() {
 
         // Both pages exist in the tree because IndexedStack keeps them alive.
         expect(find.text('admin @ https://argocd.example.com'), findsOneWidget);
-        expect(find.text('Application control plane'), findsOneWidget);
+        // Applications page is offstage but still in the widget tree.
+        expect(
+          find.text('Application control plane', skipOffstage: false),
+          findsOneWidget,
+        );
       },
     );
   });

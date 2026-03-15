@@ -253,7 +253,10 @@ class _HomeShellState extends State<HomeShell> {
     final compactNav = MediaQuery.sizeOf(context).width < 600;
 
     return Scaffold(
-      body: IndexedStack(index: _index, children: _pages),
+      body: _IndexedStackWithTickerMode(
+        index: _index,
+        children: _pages,
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           border: Border(
@@ -381,6 +384,35 @@ class _BootstrapScreenState extends State<_BootstrapScreen>
           ),
         ),
       ),
+    );
+  }
+}
+
+/// [IndexedStack] wrapper that automatically disables [TickerMode] for
+/// offscreen children so that repeating animations and periodic timers don't
+/// prevent [WidgetTester.pumpAndSettle] from settling in tests, while still
+/// preserving widget state across tab switches.
+class _IndexedStackWithTickerMode extends StatelessWidget {
+  const _IndexedStackWithTickerMode({
+    required this.index,
+    required this.children,
+  });
+
+  final int index;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return IndexedStack(
+      index: index,
+      children: <Widget>[
+        for (int i = 0; i < children.length; i++)
+          TickerMode(
+            key: ValueKey<int>(i),
+            enabled: i == index,
+            child: children[i],
+          ),
+      ],
     );
   }
 }
