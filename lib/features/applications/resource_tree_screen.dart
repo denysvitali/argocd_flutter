@@ -409,24 +409,28 @@ class _SummaryHeader extends StatelessWidget {
           value: healthy.toDouble(),
           color: AppColors.healthColor('healthy'),
           label: 'Healthy',
+          icon: healthStatusIcon('healthy'),
         ),
       if (progressing > 0)
         _DonutSegment(
           value: progressing.toDouble(),
           color: AppColors.healthColor('progressing'),
           label: 'Progressing',
+          icon: healthStatusIcon('progressing'),
         ),
       if (degraded > 0)
         _DonutSegment(
           value: degraded.toDouble(),
           color: AppColors.healthColor('degraded'),
           label: 'Degraded',
+          icon: healthStatusIcon('degraded'),
         ),
       if (other > 0)
         _DonutSegment(
           value: other.toDouble(),
           color: AppColors.grey,
           label: 'Other',
+          icon: Icons.help_outline,
         ),
     ];
 
@@ -488,6 +492,7 @@ class _SummaryHeader extends StatelessWidget {
                 _LegendItem(
                   color: segment.color,
                   label: '${segment.value.toInt()} ${segment.label}',
+                  icon: segment.icon,
                 ),
             ],
           ),
@@ -524,11 +529,13 @@ class _DonutSegment {
     required this.value,
     required this.color,
     required this.label,
+    this.icon,
   });
 
   final double value;
   final Color color;
   final String label;
+  final IconData? icon;
 }
 
 class _DonutChartPainter extends CustomPainter {
@@ -596,10 +603,15 @@ class _DonutChartPainter extends CustomPainter {
 // ---------------------------------------------------------------------------
 
 class _LegendItem extends StatelessWidget {
-  const _LegendItem({required this.color, required this.label});
+  const _LegendItem({
+    required this.color,
+    required this.label,
+    this.icon,
+  });
 
   final Color color;
   final String label;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -607,16 +619,20 @@ class _LegendItem extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
+        if (icon != null)
+          Icon(icon, size: 14, color: color)
+        else
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
         const SizedBox(width: 6),
         Text(
           label,
           style: theme.textTheme.bodySmall?.copyWith(
             fontWeight: FontWeight.w600,
+            color: color,
           ),
         ),
       ],
@@ -1030,13 +1046,10 @@ class _NodeCard extends StatelessWidget {
                   padding: const EdgeInsets.only(right: 8),
                   child: Tooltip(
                     message: node.healthStatus,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: AppColors.healthColor(node.healthStatus),
-                        shape: BoxShape.circle,
-                      ),
+                    child: Icon(
+                      healthStatusIcon(node.healthStatus),
+                      size: 16,
+                      color: AppColors.healthColor(node.healthStatus),
                     ),
                   ),
                 ),

@@ -119,7 +119,7 @@ void main() {
     expect(find.text('Rollback'), findsOneWidget);
   });
 
-  testWidgets('action buttons are present in bottom bar', (
+  testWidgets('action buttons are present in header toolbar', (
     WidgetTester tester,
   ) async {
     tester.view.physicalSize = const Size(1080, 1920);
@@ -130,9 +130,11 @@ void main() {
     await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.refresh), findsOneWidget);
-    expect(find.byIcon(Icons.sync), findsOneWidget);
-    expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+    // Toolbar buttons in header
+    expect(find.text('Sync'), findsWidgets);
+    expect(find.text('Refresh'), findsOneWidget);
+    expect(find.text('Diff'), findsOneWidget);
+    expect(find.text('Delete'), findsOneWidget);
   });
 
   testWidgets('confirmation dialog appears for delete', (
@@ -146,7 +148,7 @@ void main() {
     await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
-    // Tap the delete icon button
+    // Tap the delete toolbar button by its icon
     await tester.tap(find.byIcon(Icons.delete_outline));
     await tester.pumpAndSettle();
 
@@ -157,7 +159,8 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Cancel'), findsOneWidget);
-    expect(find.text('Delete'), findsOneWidget);
+    // 'Delete' text appears in both toolbar button and dialog button
+    expect(find.text('Delete'), findsWidgets);
 
     // Dismiss the dialog
     await tester.tap(find.text('Cancel'));

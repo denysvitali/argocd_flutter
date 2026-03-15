@@ -366,10 +366,16 @@ Color yamlTokenColor(YamlTokenType? type) {
 }
 
 class StatusChip extends StatelessWidget {
-  const StatusChip({super.key, required this.label, required this.color});
+  const StatusChip({
+    super.key,
+    required this.label,
+    required this.color,
+    this.icon,
+  });
 
   final String label;
   final Color color;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -390,17 +396,47 @@ class StatusChip extends StatelessWidget {
             ),
           ),
         ),
-        child: Text(
-          label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: color,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.2,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            if (icon != null) ...<Widget>[
+              Icon(icon, size: 13, color: color),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
+
+/// Returns an ArgoCD-style icon for a health status string.
+IconData healthStatusIcon(String status) {
+  return switch (status.toLowerCase()) {
+    'healthy' => Icons.favorite,
+    'progressing' => Icons.autorenew,
+    'degraded' => Icons.heart_broken,
+    'suspended' => Icons.pause_circle_filled,
+    'missing' => Icons.warning_amber_rounded,
+    _ => Icons.help_outline,
+  };
+}
+
+/// Returns an ArgoCD-style icon for a sync status string.
+IconData syncStatusIcon(String status) {
+  return switch (status.toLowerCase()) {
+    'synced' => Icons.check_circle,
+    'outofsync' => Icons.sync_problem,
+    _ => Icons.help_outline,
+  };
 }
 
 class SectionCard extends StatelessWidget {

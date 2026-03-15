@@ -311,81 +311,102 @@ class _DetailBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final screenHeight = MediaQuery.of(context).size.height;
 
-    return Column(
-      children: <Widget>[
-        Expanded(
-          child: NestedScrollView(
-            headerSliverBuilder: (context, innerBoxIsScrolled) {
-              return <Widget>[
-                SliverAppBar(
-                  expandedHeight: screenHeight < 600 ? 160 : 200,
-                  pinned: true,
-                  forceElevated: innerBoxIsScrolled,
-                  flexibleSpace: FlexibleSpaceBar(
-                    background: _HeroHeader(application: application),
-                  ),
-                  title: innerBoxIsScrolled
-                      ? Text(
-                          application.name,
-                          style: theme.textTheme.titleMedium,
-                        )
-                      : null,
-                  bottom: TabBar(
-                    controller: tabController,
-                    labelColor: theme.colorScheme.onSurface,
-                    unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
-                    labelStyle: theme.textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
+    return NestedScrollView(
+      headerSliverBuilder: (context, innerBoxIsScrolled) {
+        return <Widget>[
+          SliverAppBar(
+            expandedHeight: 240,
+            pinned: true,
+            forceElevated: innerBoxIsScrolled,
+            flexibleSpace: FlexibleSpaceBar(
+              background: _HeroHeader(
+                application: application,
+                actionInFlight: actionInFlight,
+                onRefresh: onRefresh,
+                onSync: onSync,
+                onDelete: onDelete,
+                onDiff: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => AppDiffScreen(
+                        controller: controller,
+                        applicationName: application.name,
+                      ),
                     ),
-                    unselectedLabelStyle: theme.textTheme.labelLarge,
-                    indicatorColor: AppColors.cobalt,
-                    tabs: const <Widget>[
-                      Tab(text: 'Overview'),
-                      Tab(text: 'Resources'),
-                      Tab(text: 'History'),
-                    ],
-                  ),
-                ),
-              ];
-            },
-            body: TabBarView(
+                  );
+                },
+              ),
+            ),
+            title: innerBoxIsScrolled
+                ? Text(
+                    application.name,
+                    style: theme.textTheme.titleMedium,
+                  )
+                : null,
+            actions: innerBoxIsScrolled
+                ? <Widget>[
+                    IconButton(
+                      tooltip: 'Refresh',
+                      icon: const Icon(Icons.refresh, size: 20),
+                      onPressed: actionInFlight ? null : onRefresh,
+                    ),
+                    IconButton(
+                      tooltip: 'Sync',
+                      icon: const Icon(Icons.sync, size: 20),
+                      onPressed: actionInFlight ? null : onSync,
+                    ),
+                    IconButton(
+                      tooltip: 'Diff',
+                      icon: const Icon(Icons.compare_arrows, size: 20),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => AppDiffScreen(
+                              controller: controller,
+                              applicationName: application.name,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ]
+                : null,
+            bottom: TabBar(
               controller: tabController,
-              children: <Widget>[
-                _OverviewTab(controller: controller, application: application),
-                _ResourcesTab(
-                  controller: controller,
-                  applicationName: application.name,
-                  resources: application.resources,
-                ),
-                _HistoryTab(
-                  controller: controller,
-                  applicationName: application.name,
-                  history: application.history,
-                  onRolledBack: onRolledBack,
-                ),
+              labelColor: theme.colorScheme.onSurface,
+              unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+              labelStyle: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+              unselectedLabelStyle: theme.textTheme.labelLarge,
+              indicatorColor: AppColors.cobalt,
+              tabs: const <Widget>[
+                Tab(text: 'Overview'),
+                Tab(text: 'Resources'),
+                Tab(text: 'History'),
               ],
             ),
           ),
-        ),
-        _BottomActionBar(
-          actionInFlight: actionInFlight,
-          onRefresh: onRefresh,
-          onSync: onSync,
-          onDelete: onDelete,
-          onDiff: () {
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => AppDiffScreen(
-                  controller: controller,
-                  applicationName: application.name,
-                ),
-              ),
-            );
-          },
-        ),
-      ],
+        ];
+      },
+      body: TabBarView(
+        controller: tabController,
+        children: <Widget>[
+          _OverviewTab(controller: controller, application: application),
+          _ResourcesTab(
+            controller: controller,
+            applicationName: application.name,
+            resources: application.resources,
+          ),
+          _HistoryTab(
+            controller: controller,
+            applicationName: application.name,
+            history: application.history,
+            onRolledBack: onRolledBack,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -395,9 +416,21 @@ class _DetailBody extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _HeroHeader extends StatelessWidget {
-  const _HeroHeader({required this.application});
+  const _HeroHeader({
+    required this.application,
+    required this.actionInFlight,
+    required this.onRefresh,
+    required this.onSync,
+    required this.onDelete,
+    required this.onDiff,
+  });
 
   final ArgoApplication application;
+  final bool actionInFlight;
+  final VoidCallback onRefresh;
+  final VoidCallback onSync;
+  final VoidCallback onDelete;
+  final VoidCallback onDiff;
 
   @override
   Widget build(BuildContext context) {
@@ -407,8 +440,8 @@ class _HeroHeader extends StatelessWidget {
     return Container(
       padding: EdgeInsets.only(
         top: topPadding + 56,
-        left: 18,
-        right: 18,
+        left: 16,
+        right: 16,
         bottom: 54,
       ),
       decoration: BoxDecoration(
@@ -421,43 +454,93 @@ class _HeroHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Text(
-            application.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: AppColors.headerForeground(theme),
-            ),
+          // App name + project badge row
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  application.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.headerForeground(theme),
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.headerChipBackground(theme),
+                  borderRadius: AppRadius.sm,
+                ),
+                child: Text(
+                  application.project,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.headerMutedForeground(theme),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            '${application.project}  \u2022  ${application.namespace}  \u2022  ${_shortCluster(application.cluster)}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.headerMutedForeground(theme),
-            ),
-          ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
+          // Status badges row
           Wrap(
             spacing: 6,
             runSpacing: 6,
             children: <Widget>[
               StatusChip(
+                icon: healthStatusIcon(application.healthStatus),
                 label: application.healthStatus,
                 color: AppColors.healthColor(application.healthStatus),
               ),
               StatusChip(
+                icon: syncStatusIcon(application.syncStatus),
                 label: application.syncStatus,
                 color: AppColors.syncColor(application.syncStatus),
               ),
               if (application.lastSyncedAt != null)
                 StatusChip(
+                  icon: Icons.schedule,
                   label:
                       'Synced ${formatRelativeTime(application.lastSyncedAt!)}',
                   color: AppColors.grey,
                 ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Action buttons toolbar row (like ArgoCD's SYNC/REFRESH/DELETE/DIFF)
+          Row(
+            children: <Widget>[
+              _ToolbarButton(
+                icon: Icons.sync,
+                label: 'Sync',
+                onPressed: actionInFlight ? null : onSync,
+                isPrimary: true,
+              ),
+              const SizedBox(width: 6),
+              _ToolbarButton(
+                icon: Icons.refresh,
+                label: 'Refresh',
+                onPressed: actionInFlight ? null : onRefresh,
+              ),
+              const SizedBox(width: 6),
+              _ToolbarButton(
+                icon: Icons.compare_arrows,
+                label: 'Diff',
+                onPressed: onDiff,
+              ),
+              const SizedBox(width: 6),
+              _ToolbarButton(
+                icon: Icons.delete_outline,
+                label: 'Delete',
+                onPressed: actionInFlight ? null : onDelete,
+                isDanger: true,
+              ),
             ],
           ),
         ],
@@ -471,6 +554,71 @@ class _HeroHeader extends StatelessWidget {
       return uri.host;
     }
     return cluster;
+  }
+}
+
+class _ToolbarButton extends StatelessWidget {
+  const _ToolbarButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.isPrimary = false,
+    this.isDanger = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+  final bool isPrimary;
+  final bool isDanger;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final Color fg;
+    final Color bg;
+
+    if (isDanger) {
+      fg = onPressed != null ? AppColors.coral : theme.disabledColor;
+      bg = fg.withValues(alpha: 0.1);
+    } else if (isPrimary) {
+      fg = onPressed != null ? AppColors.cobalt : theme.disabledColor;
+      bg = fg.withValues(alpha: 0.15);
+    } else {
+      fg = onPressed != null
+          ? AppColors.headerForeground(theme)
+          : theme.disabledColor;
+      bg = AppColors.headerChipBackground(theme, alpha: 0.08);
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: AppRadius.sm,
+        onTap: onPressed,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: AppRadius.sm,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(icon, size: 15, color: fg),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: fg,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -499,6 +647,10 @@ class _OverviewTab extends StatelessWidget {
           controller: controller,
           applicationName: application.name,
         ),
+        if (application.resources.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 14),
+          _InlineResourceSummary(resources: application.resources),
+        ],
       ],
     );
   }
@@ -534,12 +686,14 @@ class _SummarySection extends StatelessWidget {
                 label: 'Health',
                 value: application.healthStatus,
                 color: AppColors.healthColor(application.healthStatus),
+                icon: healthStatusIcon(application.healthStatus),
               ),
               const SizedBox(width: 24),
               _StatusIndicator(
                 label: 'Sync',
                 value: application.syncStatus,
                 color: AppColors.syncColor(application.syncStatus),
+                icon: syncStatusIcon(application.syncStatus),
               ),
             ],
           ),
@@ -554,11 +708,13 @@ class _StatusIndicator extends StatelessWidget {
     required this.label,
     required this.value,
     required this.color,
+    required this.icon,
   });
 
   final String label;
   final String value;
   final Color color;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -567,19 +723,13 @@ class _StatusIndicator extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Container(
-          width: 10,
-          height: 10,
+          width: 28,
+          height: 28,
           decoration: BoxDecoration(
-            color: color,
+            color: color.withValues(alpha: 0.12),
             shape: BoxShape.circle,
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: color.withValues(alpha: 0.4),
-                blurRadius: 6,
-                spreadRadius: 1,
-              ),
-            ],
           ),
+          child: Icon(icon, size: 16, color: color),
         ),
         const SizedBox(width: 8),
         Column(
@@ -595,6 +745,7 @@ class _StatusIndicator extends StatelessWidget {
               value,
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w600,
+                color: color,
               ),
             ),
           ],
@@ -868,13 +1019,10 @@ class _ResourceCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: healthColor,
-                            shape: BoxShape.circle,
-                          ),
+                        Icon(
+                          healthStatusIcon(resource.health),
+                          size: 14,
+                          color: healthColor,
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -1215,118 +1363,145 @@ class _TimelineEntry extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Bottom action bar (used by _DetailBody)
+// Inline resource summary (ArgoCD-style resource kind counts)
 // ---------------------------------------------------------------------------
 
-class _BottomActionBar extends StatelessWidget {
-  const _BottomActionBar({
-    required this.actionInFlight,
-    required this.onRefresh,
-    required this.onSync,
-    required this.onDelete,
-    required this.onDiff,
-  });
+class _InlineResourceSummary extends StatelessWidget {
+  const _InlineResourceSummary({required this.resources});
 
-  final bool actionInFlight;
-  final VoidCallback onRefresh;
-  final VoidCallback onSync;
-  final VoidCallback onDelete;
-  final VoidCallback onDiff;
+  final List<ArgoResource> resources;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const buttonHeight = 44.0;
+    // Group by kind
+    final kindCounts = <String, int>{};
+    var healthyCount = 0;
+    var degradedCount = 0;
+    var progressingCount = 0;
+    for (final r in resources) {
+      kindCounts[r.kind] = (kindCounts[r.kind] ?? 0) + 1;
+      switch (r.health.toLowerCase()) {
+        case 'healthy':
+          healthyCount++;
+        case 'degraded':
+          degradedCount++;
+        case 'progressing':
+          progressingCount++;
+      }
+    }
+    final otherCount =
+        resources.length - healthyCount - degradedCount - progressingCount;
 
-    return Container(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 10,
-        bottom: 10 + MediaQuery.of(context).padding.bottom,
-      ),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border(top: BorderSide(color: theme.dividerColor)),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: theme.colorScheme.shadow.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
+    return SectionCard(
+      title: 'Resource Summary',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Expanded(
-            child: SizedBox(
-              height: buttonHeight,
-              child: OutlinedButton.icon(
-                onPressed: actionInFlight ? null : onRefresh,
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Refresh'),
-                style: OutlinedButton.styleFrom(
-                  textStyle: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
+          // Health breakdown row
+          Wrap(
+            spacing: 12,
+            runSpacing: 6,
+            children: <Widget>[
+              _ResourceCountBadge(
+                icon: Icons.favorite,
+                label: 'Healthy',
+                count: healthyCount,
+                color: AppColors.teal,
+              ),
+              _ResourceCountBadge(
+                icon: Icons.autorenew,
+                label: 'Progressing',
+                count: progressingCount,
+                color: AppColors.amber,
+              ),
+              _ResourceCountBadge(
+                icon: Icons.heart_broken,
+                label: 'Degraded',
+                count: degradedCount,
+                color: AppColors.coral,
+              ),
+              if (otherCount > 0)
+                _ResourceCountBadge(
+                  icon: Icons.help_outline,
+                  label: 'Other',
+                  count: otherCount,
+                  color: AppColors.grey,
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Divider(height: 1, color: AppColors.border),
+          const SizedBox(height: 8),
+          Text(
+            'Resources by Kind',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: <Widget>[
+              for (final entry in kindCounts.entries)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colorForResourceKind(entry.key)
+                        .withValues(alpha: 0.1),
+                    borderRadius: AppRadius.sm,
+                  ),
+                  child: Text(
+                    '${entry.key} (${entry.value})',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colorForResourceKind(entry.key),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          SizedBox(
-            height: buttonHeight,
-            child: OutlinedButton.icon(
-              onPressed: onDiff,
-              icon: const Icon(Icons.compare_arrows, size: 18),
-              label: const Text('Diff'),
-              style: OutlinedButton.styleFrom(
-                textStyle: theme.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: SizedBox(
-              height: buttonHeight,
-              child: FilledButton.icon(
-                onPressed: actionInFlight ? null : onSync,
-                icon: const Icon(Icons.sync, size: 18),
-                label: const Text('Sync'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  textStyle: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          SizedBox(
-            height: buttonHeight,
-            child: OutlinedButton(
-              onPressed: actionInFlight ? null : onDelete,
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(
-                  color: actionInFlight
-                      ? theme.disabledColor
-                      : theme.colorScheme.error.withValues(alpha: 0.4),
-                ),
-              ),
-              child: Icon(
-                Icons.delete_outline,
-                size: 20,
-                color: actionInFlight
-                    ? theme.disabledColor
-                    : theme.colorScheme.error,
-              ),
-            ),
+            ],
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ResourceCountBadge extends StatelessWidget {
+  const _ResourceCountBadge({
+    required this.icon,
+    required this.label,
+    required this.count,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final int count;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 4),
+        Text(
+          '$label: $count',
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }

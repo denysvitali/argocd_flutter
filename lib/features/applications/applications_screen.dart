@@ -624,11 +624,13 @@ class _ApplicationCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: <Widget>[
                           StatusChip(
+                            icon: healthStatusIcon(application.healthStatus),
                             label: application.healthStatus,
                             color: healthColor,
                           ),
                           const SizedBox(height: 6),
                           StatusChip(
+                            icon: syncStatusIcon(application.syncStatus),
                             label: application.syncStatus,
                             color: AppColors.syncColor(application.syncStatus),
                           ),
@@ -785,11 +787,13 @@ class _ApplicationGridCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   StatusChip(
+                    icon: healthStatusIcon(application.healthStatus),
                     label: application.healthStatus,
                     color: healthColor,
                   ),
                   const SizedBox(height: 4),
                   StatusChip(
+                    icon: syncStatusIcon(application.syncStatus),
                     label: application.syncStatus,
                     color: AppColors.syncColor(application.syncStatus),
                   ),

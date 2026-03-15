@@ -606,11 +606,13 @@ class _AttentionItem extends StatelessWidget {
                       ),
                     ),
                     StatusChip(
+                      icon: syncStatusIcon(application.syncStatus),
                       label: application.syncStatus,
                       color: AppColors.syncColor(application.syncStatus),
                     ),
                     const SizedBox(width: 6),
                     StatusChip(
+                      icon: healthStatusIcon(application.healthStatus),
                       label: application.healthStatus,
                       color: AppColors.healthColor(application.healthStatus),
                     ),
@@ -1112,6 +1114,7 @@ class _TimelineEntry extends StatelessWidget {
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: <Widget>[
                           StatusChip(
+                            icon: syncStatusIcon(application.syncStatus),
                             label: application.syncStatus,
                             color: AppColors.syncColor(application.syncStatus),
                           ),
