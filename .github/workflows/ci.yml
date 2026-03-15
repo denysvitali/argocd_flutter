@@ -23,7 +23,6 @@ on:
           - both
 
 env:
-  FLUTTER_VERSION: '3.41.2'
   JAVA_VERSION: '21'
   DART_VM_OPTIONS: '--max-gen-heap-size=4096'
 
@@ -40,11 +39,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+
+      - name: Install devenv
+        run: nix profile install nixpkgs#devenv
 
       - name: Cache pub dependencies
         uses: actions/cache@v4
@@ -55,10 +54,10 @@ jobs:
             ${{ runner.os }}-pub-
 
       - name: Get dependencies
-        run: flutter pub get
+        run: devenv shell -- flutter pub get
 
       - name: Analyze code
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        run: devenv shell -- flutter analyze --no-fatal-infos --no-fatal-warnings
 
   test:
     name: Run Tests
@@ -67,11 +66,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+
+      - name: Install devenv
+        run: nix profile install nixpkgs#devenv
 
       - name: Cache pub dependencies
         uses: actions/cache@v4
@@ -82,13 +81,13 @@ jobs:
             ${{ runner.os }}-pub-
 
       - name: Get dependencies
-        run: flutter pub get
+        run: devenv shell -- flutter pub get
 
       - name: Run non-golden tests
-        run: flutter test --exclude-tags=golden
+        run: devenv shell -- flutter test --exclude-tags=golden
 
       - name: Run golden tests
-        run: flutter test --tags=golden
+        run: devenv shell -- flutter test --tags=golden
 
       - name: Upload golden failures
         if: failure()
@@ -134,11 +133,11 @@ jobs:
           sudo rm -rf /usr/share/swift
           df -h
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+
+      - name: Install devenv
+        run: nix profile install nixpkgs#devenv
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -158,11 +157,11 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Get dependencies
-        run: flutter pub get
+        run: devenv shell -- flutter pub get
 
       - name: Build Debug APK
         run: |
-          flutter build apk --debug --no-pub \
+          devenv shell -- flutter build apk --debug --no-pub \
             --target-platform android-arm64 \
             --build-number ${{ steps.build_meta.outputs.BUILD_NUMBER }}
 
@@ -205,11 +204,11 @@ jobs:
           sudo rm -rf /usr/share/swift
           df -h
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+
+      - name: Install devenv
+        run: nix profile install nixpkgs#devenv
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -229,7 +228,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Get dependencies
-        run: flutter pub get
+        run: devenv shell -- flutter pub get
 
       - name: Decode keystore
         run: |
@@ -244,7 +243,7 @@ jobs:
 
       - name: Build Release APK
         run: |
-          flutter build apk --release --no-pub \
+          devenv shell -- flutter build apk --release --no-pub \
             --target-platform android-arm64 \
             --build-number ${{ steps.build_meta.outputs.BUILD_NUMBER }}
 
@@ -283,11 +282,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+
+      - name: Install devenv
+        run: nix profile install nixpkgs#devenv
 
       - name: Cache pub dependencies
         uses: actions/cache@v4
@@ -298,10 +297,10 @@ jobs:
             ${{ runner.os }}-pub-
 
       - name: Get dependencies
-        run: flutter pub get
+        run: devenv shell -- flutter pub get
 
       - name: Build Web
-        run: flutter build web --release --base-href '/'
+        run: devenv shell -- flutter build web --release --base-href '/'
 
       - name: Upload Web Build
         uses: actions/upload-artifact@v4
