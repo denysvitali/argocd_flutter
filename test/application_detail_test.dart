@@ -332,6 +332,7 @@ class _FakeArgoCdApi implements ArgoCdApi {
               version: 'v1',
               status: 'Synced',
               health: 'Healthy',
+              healthMessage: '',
             ),
             ArgoResource(
               kind: 'Pod',
@@ -341,6 +342,7 @@ class _FakeArgoCdApi implements ArgoCdApi {
               version: 'v1',
               status: 'Synced',
               health: 'Progressing',
+              healthMessage: '',
             ),
           ],
           history: <ArgoHistoryEntry>[

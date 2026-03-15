@@ -81,9 +81,11 @@ class ArgoResource {
     required this.version,
     required this.status,
     required this.health,
+    required this.healthMessage,
   });
 
   factory ArgoResource.fromJson(Map<String, dynamic> json) {
+    final healthObj = parseMap(json['health']);
     return ArgoResource(
       kind: parseString(json['kind'], fallback: 'Resource'),
       name: parseString(json['name'], fallback: 'Unknown'),
@@ -91,7 +93,8 @@ class ArgoResource {
       group: parseString(json['group'], fallback: ''),
       version: parseString(json['version'], fallback: ''),
       status: parseString(json['status'], fallback: 'Unknown'),
-      health: parseString(json['health'], fallback: 'Unknown'),
+      health: parseString(healthObj['status'], fallback: 'Unknown'),
+      healthMessage: parseString(healthObj['message']),
     );
   }
 
@@ -102,6 +105,7 @@ class ArgoResource {
   final String version;
   final String status;
   final String health;
+  final String healthMessage;
 }
 
 class ArgoHistoryEntry {

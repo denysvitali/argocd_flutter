@@ -41,7 +41,7 @@ void main() {
               'group': 'apps',
               'version': 'v1',
               'status': 'Synced',
-              'health': 'Healthy',
+              'health': {'status': 'Healthy'},
             },
             {
               'kind': 'Service',
@@ -50,7 +50,7 @@ void main() {
               'group': '',
               'version': 'v1',
               'status': 'Synced',
-              'health': 'Healthy',
+              'health': {'status': 'Healthy'},
             },
           ],
           'history': [
@@ -767,7 +767,7 @@ void main() {
         'group': 'apps',
         'version': 'v1',
         'status': 'Synced',
-        'health': 'Healthy',
+        'health': {'status': 'Healthy', 'message': 'Deployment is available'},
       };
 
       final resource = ArgoResource.fromJson(json);
@@ -779,6 +779,7 @@ void main() {
       expect(resource.version, 'v1');
       expect(resource.status, 'Synced');
       expect(resource.health, 'Healthy');
+      expect(resource.healthMessage, 'Deployment is available');
     });
   });
 
