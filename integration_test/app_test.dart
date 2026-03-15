@@ -250,4 +250,24 @@ class _IntegrationFakeApi implements ArgoCdApi {
     String applicationName, {
     bool cascade = true,
   }) async {}
+
+  @override
+  Future<void> deleteResource(
+    AppSession session, {
+    required String applicationName,
+    required String namespace,
+    required String resourceName,
+    required String kind,
+    required String group,
+    required String version,
+    bool force = false,
+  }) async {}
+
+  @override
+  Future<List<ManagedResource>> fetchManagedResources(
+    AppSession session,
+    String applicationName,
+  ) async {
+    return const <ManagedResource>[];
+  }
 }
