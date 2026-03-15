@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:argocd_flutter/core/services/app_controller.dart';
+import 'package:argocd_flutter/core/utils/diff.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
@@ -831,16 +832,15 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
   Widget _buildDiffLine({
     required String keyId,
     required int lineNumber,
-    required _DiffLine line,
+    required DiffLine line,
     required bool isMatch,
     required bool isCurrentMatch,
   }) {
     final theme = Theme.of(context);
     final lineColor = switch (line.kind) {
-      _DiffKind.added => AppColors.teal,
-      _DiffKind.removed => AppColors.coral,
-      _DiffKind.changed => AppColors.amber,
-      _DiffKind.unchanged => theme.colorScheme.onSurface,
+      DiffLineKind.added => AppColors.teal,
+      DiffLineKind.removed => AppColors.coral,
+      DiffLineKind.unchanged => theme.colorScheme.onSurface,
     };
 
     return _buildLineFrame(
@@ -998,8 +998,13 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     if (desired == null || live == null) {
       return null;
     }
+    final desiredFormatted = _formatForDiff(desired);
+    final liveFormatted = _formatForDiff(live);
     return _DiffDocument(
-      _buildDiffLines(_formatForDiff(desired), _formatForDiff(live)),
+      computeDiffLines(
+        _trimTrailingEmptyLine(desiredFormatted.split('\n')),
+        _trimTrailingEmptyLine(liveFormatted.split('\n')),
+      ),
     );
   }
 
@@ -1548,58 +1553,7 @@ class _YamlSection {
 class _DiffDocument {
   const _DiffDocument(this.lines);
 
-  final List<_DiffLine> lines;
-}
-
-enum _DiffKind { unchanged, added, removed, changed }
-
-class _DiffLine {
-  const _DiffLine({
-    required this.prefix,
-    required this.text,
-    required this.kind,
-  });
-
-  final String prefix;
-  final String text;
-  final _DiffKind kind;
-}
-
-List<_DiffLine> _buildDiffLines(String desiredText, String liveText) {
-  final desiredLines = _trimTrailingEmptyLine(desiredText.split('\n'));
-  final liveLines = _trimTrailingEmptyLine(liveText.split('\n'));
-  final maxLines = desiredLines.length > liveLines.length
-      ? desiredLines.length
-      : liveLines.length;
-  final lines = <_DiffLine>[];
-
-  for (var i = 0; i < maxLines; i++) {
-    final desired = i < desiredLines.length ? desiredLines[i] : null;
-    final live = i < liveLines.length ? liveLines[i] : null;
-
-    if (desired == live && desired != null) {
-      lines.add(
-        _DiffLine(prefix: ' ', text: desired, kind: _DiffKind.unchanged),
-      );
-      continue;
-    }
-    if (desired == null && live != null) {
-      lines.add(_DiffLine(prefix: '+', text: live, kind: _DiffKind.added));
-      continue;
-    }
-    if (live == null && desired != null) {
-      lines.add(_DiffLine(prefix: '-', text: desired, kind: _DiffKind.removed));
-      continue;
-    }
-    if (desired != null) {
-      lines.add(_DiffLine(prefix: '-', text: desired, kind: _DiffKind.removed));
-    }
-    if (live != null) {
-      lines.add(_DiffLine(prefix: '+', text: live, kind: _DiffKind.added));
-    }
-  }
-
-  return lines;
+  final List<DiffLine> lines;
 }
 
 class _MiniMap extends StatelessWidget {

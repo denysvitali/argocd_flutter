@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/core/services/argocd_api.dart';
+import 'package:argocd_flutter/core/utils/diff.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:argocd_flutter/ui/resource_icons.dart';
@@ -148,11 +149,27 @@ class _ResourceDiffCard extends StatelessWidget {
     final theme = Theme.of(context);
     final kindColor = colorForResourceKind(resource.kind);
     final kindIcon = iconForResourceKind(resource.kind);
-    final lines = _buildDiffLines(
+    final targetYaml = _formatManifest(
       resource.targetState!,
+      hideManagedFields,
+    );
+    final liveYaml = _formatManifest(
       resource.liveState!,
       hideManagedFields,
     );
+    final targetLines = _trimTrailing(targetYaml.split('\n'));
+    final liveLines = _trimTrailing(liveYaml.split('\n'));
+    final sections = computeDiff(targetLines, liveLines);
+
+    // Count stats from all hunk lines.
+    var added = 0;
+    var removed = 0;
+    for (final section in sections) {
+      for (final line in section.lines) {
+        if (line.kind == DiffLineKind.added) added++;
+        if (line.kind == DiffLineKind.removed) removed++;
+      }
+    }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
@@ -169,18 +186,13 @@ class _ResourceDiffCard extends StatelessWidget {
             ),
           ],
         ),
+        clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: kindColor.withValues(alpha: 0.06),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  topRight: Radius.circular(12),
-                ),
-              ),
+              color: kindColor.withValues(alpha: 0.06),
               child: Row(
                 children: <Widget>[
                   Icon(kindIcon, color: kindColor, size: 20),
@@ -202,7 +214,7 @@ class _ResourceDiffCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  _DiffStats(lines: lines),
+                  _DiffStats(added: added, removed: removed),
                 ],
               ),
             ),
@@ -214,7 +226,12 @@ class _ResourceDiffCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    for (final line in lines) _DiffLineWidget(line: line),
+                    for (final section in sections)
+                      if (section.isCollapsed)
+                        _CollapsedSection(count: section.collapsedCount)
+                      else
+                        for (final line in section.lines)
+                          _DiffLineWidget(line: line),
                   ],
                 ),
               ),
@@ -227,15 +244,14 @@ class _ResourceDiffCard extends StatelessWidget {
 }
 
 class _DiffStats extends StatelessWidget {
-  const _DiffStats({required this.lines});
+  const _DiffStats({required this.added, required this.removed});
 
-  final List<_DiffLine> lines;
+  final int added;
+  final int removed;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final added = lines.where((l) => l.kind == _DiffKind.added).length;
-    final removed = lines.where((l) => l.kind == _DiffKind.removed).length;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
@@ -261,10 +277,42 @@ class _DiffStats extends StatelessWidget {
   }
 }
 
+class _CollapsedSection extends StatelessWidget {
+  const _CollapsedSection({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: 2000,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        border: Border.symmetric(
+          horizontal: BorderSide(
+            color: theme.dividerColor.withValues(alpha: 0.5),
+          ),
+        ),
+      ),
+      child: Text(
+        '\u2022\u2022\u2022 $count unchanged lines \u2022\u2022\u2022',
+        textAlign: TextAlign.center,
+        style: theme.textTheme.bodySmall?.copyWith(
+          fontFamily: 'monospace',
+          color: theme.colorScheme.onSurfaceVariant,
+          fontStyle: FontStyle.italic,
+        ),
+      ),
+    );
+  }
+}
+
 class _DiffLineWidget extends StatelessWidget {
   const _DiffLineWidget({required this.line});
 
-  final _DiffLine line;
+  final DiffLine line;
 
   @override
   Widget build(BuildContext context) {
@@ -273,13 +321,13 @@ class _DiffLineWidget extends StatelessWidget {
     final Color textColor;
 
     switch (line.kind) {
-      case _DiffKind.added:
+      case DiffLineKind.added:
         backgroundColor = AppColors.teal.withValues(alpha: 0.10);
         textColor = AppColors.teal;
-      case _DiffKind.removed:
+      case DiffLineKind.removed:
         backgroundColor = AppColors.coral.withValues(alpha: 0.10);
         textColor = AppColors.coral;
-      case _DiffKind.unchanged:
+      case DiffLineKind.unchanged:
         backgroundColor = Colors.transparent;
         textColor = theme.colorScheme.onSurface.withValues(alpha: 0.6);
     }
@@ -301,64 +349,15 @@ class _DiffLineWidget extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Diff logic
+// Helpers
 // ---------------------------------------------------------------------------
-
-enum _DiffKind { added, removed, unchanged }
-
-class _DiffLine {
-  const _DiffLine({
-    required this.prefix,
-    required this.text,
-    required this.kind,
-  });
-
-  final String prefix;
-  final String text;
-  final _DiffKind kind;
-}
-
-List<_DiffLine> _buildDiffLines(
-  String targetJson,
-  String liveJson,
-  bool hideManagedFields,
-) {
-  final targetYaml = _formatManifest(targetJson, hideManagedFields);
-  final liveYaml = _formatManifest(liveJson, hideManagedFields);
-
-  final targetLines = _trimTrailing(targetYaml.split('\n'));
-  final liveLines = _trimTrailing(liveYaml.split('\n'));
-  final maxLen =
-      targetLines.length > liveLines.length
-          ? targetLines.length
-          : liveLines.length;
-  final lines = <_DiffLine>[];
-
-  for (var i = 0; i < maxLen; i++) {
-    final target = i < targetLines.length ? targetLines[i] : null;
-    final live = i < liveLines.length ? liveLines[i] : null;
-
-    if (target == live && target != null) {
-      lines.add(_DiffLine(prefix: ' ', text: target, kind: _DiffKind.unchanged));
-      continue;
-    }
-    if (target != null) {
-      lines.add(_DiffLine(prefix: '-', text: target, kind: _DiffKind.removed));
-    }
-    if (live != null) {
-      lines.add(_DiffLine(prefix: '+', text: live, kind: _DiffKind.added));
-    }
-  }
-  return lines;
-}
 
 String _formatManifest(String jsonString, bool hideManagedFields) {
   try {
     final parsed = jsonDecode(jsonString);
     if (parsed is Map<String, dynamic>) {
-      final cleaned = hideManagedFields
-          ? _stripManagedFields(parsed)
-          : parsed;
+      final cleaned =
+          hideManagedFields ? _stripManagedFields(parsed) : parsed;
       return jsonToYaml(cleaned);
     }
   } catch (_) {
