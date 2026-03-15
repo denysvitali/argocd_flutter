@@ -23,7 +23,7 @@ on:
           - both
 
 env:
-  FLUTTER_VERSION: '3.38.7'
+  FLUTTER_VERSION: '3.41.2'
   JAVA_VERSION: '21'
   DART_VM_OPTIONS: '--max-gen-heap-size=4096'
 
