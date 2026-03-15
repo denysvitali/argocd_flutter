@@ -894,59 +894,92 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     );
   }
 
-  _ManifestDocumentBundle _buildDocumentBundle(String manifest) {
+  _ManifestDocumentBundle _buildDocumentBundle(String payload) {
     dynamic decoded;
     try {
-      decoded = jsonDecode(manifest);
+      decoded = jsonDecode(payload);
     } catch (_) {
       return _ManifestDocumentBundle(
-        yamlLines: manifest.split('\n'),
+        yamlLines: payload.split('\n'),
         yamlSections: const <_YamlSection>[],
-        jsonLines: manifest.split('\n'),
+        jsonLines: payload.split('\n'),
         diff: null,
+      );
+    }
+
+    final responseMap = decoded is Map<String, dynamic> ? decoded : null;
+    final manifestPayload = _extractManifestText(
+          responseMap?['manifest'] ??
+              (responseMap?['resource'] is Map<String, dynamic>
+                  ? (responseMap?['resource'] as Map<String, dynamic>)['manifest']
+                  : null),
+        ) ??
+        payload;
+
+    dynamic manifestDecoded;
+    try {
+      manifestDecoded = jsonDecode(manifestPayload);
+    } catch (_) {
+      final diffSource = responseMap;
+      return _ManifestDocumentBundle(
+        yamlLines: manifestPayload.split('\n'),
+        yamlSections: const <_YamlSection>[],
+        jsonLines: manifestPayload.split('\n'),
+        diff: diffSource == null ? null : _extractDiffDocument(diffSource),
       );
     }
 
     String formattedJson;
     try {
-      formattedJson = const JsonEncoder.withIndent('  ').convert(decoded);
+      formattedJson = const JsonEncoder.withIndent('  ').convert(manifestDecoded);
     } catch (_) {
-      formattedJson = manifest;
+      formattedJson = manifestPayload;
     }
 
     final jsonLines = formattedJson.split('\n');
 
-    if (decoded is! Map<String, dynamic>) {
+    if (manifestDecoded is! Map<String, dynamic>) {
+      final diffSource = responseMap;
       return _ManifestDocumentBundle(
         yamlLines: jsonLines,
         yamlSections: const <_YamlSection>[],
         jsonLines: jsonLines,
-        diff: null,
+        diff: diffSource == null ? null : _extractDiffDocument(diffSource),
       );
     }
 
     if (_hideManagedFields) {
-      decoded = _stripManagedFields(decoded);
+      manifestDecoded = _stripManagedFields(manifestDecoded);
     }
 
-    final yamlText = jsonToYaml(decoded);
+    final yamlText = jsonToYaml(manifestDecoded);
     final yamlLines = _trimTrailingEmptyLine(yamlText.split('\n'));
-    final sections = _buildSections(decoded, yamlLines);
+    final sections = _buildSections(manifestDecoded, yamlLines);
+    final diffSource = responseMap ?? manifestDecoded;
 
     return _ManifestDocumentBundle(
       yamlLines: yamlLines,
       yamlSections: sections,
       jsonLines: jsonLines,
-      diff: _extractDiffDocument(decoded),
+      diff: _extractDiffDocument(diffSource),
     );
   }
 
   _DiffDocument? _extractDiffDocument(Map<String, dynamic> decoded) {
+    final resource = decoded['resource'];
+    final resourceMap = resource is Map<String, dynamic> ? resource : null;
     final desired = _extractManifestText(
-      decoded['desiredManifest'] ?? decoded['desired'],
+      decoded['desiredManifest'] ??
+          decoded['desired'] ??
+          decoded['targetState'] ??
+          (resourceMap?['targetState'] ?? resourceMap?['desired']) ??
+          (decoded['target'] ?? resourceMap?['target']),
     );
     final live = _extractManifestText(
-      decoded['liveManifest'] ?? decoded['live'],
+      decoded['liveManifest'] ??
+          decoded['live'] ??
+          decoded['liveState'] ??
+          (resourceMap?['liveState'] ?? resourceMap?['live']),
     );
     if (desired == null || live == null) {
       return null;

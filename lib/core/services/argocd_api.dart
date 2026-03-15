@@ -40,6 +40,16 @@ abstract class ArgoCdApi {
     String applicationName, {
     bool cascade = true,
   });
+  Future<void> deleteResource(
+    AppSession session, {
+    required String applicationName,
+    required String namespace,
+    required String resourceName,
+    required String kind,
+    required String group,
+    required String version,
+    bool force = false,
+  });
   Future<String> fetchResourceLogs(
     AppSession session, {
     required String applicationName,
@@ -277,6 +287,38 @@ class NetworkArgoCdApi implements ArgoCdApi {
   }
 
   @override
+  Future<void> deleteResource(
+    AppSession session, {
+    required String applicationName,
+    required String namespace,
+    required String resourceName,
+    required String kind,
+    required String group,
+    required String version,
+    bool force = false,
+  }) async {
+    final dio = _createDio(session.serverUrl, token: session.token);
+    try {
+      final response = await dio.delete<dynamic>(
+        '/api/v1/applications/${Uri.encodeComponent(applicationName)}/resource',
+        queryParameters: <String, dynamic>{
+          'namespace': namespace,
+          'resourceName': resourceName,
+          'kind': kind,
+          'group': group,
+          'version': version,
+          'force': force,
+        },
+      );
+      _throwIfRequestFailed(response);
+    } on DioException catch (error) {
+      throw ArgoCdException(_formatDioError(error));
+    } finally {
+      dio.close(force: true);
+    }
+  }
+
+  @override
   Future<String> fetchResourceLogs(
     AppSession session, {
     required String applicationName,
@@ -338,15 +380,11 @@ class NetworkArgoCdApi implements ArgoCdApi {
         },
       );
       _throwIfRequestFailed(response);
-      final body = parseMap(response.data);
-      final manifest = body['manifest'];
-      if (manifest is String) {
-        return manifest;
+      final data = response.data;
+      if (data is String) {
+        return data;
       }
-      if (manifest != null) {
-        return manifest.toString();
-      }
-      throw const ArgoCdException('Resource manifest was not returned.');
+      return jsonEncode(data);
     } on DioException catch (error) {
       throw ArgoCdException(_formatDioError(error));
     } catch (error) {

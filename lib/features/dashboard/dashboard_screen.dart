@@ -320,12 +320,8 @@ class _HeroBanner extends StatelessWidget {
     final theme = Theme.of(context);
     final session = controller.session;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.headerSurface(theme),
-        borderRadius: AppRadius.md,
-      ),
+    return SectionCard(
+      title: 'Cluster Summary',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -336,77 +332,37 @@ class _HeroBanner extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.headerMutedForeground(theme),
+              color: AppColors.mutedText(theme),
             ),
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 0,
-            runSpacing: 10,
+          const SizedBox(height: 10),
+          Row(
             children: <Widget>[
-              _inlineMetric(theme, label: 'Total', value: '$totalApps'),
-              _divider(theme),
-              _inlineMetric(theme, label: 'Healthy', value: '$healthyCount'),
-              _divider(theme),
-              _inlineMetric(
-                theme,
-                label: 'Out of sync',
-                value: '$outOfSyncCount',
-                highlight: outOfSyncCount > 0 ? AppColors.amber : null,
+              Expanded(child: SummaryTile(label: 'Total', value: totalApps)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: SummaryTile(label: 'Healthy', value: healthyCount),
               ),
-              _divider(theme),
-              _inlineMetric(
-                theme,
-                label: 'Degraded',
-                value: '$degradedCount',
-                highlight: degradedCount > 0 ? AppColors.coral : null,
+              const SizedBox(width: 8),
+              Expanded(
+                child: SummaryTile(
+                  label: 'Drifted',
+                  value: outOfSyncCount,
+                  valueColor: outOfSyncCount > 0 ? AppColors.amber : null,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: SummaryTile(
+                  label: 'Degraded',
+                  value: degradedCount,
+                  valueColor: degradedCount > 0 ? AppColors.coral : null,
+                ),
               ),
             ],
           ),
         ],
       ),
-    );
-  }
-
-  Widget _inlineMetric(
-    ThemeData theme, {
-    required String label,
-    required String value,
-    Color? highlight,
-  }) {
-    return Semantics(
-      label: '$label: $value',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          ExcludeSemantics(
-            child: Text(
-              value,
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: highlight ?? AppColors.headerForeground(theme),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          ExcludeSemantics(
-            child: Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: AppColors.headerMutedForeground(theme),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _divider(ThemeData theme) {
-    return Container(
-      width: 1,
-      height: 32,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      color: AppColors.headerDivider(theme),
     );
   }
 }

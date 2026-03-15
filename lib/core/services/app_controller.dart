@@ -242,6 +242,35 @@ class AppController extends ChangeNotifier {
     });
   }
 
+  Future<void> deleteResource({
+    required String applicationName,
+    required String namespace,
+    required String resourceName,
+    required String kind,
+    required String group,
+    required String version,
+    bool force = false,
+  }) async {
+    final session = _session;
+    if (session == null) {
+      throw const ArgoCdException('Not signed in.');
+    }
+
+    await _runBusyAction(() async {
+      await _api.deleteResource(
+        session,
+        applicationName: applicationName,
+        namespace: namespace,
+        resourceName: resourceName,
+        kind: kind,
+        group: group,
+        version: version,
+        force: force,
+      );
+      await _fetchApplications(session);
+    });
+  }
+
   Future<String> fetchResourceLogs({
     required String applicationName,
     required String namespace,

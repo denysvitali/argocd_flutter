@@ -503,23 +503,11 @@ class _OverviewStrip extends StatelessWidget {
     final theme = Theme.of(context);
     final session = controller.session;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.headerSurface(theme),
-        borderRadius: AppRadius.md,
-      ),
+    return SectionCard(
+      title: 'Overview',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            'Application control plane',
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: AppColors.headerForeground(theme),
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 2),
           Text(
             session == null
                 ? 'Connect to ArgoCD to inspect application health.'
@@ -527,32 +515,33 @@ class _OverviewStrip extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.headerMutedForeground(theme),
+              color: AppColors.mutedText(theme),
             ),
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 12,
-            runSpacing: 6,
+          const SizedBox(height: 10),
+          Row(
             children: <Widget>[
-              _HeaderMetric(
-                value: '$totalApplications',
-                label: 'apps',
-                color: AppColors.headerForeground(theme),
+              Expanded(
+                child: SummaryTile(
+                  label: 'Apps',
+                  value: totalApplications,
+                ),
               ),
-              _HeaderMetric(
-                value: '$outOfSyncCount',
-                label: 'drifted',
-                color: outOfSyncCount > 0
-                    ? AppColors.amber
-                    : AppColors.headerMutedForeground(theme),
+              const SizedBox(width: 8),
+              Expanded(
+                child: SummaryTile(
+                  label: 'Drifted',
+                  value: outOfSyncCount,
+                  valueColor: outOfSyncCount > 0 ? AppColors.amber : null,
+                ),
               ),
-              _HeaderMetric(
-                value: '$unhealthyCount',
-                label: 'unhealthy',
-                color: unhealthyCount > 0
-                    ? AppColors.coral
-                    : AppColors.headerMutedForeground(theme),
+              const SizedBox(width: 8),
+              Expanded(
+                child: SummaryTile(
+                  label: 'Unhealthy',
+                  value: unhealthyCount,
+                  valueColor: unhealthyCount > 0 ? AppColors.coral : null,
+                ),
               ),
             ],
           ),
@@ -560,59 +549,6 @@ class _OverviewStrip extends StatelessWidget {
       ),
     );
   }
-}
-
-class _HeaderMetric extends StatelessWidget {
-  const _HeaderMetric({
-    required this.value,
-    required this.label,
-    required this.color,
-  });
-
-  final String value;
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return RichText(
-      text: TextSpan(
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: color,
-          fontWeight: FontWeight.w700,
-        ),
-        children: <InlineSpan>[
-          TextSpan(
-            text: value,
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
-          TextSpan(
-            text: ' $label',
-            style: TextStyle(color: color.withValues(alpha: 0.92)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-IconData _healthIcon(String status) {
-  return switch (status.toLowerCase()) {
-    'healthy' => Icons.check_circle_rounded,
-    'progressing' => Icons.sync_rounded,
-    'degraded' => Icons.error_rounded,
-    'missing' => Icons.help_outline_rounded,
-    _ => Icons.circle_outlined,
-  };
-}
-
-IconData _syncIcon(String status) {
-  return switch (status.toLowerCase()) {
-    'synced' => Icons.cloud_done_rounded,
-    _ => Icons.cloud_off_rounded,
-  };
 }
 
 Color _factBadgeColor(IconData icon) {
@@ -660,48 +596,60 @@ class _ApplicationCard extends StatelessWidget {
                   Row(
                     children: <Widget>[
                       Expanded(
-                        child: Text(
-                          application.name,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              application.name,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${application.project} / ${application.namespace}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                       ),
-                      if (application.lastSyncedAt != null &&
-                          application.lastSyncedAt!.isNotEmpty)
-                        Text(
-                          _formatRelativeTime(application.lastSyncedAt!),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.greyLight,
+                      const SizedBox(width: 8),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: <Widget>[
+                          StatusChip(
+                            label: application.healthStatus,
+                            color: healthColor,
                           ),
-                        ),
+                          const SizedBox(height: 6),
+                          StatusChip(
+                            label: application.syncStatus,
+                            color: AppColors.syncColor(application.syncStatus),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${application.project} / ${application.namespace}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
                   Wrap(
                     spacing: 6,
                     runSpacing: 4,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: <Widget>[
-                      StatusChip(
-                        label: application.healthStatus,
-                        color: healthColor,
-                      ),
-                      StatusChip(
-                        label: application.syncStatus,
-                        color: AppColors.syncColor(application.syncStatus),
-                      ),
+                      if (application.lastSyncedAt != null &&
+                          application.lastSyncedAt!.isNotEmpty)
+                        Text(
+                          'Synced ${_formatRelativeTime(application.lastSyncedAt!)}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.greyLight,
+                          ),
+                        ),
                       Text(
                         application.operationPhase,
                         style: theme.textTheme.bodySmall?.copyWith(
@@ -836,38 +784,14 @@ class _ApplicationGridCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Row(
-                    children: <Widget>[
-                      Icon(
-                        _healthIcon(application.healthStatus),
-                        size: 16,
-                        color: healthColor,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: StatusChip(
-                          label: application.healthStatus,
-                          color: healthColor,
-                        ),
-                      ),
-                    ],
+                  StatusChip(
+                    label: application.healthStatus,
+                    color: healthColor,
                   ),
                   const SizedBox(height: 4),
-                  Row(
-                    children: <Widget>[
-                      Icon(
-                        _syncIcon(application.syncStatus),
-                        size: 16,
-                        color: AppColors.syncColor(application.syncStatus),
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: StatusChip(
-                          label: application.syncStatus,
-                          color: AppColors.syncColor(application.syncStatus),
-                        ),
-                      ),
-                    ],
+                  StatusChip(
+                    label: application.syncStatus,
+                    color: AppColors.syncColor(application.syncStatus),
                   ),
                   if (application.lastSyncedAt != null &&
                       application.lastSyncedAt!.isNotEmpty) ...<Widget>[

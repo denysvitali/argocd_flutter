@@ -378,19 +378,24 @@ class StatusChip extends StatelessWidget {
     return Semantics(
       label: 'Status: $label',
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
           color: color.withValues(
-            alpha: theme.brightness == Brightness.dark ? 0.20 : 0.10,
+            alpha: theme.brightness == Brightness.dark ? 0.22 : 0.12,
           ),
-          borderRadius: AppRadius.sm,
+          borderRadius: AppRadius.pill,
+          border: Border.all(
+            color: color.withValues(
+              alpha: theme.brightness == Brightness.dark ? 0.6 : 0.45,
+            ),
+          ),
         ),
         child: Text(
           label,
           style: theme.textTheme.labelSmall?.copyWith(
             color: color,
             fontWeight: FontWeight.w700,
-            letterSpacing: 0.3,
+            letterSpacing: 0.2,
           ),
         ),
       ),
@@ -412,8 +417,15 @@ class SectionCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: AppRadius.base,
+        borderRadius: AppRadius.md,
         border: Border.all(color: theme.dividerColor),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: theme.colorScheme.shadow.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -422,8 +434,8 @@ class SectionCard extends StatelessWidget {
             Text(
               title!,
               style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.2,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.1,
               ),
             ),
             const SizedBox(height: 8),
@@ -500,10 +512,10 @@ class SummaryTile extends StatelessWidget {
     return Semantics(
       label: '$value $label',
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: AppRadius.base,
+          color: theme.colorScheme.surfaceContainerHighest,
+          borderRadius: AppRadius.md,
           border: Border.all(color: theme.dividerColor),
         ),
         child: Column(
@@ -522,6 +534,8 @@ class SummaryTile extends StatelessWidget {
               textAlign: TextAlign.center,
               style: theme.textTheme.labelSmall?.copyWith(
                 color: AppColors.grey,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
               ),
             ),
           ],

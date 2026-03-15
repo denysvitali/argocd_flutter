@@ -31,6 +31,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen>
   late Future<ArgoApplication> _future;
   late TabController _tabController;
   bool _actionInFlight = false;
+  ArgoApplication? _cachedApplication;
 
   @override
   void initState() {
@@ -51,11 +52,11 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen>
       body: FutureBuilder<ArgoApplication>(
         future: _future,
         builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
+          if (snapshot.hasData) {
+            _cachedApplication = snapshot.requireData;
           }
 
-          if (snapshot.hasError) {
+          if (snapshot.hasError && _cachedApplication == null) {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -64,16 +65,41 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen>
             );
           }
 
-          final application = snapshot.requireData;
-          return _DetailBody(
-            controller: widget.controller,
-            application: application,
-            tabController: _tabController,
-            actionInFlight: _actionInFlight,
-            onRefresh: _refresh,
-            onSync: _sync,
-            onDelete: _confirmDelete,
-            onRolledBack: _refresh,
+          final application = snapshot.data ?? _cachedApplication;
+          if (application == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final showLoadingOverlay =
+              snapshot.connectionState != ConnectionState.done;
+
+          return Stack(
+            children: <Widget>[
+              _DetailBody(
+                controller: widget.controller,
+                application: application,
+                tabController: _tabController,
+                actionInFlight: _actionInFlight,
+                onRefresh: _refresh,
+                onSync: _sync,
+                onDelete: _confirmDelete,
+                onRolledBack: _refresh,
+              ),
+              if (showLoadingOverlay)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Container(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surface
+                          .withValues(alpha: 0.4),
+                      child: const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           );
         },
       ),
@@ -376,6 +402,9 @@ class _HeroHeader extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: AppColors.headerSurface(theme),
+        border: Border(
+          bottom: BorderSide(color: theme.dividerColor),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1219,12 +1248,11 @@ class _BottomActionBar extends StatelessWidget {
           Expanded(
             child: SizedBox(
               height: buttonHeight,
-              child: FilledButton.icon(
+              child: OutlinedButton.icon(
                 onPressed: actionInFlight ? null : onRefresh,
                 icon: const Icon(Icons.refresh, size: 18),
                 label: const Text('Refresh'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.cobalt,
+                style: OutlinedButton.styleFrom(
                   textStyle: theme.textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -1241,7 +1269,7 @@ class _BottomActionBar extends StatelessWidget {
                 icon: const Icon(Icons.sync, size: 18),
                 label: const Text('Sync'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.teal,
+                  backgroundColor: theme.colorScheme.primary,
                   textStyle: theme.textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -1252,22 +1280,18 @@ class _BottomActionBar extends StatelessWidget {
           const SizedBox(width: 10),
           SizedBox(
             height: buttonHeight,
-            width: buttonHeight,
-            child: IconButton(
-              tooltip: 'Delete',
+            child: OutlinedButton(
               onPressed: actionInFlight ? null : onDelete,
-              style: IconButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: AppRadius.md,
-                  side: BorderSide(
-                    color: actionInFlight
-                        ? theme.disabledColor
-                        : theme.colorScheme.error.withValues(alpha: 0.3),
-                  ),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(
+                  color: actionInFlight
+                      ? theme.disabledColor
+                      : theme.colorScheme.error.withValues(alpha: 0.4),
                 ),
               ),
-              icon: Icon(
+              child: Icon(
                 Icons.delete_outline,
+                size: 20,
                 color: actionInFlight
                     ? theme.disabledColor
                     : theme.colorScheme.error,

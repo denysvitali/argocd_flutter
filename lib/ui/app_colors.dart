@@ -2,28 +2,28 @@ import 'package:flutter/material.dart';
 
 abstract final class AppColors {
   static const Color white = Color(0xFFFFFFFF);
-  static const Color canvas = Color(0xFFF4F7FB);
-  static const Color ink = Color(0xFF0E1726);
-  static const Color cobalt = Color(0xFF1F6FEB);
-  static const Color teal = Color(0xFF14B8A6);
-  static const Color coral = Color(0xFFFF6B57);
-  static const Color amber = Color(0xFFFFC857);
+  static const Color canvas = Color(0xFFF4F6F9);
+  static const Color ink = Color(0xFF1B2430);
+  static const Color cobalt = Color(0xFF2F6BFF);
+  static const Color teal = Color(0xFF1F9D55);
+  static const Color coral = Color(0xFFE34850);
+  static const Color amber = Color(0xFFF0B429);
   static const Color grey = Color(0xFF6B7280);
-  static const Color greyLight = Color(0xFF9CA3AF);
-  static const Color border = Color(0xFFE2EAF3);
+  static const Color greyLight = Color(0xFF9AA5B1);
+  static const Color border = Color(0xFFE1E6ED);
 
-  static const Color darkSurface = Color(0xFF1A2332);
-  static const Color darkBorder = Color(0xFF2A3A4E);
+  static const Color darkSurface = Color(0xFF1E2735);
+  static const Color darkBorder = Color(0xFF2B394D);
 
   static const Color textOnDarkMuted = Color(0xFFD8E5FF);
   static const Color textOnDarkGreen = Color(0xFFDCFCE7);
-  static const Color cobaltLight = Color(0xFFEAF2FF);
-  static const Color canvasSubtle = Color(0xFFF5F9FF);
-  static const Color peach = Color(0xFFFFF2E8);
-  static const Color blueLight = Color(0xFFE8F0FF);
+  static const Color cobaltLight = Color(0xFFE9F0FF);
+  static const Color canvasSubtle = Color(0xFFF7F9FC);
+  static const Color peach = Color(0xFFFFF1E9);
+  static const Color blueLight = Color(0xFFE9F1FF);
 
-  static const Color headerDark = Color(0xFF0F1923);
-  static const Color headerDarkAlt = Color(0xFF102218);
+  static const Color headerDark = Color(0xFF1A2230);
+  static const Color headerDarkAlt = Color(0xFF15221B);
 
   static const Color yamlKey = Color(0xFF1565C0);
   static const Color yamlString = Color(0xFF2E7D32);
@@ -32,21 +32,27 @@ abstract final class AppColors {
   static const Color yamlPunctuation = Color(0xFF37474F);
 
   static Color headerSurface(ThemeData theme) {
-    return theme.brightness == Brightness.dark ? headerDark : cobalt;
+    return theme.brightness == Brightness.dark
+        ? headerDark
+        : theme.colorScheme.surface;
   }
 
   static Color headerSurfaceAlt(ThemeData theme) {
-    return theme.brightness == Brightness.dark ? headerDarkAlt : teal;
+    return theme.brightness == Brightness.dark
+        ? headerDarkAlt
+        : theme.colorScheme.surfaceContainerHighest;
   }
 
   static Color headerForeground(ThemeData theme) {
-    return theme.colorScheme.onPrimary;
+    return theme.brightness == Brightness.dark
+        ? theme.colorScheme.onSurface
+        : theme.colorScheme.onSurface;
   }
 
   static Color headerMutedForeground(ThemeData theme) {
     return theme.brightness == Brightness.dark
         ? textOnDarkMuted
-        : theme.colorScheme.onPrimary.withValues(alpha: 0.82);
+        : theme.colorScheme.onSurface.withValues(alpha: 0.65);
   }
 
   static Color headerDivider(ThemeData theme) {

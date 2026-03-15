@@ -151,6 +151,7 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
                               isInitiallyExpanded: _allExpanded,
                               ancestorUids: const <String>{},
                               isLastChild: i == filteredRoots.length - 1,
+                              onResourceChanged: _refresh,
                               searchQuery: _searchQuery,
                             ),
                         ],
@@ -347,7 +348,7 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
     return false;
   }
 
-  void _refresh() {
+  Future<void> _refresh() async {
     setState(() {
       _future = widget.controller.loadResourceTree(widget.applicationName);
     });
@@ -733,6 +734,7 @@ class _ResourceNodeTile extends StatefulWidget {
     required this.isInitiallyExpanded,
     required this.ancestorUids,
     required this.isLastChild,
+    required this.onResourceChanged,
     this.searchQuery = '',
   });
 
@@ -744,6 +746,7 @@ class _ResourceNodeTile extends StatefulWidget {
   final bool isInitiallyExpanded;
   final Set<String> ancestorUids;
   final bool isLastChild;
+  final Future<void> Function() onResourceChanged;
   final String searchQuery;
 
   @override
@@ -821,6 +824,7 @@ class _ResourceNodeTileState extends State<_ResourceNodeTile> {
                   isPod: widget.node.kind.toLowerCase() == 'pod',
                   kindColor: colorForResourceKind(widget.node.kind),
                   theme: theme,
+                  onResourceChanged: widget.onResourceChanged,
                 ),
               ),
             ],
@@ -847,6 +851,7 @@ class _ResourceNodeTileState extends State<_ResourceNodeTile> {
                       isInitiallyExpanded: widget.isInitiallyExpanded,
                       ancestorUids: nextAncestors,
                       isLastChild: i == children.length - 1,
+                      onResourceChanged: widget.onResourceChanged,
                       searchQuery: widget.searchQuery,
                     ),
                 ],
@@ -934,6 +939,7 @@ class _NodeCard extends StatelessWidget {
     required this.isPod,
     required this.kindColor,
     required this.theme,
+    required this.onResourceChanged,
   });
 
   final AppController controller;
@@ -942,6 +948,7 @@ class _NodeCard extends StatelessWidget {
   final bool isPod;
   final Color kindColor;
   final ThemeData theme;
+  final Future<void> Function() onResourceChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -1173,12 +1180,114 @@ class _NodeCard extends StatelessWidget {
                     ],
                   ],
                 ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _confirmDelete(context);
+                  },
+                  icon: Icon(
+                    Icons.delete_outline,
+                    size: 18,
+                    color: theme.colorScheme.error,
+                  ),
+                  label: Text(
+                    'Delete Resource',
+                    style: TextStyle(color: theme.colorScheme.error),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                      color: theme.colorScheme.error.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ),
               ],
             );
           },
         );
       },
     );
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final colorScheme = Theme.of(context).colorScheme;
+    bool force = false;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Delete Resource'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    "Delete '${node.name}'? This will delete the live resource in the cluster.",
+                  ),
+                  const SizedBox(height: 16),
+                  CheckboxListTile(
+                    value: force,
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: const Text('Force delete'),
+                    onChanged: (value) {
+                      setState(() {
+                        force = value ?? false;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: Text(
+                    'Delete',
+                    style: TextStyle(color: colorScheme.error),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    try {
+      await controller.deleteResource(
+        applicationName: applicationName,
+        namespace: node.namespace,
+        resourceName: node.name,
+        kind: node.kind,
+        group: node.group,
+        version: node.version,
+        force: force,
+      );
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Resource deletion requested.')),
+      );
+      await onResourceChanged();
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
   }
 
   void _openLogs(BuildContext context) {
