@@ -125,7 +125,7 @@ void main() {
       );
 
       final text = tester.widget<Text>(find.text('Bold Title'));
-      expect(text.style?.fontWeight, FontWeight.w600);
+      expect(text.style?.fontWeight, FontWeight.w700);
     });
 
     testWidgets('renders without title when title is null', (

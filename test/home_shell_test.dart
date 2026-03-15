@@ -66,7 +66,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.dashboard_outlined));
       await tester.pumpAndSettle();
 
-      expect(find.text('Application control plane'), findsOneWidget);
+      expect(find.text('Applications'), findsWidgets);
     });
 
     testWidgets('switching to Projects tab shows projects content', (

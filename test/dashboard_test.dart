@@ -48,7 +48,7 @@ void main() {
 
       // Hero banner metric chip values are visible
       expect(find.text('Total'), findsOneWidget);
-      expect(find.text('Out of sync'), findsOneWidget);
+      expect(find.text('Drifted'), findsOneWidget);
 
       // Verify controller has the right counts
       expect(controller.applications.length, equals(4));

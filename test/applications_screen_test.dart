@@ -71,7 +71,7 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       expect(find.text('payments-api'), findsOneWidget);
-      expect(find.text('Application control plane'), findsOneWidget);
+      expect(find.text('Applications'), findsOneWidget);
     });
 
     testWidgets('search filters applications by name', (

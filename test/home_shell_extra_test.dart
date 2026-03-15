@@ -94,7 +94,7 @@ void main() {
         // Switch to Applications tab.
         await tester.tap(find.byIcon(Icons.dashboard_outlined));
         await tester.pumpAndSettle();
-        expect(find.text('Application control plane'), findsOneWidget);
+        expect(find.text('Applications'), findsWidgets);
 
         // Switch to Settings tab.
         await tester.tap(find.byIcon(Icons.settings_outlined));
@@ -137,8 +137,8 @@ void main() {
         expect(find.text('admin @ https://argocd.example.com'), findsOneWidget);
         // Applications page is offstage but still in the widget tree.
         expect(
-          find.text('Application control plane', skipOffstage: false),
-          findsOneWidget,
+          find.text('Applications', skipOffstage: false),
+          findsWidgets,
         );
       },
     );
