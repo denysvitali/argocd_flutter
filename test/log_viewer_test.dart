@@ -356,6 +356,18 @@ class _FakeLogApi implements ArgoCdApi {
   }) async {}
 
   @override
+  Future<void> deleteResource(
+    AppSession session, {
+    required String applicationName,
+    required String namespace,
+    required String resourceName,
+    required String kind,
+    required String group,
+    required String version,
+    bool force = false,
+  }) => Future<void>.value();
+
+  @override
   Future<AppSession> signIn({
     required String serverUrl,
     required String username,

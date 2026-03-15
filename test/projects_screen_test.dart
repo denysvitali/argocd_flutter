@@ -632,5 +632,17 @@ class _FakeArgoCdApi implements ArgoCdApi {
   }
 
   @override
+  Future<void> deleteResource(
+    AppSession session, {
+    required String applicationName,
+    required String namespace,
+    required String resourceName,
+    required String kind,
+    required String group,
+    required String version,
+    bool force = false,
+  }) => Future<void>.value();
+
+  @override
   Future<void> verifyServer(String serverUrl) async {}
 }

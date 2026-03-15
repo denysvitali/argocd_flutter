@@ -323,6 +323,18 @@ class _SlowArgoCdApi implements ArgoCdApi {
     String applicationName, {
     bool cascade = true,
   }) async {}
+
+  @override
+  Future<void> deleteResource(
+    AppSession session, {
+    required String applicationName,
+    required String namespace,
+    required String resourceName,
+    required String kind,
+    required String group,
+    required String version,
+    bool force = false,
+  }) => Future<void>.value();
 }
 
 /// An API that always throws on fetchProject.
@@ -414,6 +426,18 @@ class _ErrorArgoCdApi implements ArgoCdApi {
     String applicationName, {
     bool cascade = true,
   }) async {}
+
+  @override
+  Future<void> deleteResource(
+    AppSession session, {
+    required String applicationName,
+    required String namespace,
+    required String resourceName,
+    required String kind,
+    required String group,
+    required String version,
+    bool force = false,
+  }) => Future<void>.value();
 }
 
 /// An API whose fetchProject behaviour is controlled by a callback.
@@ -506,5 +530,17 @@ class _CountingArgoCdApi implements ArgoCdApi {
     String applicationName, {
     bool cascade = true,
   }) async {}
+
+  @override
+  Future<void> deleteResource(
+    AppSession session, {
+    required String applicationName,
+    required String namespace,
+    required String resourceName,
+    required String kind,
+    required String group,
+    required String version,
+    bool force = false,
+  }) => Future<void>.value();
 }
 
