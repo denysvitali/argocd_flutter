@@ -472,7 +472,7 @@ class _OverviewStrip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.headerDarkAlt,
+        color: AppColors.headerSurfaceAlt(theme),
         borderRadius: AppRadius.md,
       ),
       child: Column(
@@ -483,12 +483,12 @@ class _OverviewStrip extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.10),
+                  color: AppColors.headerChipBackground(theme),
                   borderRadius: AppRadius.sm,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.account_tree_outlined,
-                  color: Colors.white,
+                  color: AppColors.headerForeground(theme),
                   size: 18,
                 ),
               ),
@@ -499,7 +499,7 @@ class _OverviewStrip extends StatelessWidget {
                       ? 'Project boundaries'
                       : 'Projects · ${session.username}',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.white,
+                    color: AppColors.headerForeground(theme),
                     fontWeight: FontWeight.w600,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -860,7 +860,7 @@ class _MetricChip extends StatelessWidget {
         Text(
           value,
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: Colors.white,
+            color: AppColors.headerForeground(theme),
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -868,7 +868,7 @@ class _MetricChip extends StatelessWidget {
         Text(
           label,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: AppColors.textOnDarkGreen,
+            color: AppColors.headerMutedForeground(theme),
           ),
         ),
       ],

@@ -3,9 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  Widget wrapInApp(Widget child) {
+  Widget wrapInApp(Widget child, {ThemeMode themeMode = ThemeMode.light}) {
     return MaterialApp(
-      theme: ThemeData(splashFactory: InkRipple.splashFactory),
+      themeMode: themeMode,
+      theme: ThemeData(
+        splashFactory: InkRipple.splashFactory,
+        useMaterial3: true,
+        colorScheme: const ColorScheme.light(error: Colors.red),
+      ),
+      darkTheme: ThemeData(
+        splashFactory: InkRipple.splashFactory,
+        useMaterial3: true,
+        colorScheme: const ColorScheme.dark(error: Colors.redAccent),
+      ),
       home: Scaffold(body: child),
     );
   }
@@ -35,6 +45,21 @@ void main() {
       );
 
       expect(find.byIcon(Icons.error_outline), findsOneWidget);
+    });
+
+    testWidgets('error icon is excluded from semantics', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapInApp(
+          ErrorRetryWidget(
+            message: 'Connection failed',
+            onRetry: () {},
+          ),
+        ),
+      );
+
+      expect(find.byType(ExcludeSemantics), findsOneWidget);
     });
 
     testWidgets('renders Retry button', (WidgetTester tester) async {
@@ -75,6 +100,32 @@ void main() {
       expect(retryCount, 1);
     });
 
+    testWidgets('tapping Retry multiple times fires callback each time', (
+      WidgetTester tester,
+    ) async {
+      var retryCount = 0;
+
+      await tester.pumpWidget(
+        wrapInApp(
+          ErrorRetryWidget(
+            message: 'Connection lost',
+            onRetry: () {
+              retryCount++;
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Retry'));
+      await tester.pump();
+      await tester.tap(find.text('Retry'));
+      await tester.pump();
+      await tester.tap(find.text('Retry'));
+      await tester.pump();
+
+      expect(retryCount, 3);
+    });
+
     testWidgets('displays long error messages', (WidgetTester tester) async {
       const longMessage =
           'A very long error message that describes in detail what went '
@@ -90,6 +141,54 @@ void main() {
       );
 
       expect(find.text(longMessage), findsOneWidget);
+    });
+
+    testWidgets('error message has semantic label with Error prefix', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapInApp(
+          ErrorRetryWidget(
+            message: 'Unauthorized',
+            onRetry: () {},
+          ),
+        ),
+      );
+
+      final semanticsNodes = tester.semantics.nodesWith(
+        label: 'Error: Unauthorized',
+      );
+      expect(semanticsNodes, isNotEmpty);
+    });
+
+    testWidgets('renders in dark theme', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        wrapInApp(
+          ErrorRetryWidget(
+            message: 'Dark theme error',
+            onRetry: () {},
+          ),
+          themeMode: ThemeMode.dark,
+        ),
+      );
+
+      expect(find.text('Dark theme error'), findsOneWidget);
+      expect(find.text('Retry'), findsOneWidget);
+    });
+
+    testWidgets('Retry button is an OutlinedButton', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapInApp(
+          ErrorRetryWidget(
+            message: 'Error',
+            onRetry: () {},
+          ),
+        ),
+      );
+
+      expect(find.byType(OutlinedButton), findsOneWidget);
     });
   });
 }

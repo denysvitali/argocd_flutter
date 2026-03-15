@@ -108,7 +108,8 @@ class _SignInScreenState extends State<SignInScreen> {
     final heroColor = isDark
         ? colorScheme.surfaceContainerHigh
         : AppColors.headerDark;
-    final heroTitleColor = isDark ? colorScheme.onSurface : Colors.white;
+    final heroTitleColor =
+        isDark ? colorScheme.onSurface : AppColors.headerForeground(theme);
     final heroBodyColor = isDark
         ? colorScheme.onSurfaceVariant
         : AppColors.textOnDarkMuted;

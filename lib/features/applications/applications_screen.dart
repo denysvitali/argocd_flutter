@@ -506,7 +506,7 @@ class _OverviewStrip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.headerDark,
+        color: AppColors.headerSurface(theme),
         borderRadius: AppRadius.md,
       ),
       child: Column(
@@ -515,7 +515,7 @@ class _OverviewStrip extends StatelessWidget {
           Text(
             'Application control plane',
             style: theme.textTheme.titleSmall?.copyWith(
-              color: Colors.white,
+              color: AppColors.headerForeground(theme),
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -527,7 +527,7 @@ class _OverviewStrip extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.textOnDarkMuted,
+              color: AppColors.headerMutedForeground(theme),
             ),
           ),
           const SizedBox(height: 8),
@@ -538,21 +538,21 @@ class _OverviewStrip extends StatelessWidget {
               _HeaderMetric(
                 value: '$totalApplications',
                 label: 'apps',
-                color: Colors.white,
+                color: AppColors.headerForeground(theme),
               ),
               _HeaderMetric(
                 value: '$outOfSyncCount',
                 label: 'drifted',
                 color: outOfSyncCount > 0
                     ? AppColors.amber
-                    : AppColors.textOnDarkMuted,
+                    : AppColors.headerMutedForeground(theme),
               ),
               _HeaderMetric(
                 value: '$unhealthyCount',
                 label: 'unhealthy',
                 color: unhealthyCount > 0
                     ? AppColors.coral
-                    : AppColors.textOnDarkMuted,
+                    : AppColors.headerMutedForeground(theme),
               ),
             ],
           ),

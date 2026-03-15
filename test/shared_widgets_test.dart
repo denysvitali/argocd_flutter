@@ -3,9 +3,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  Widget wrapInApp(Widget child) {
+  Widget wrapInApp(Widget child, {ThemeMode themeMode = ThemeMode.light}) {
     return MaterialApp(
-      theme: ThemeData(splashFactory: InkRipple.splashFactory),
+      themeMode: themeMode,
+      theme: ThemeData(
+        splashFactory: InkRipple.splashFactory,
+        useMaterial3: true,
+        colorScheme: const ColorScheme.light(
+          primary: Colors.blue,
+          error: Colors.red,
+        ),
+      ),
+      darkTheme: ThemeData(
+        splashFactory: InkRipple.splashFactory,
+        useMaterial3: true,
+        colorScheme: const ColorScheme.dark(
+          primary: Colors.blue,
+          error: Colors.redAccent,
+        ),
+      ),
       home: Scaffold(body: child),
     );
   }
@@ -41,6 +57,47 @@ void main() {
       final text = tester.widget<Text>(find.text('Degraded'));
       expect(text.style?.color, Colors.red);
     });
+
+    testWidgets('semantic label includes Status prefix', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapInApp(const StatusChip(label: 'Missing', color: Colors.grey)),
+      );
+
+      final semantics = tester.getSemantics(find.text('Missing'));
+      // The Semantics wrapper sets label 'Status: Missing'
+      expect(semantics.label, 'Status: Missing');
+    });
+
+    testWidgets('renders long label text without overflow error', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapInApp(
+          const SizedBox(
+            width: 300,
+            child: StatusChip(
+              label: 'A very long status label',
+              color: Colors.purple,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('A very long status label'), findsOneWidget);
+    });
+
+    testWidgets('renders in dark theme', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        wrapInApp(
+          const StatusChip(label: 'Healthy', color: Colors.teal),
+          themeMode: ThemeMode.dark,
+        ),
+      );
+
+      expect(find.text('Healthy'), findsOneWidget);
+    });
   });
 
   group('SectionCard', () {
@@ -67,6 +124,40 @@ void main() {
 
       final text = tester.widget<Text>(find.text('Bold Title'));
       expect(text.style?.fontWeight, FontWeight.w600);
+    });
+
+    testWidgets('renders without title when title is null', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapInApp(
+          const SectionCard(child: Text('Only child')),
+        ),
+      );
+
+      expect(find.text('Only child'), findsOneWidget);
+      // No title rendered, so only one Text widget
+      expect(find.byType(Text), findsOneWidget);
+    });
+
+    testWidgets('renders complex child widgets', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        wrapInApp(
+          const SectionCard(
+            title: 'Resources',
+            child: Column(
+              children: <Widget>[
+                Text('resource-1'),
+                Text('resource-2'),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Resources'), findsOneWidget);
+      expect(find.text('resource-1'), findsOneWidget);
+      expect(find.text('resource-2'), findsOneWidget);
     });
   });
 
@@ -97,6 +188,40 @@ void main() {
 
       final text = tester.widget<Text>(find.text('Empty'));
       expect(text.style?.fontWeight, FontWeight.w600);
+    });
+
+    testWidgets('has combined semantic label for accessibility', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapInApp(
+          const EmptyStateCard(
+            title: 'No applications',
+            subtitle: 'Deploy your first app.',
+          ),
+        ),
+      );
+
+      // Semantics node combines title and subtitle for screen readers
+      final semanticsNodes = tester.semantics.nodesWith(
+        label: 'No applications. Deploy your first app.',
+      );
+      expect(semanticsNodes, isNotEmpty);
+    });
+
+    testWidgets('renders in dark theme', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        wrapInApp(
+          const EmptyStateCard(
+            title: 'Empty',
+            subtitle: 'No data.',
+          ),
+          themeMode: ThemeMode.dark,
+        ),
+      );
+
+      expect(find.text('Empty'), findsOneWidget);
+      expect(find.text('No data.'), findsOneWidget);
     });
   });
 
@@ -133,6 +258,39 @@ void main() {
       final text = tester.widget<Text>(find.text('5'));
       expect(text.style?.color, Colors.green);
     });
+
+    testWidgets('renders large value correctly', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        wrapInApp(const SummaryTile(label: 'Total', value: 9999)),
+      );
+
+      expect(find.text('9999'), findsOneWidget);
+    });
+
+    testWidgets('has semantic label combining value and label', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapInApp(const SummaryTile(label: 'Healthy Apps', value: 7)),
+      );
+
+      final semanticsNodes = tester.semantics.nodesWith(
+        label: '7 Healthy Apps',
+      );
+      expect(semanticsNodes, isNotEmpty);
+    });
+
+    testWidgets('renders without valueColor when not provided', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapInApp(const SummaryTile(label: 'Apps', value: 3)),
+      );
+
+      final text = tester.widget<Text>(find.text('3'));
+      // No explicit color override — style color is null (inherits from theme)
+      expect(text.style?.color, isNull);
+    });
   });
 
   group('FactBadge', () {
@@ -159,6 +317,50 @@ void main() {
       // FactBadge uses a Row to lay out icon and label
       expect(find.text('in-cluster'), findsOneWidget);
       expect(find.byIcon(Icons.dns), findsOneWidget);
+    });
+
+    testWidgets('icon is excluded from semantics', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapInApp(
+          const FactBadge(icon: Icons.folder, label: 'apps/payments'),
+        ),
+      );
+
+      // ExcludeSemantics wraps the icon
+      expect(find.byType(ExcludeSemantics), findsOneWidget);
+    });
+
+    testWidgets('renders long label text', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        wrapInApp(
+          const SizedBox(
+            width: 300,
+            child: FactBadge(
+              icon: Icons.link,
+              label: 'https://github.com/example/very-long-repo-name',
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.text('https://github.com/example/very-long-repo-name'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('renders in dark theme', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        wrapInApp(
+          const FactBadge(icon: Icons.cloud, label: 'production'),
+          themeMode: ThemeMode.dark,
+        ),
+      );
+
+      expect(find.text('production'), findsOneWidget);
+      expect(find.byIcon(Icons.cloud), findsOneWidget);
     });
   });
 }

@@ -355,13 +355,13 @@ List<YamlToken> _tokenizeValue(String text) {
 /// case) and are applied at ~92 % opacity by the caller in dark mode.
 Color yamlTokenColor(YamlTokenType? type) {
   return switch (type) {
-    YamlTokenType.key => const Color(0xFF1565C0), // clear blue
-    YamlTokenType.stringValue => const Color(0xFF2E7D32), // green
-    YamlTokenType.numberValue => const Color(0xFFE65100), // deep orange
-    YamlTokenType.boolNullValue => const Color(0xFFE65100), // deep orange
-    YamlTokenType.listDash => const Color(0xFF1565C0), // match keys
-    YamlTokenType.comment => const Color(0xFF9E9E9E), // muted grey
-    null => const Color(0xFF37474F), // dark blue-grey for punctuation
+    YamlTokenType.key => AppColors.yamlKey, // clear blue
+    YamlTokenType.stringValue => AppColors.yamlString, // green
+    YamlTokenType.numberValue => AppColors.yamlNumber, // deep orange
+    YamlTokenType.boolNullValue => AppColors.yamlNumber, // deep orange
+    YamlTokenType.listDash => AppColors.yamlKey, // match keys
+    YamlTokenType.comment => AppColors.yamlComment, // muted grey
+    null => AppColors.yamlPunctuation, // dark blue-grey for punctuation
   };
 }
 
@@ -449,30 +449,33 @@ class EmptyStateCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: AppRadius.base,
-        border: Border.all(color: theme.dividerColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            title,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
+    return Semantics(
+      label: '$title. $subtitle',
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: AppRadius.base,
+          border: Border.all(color: theme.dividerColor),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              title,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.grey,
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.grey,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -494,32 +497,35 @@ class SummaryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: AppRadius.base,
-        border: Border.all(color: theme.dividerColor),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Text(
-            '$value',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: valueColor,
+    return Semantics(
+      label: '$value $label',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: AppRadius.base,
+          border: Border.all(color: theme.dividerColor),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Text(
+              '$value',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: valueColor,
+              ),
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: AppColors.grey,
+            const SizedBox(height: 2),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.grey,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

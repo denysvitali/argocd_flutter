@@ -4,6 +4,7 @@ import 'package:argocd_flutter/features/applications/application_detail_screen.d
 import 'package:argocd_flutter/features/applications/applications_screen.dart';
 import 'package:argocd_flutter/features/auth/sign_in_screen.dart';
 import 'package:argocd_flutter/features/dashboard/dashboard_screen.dart';
+import 'package:argocd_flutter/features/drift/drift_radar_screen.dart';
 import 'package:argocd_flutter/features/projects/project_detail_screen.dart';
 import 'package:argocd_flutter/features/projects/projects_screen.dart';
 import 'package:argocd_flutter/features/settings/settings_screen.dart';
@@ -27,9 +28,9 @@ ThemeData buildLightAppTheme() {
     colorScheme: const ColorScheme.light(
       primary: AppColors.cobalt,
       secondary: AppColors.teal,
-      surface: Colors.white,
-      onPrimary: Colors.white,
-      onSecondary: Colors.white,
+      surface: AppColors.white,
+      onPrimary: AppColors.white,
+      onSecondary: AppColors.white,
       onSurface: AppColors.ink,
     ),
     textTheme: lightBaseTextTheme.copyWith(
@@ -57,7 +58,7 @@ ThemeData buildLightAppTheme() {
       ),
       iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
         final color = states.contains(WidgetState.selected)
-            ? Colors.white
+            ? AppColors.white
             : AppColors.grey;
         return IconThemeData(size: 24, color: color);
       }),
@@ -80,8 +81,8 @@ ThemeData buildDarkAppTheme() {
       primary: AppColors.cobalt,
       secondary: AppColors.teal,
       surface: AppColors.darkSurface,
-      onPrimary: Colors.white,
-      onSecondary: Colors.white,
+      onPrimary: AppColors.white,
+      onSecondary: AppColors.white,
       onSurface: AppColors.border,
     ),
     textTheme: darkBaseTextTheme.copyWith(
@@ -98,15 +99,22 @@ ThemeData buildDarkAppTheme() {
     ),
     dividerColor: AppColors.darkBorder,
     appBarTheme: const AppBarTheme(toolbarHeight: 48),
-    navigationBarTheme: const NavigationBarThemeData(
+    navigationBarTheme: NavigationBarThemeData(
       height: 56,
-      labelTextStyle: WidgetStatePropertyAll<TextStyle>(
+      indicatorColor: AppColors.cobalt,
+      labelTextStyle: const WidgetStatePropertyAll<TextStyle>(
         TextStyle(
           fontFamily: _bodyFontFamily,
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
       ),
+      iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
+        final color = states.contains(WidgetState.selected)
+            ? AppColors.white
+            : AppColors.grey;
+        return IconThemeData(size: 24, color: color);
+      }),
     ),
   );
 }
@@ -182,6 +190,7 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+  bool _pagesInitialized = false;
   late final List<Widget> _pages;
 
   void _openApplication(String applicationName) {
@@ -204,6 +213,10 @@ class _HomeShellState extends State<HomeShell> {
     if (!_pagesInitialized) {
       _pages = <Widget>[
         DashboardScreen(
+          controller: widget.controller,
+          onOpenApplication: _openApplication,
+        ),
+        DriftRadarScreen(
           controller: widget.controller,
           onOpenApplication: _openApplication,
         ),
@@ -234,8 +247,6 @@ class _HomeShellState extends State<HomeShell> {
       _pagesInitialized = true;
     }
   }
-
-  bool _pagesInitialized = false;
 
   @override
   Widget build(BuildContext context) {
@@ -269,21 +280,31 @@ class _HomeShellState extends State<HomeShell> {
               icon: Icon(Icons.analytics_outlined),
               selectedIcon: Icon(Icons.analytics),
               label: 'Dashboard',
+              tooltip: 'Dashboard',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.track_changes_outlined),
+              selectedIcon: Icon(Icons.track_changes),
+              label: 'Drift',
+              tooltip: 'Drift Radar',
             ),
             NavigationDestination(
               icon: Icon(Icons.dashboard_outlined),
               selectedIcon: Icon(Icons.dashboard_rounded),
               label: 'Applications',
+              tooltip: 'Applications',
             ),
             NavigationDestination(
               icon: Icon(Icons.folder_outlined),
               selectedIcon: Icon(Icons.folder),
               label: 'Projects',
+              tooltip: 'Projects',
             ),
             NavigationDestination(
               icon: Icon(Icons.settings_outlined),
               selectedIcon: Icon(Icons.settings),
               label: 'Settings',
+              tooltip: 'Settings',
             ),
           ],
         ),

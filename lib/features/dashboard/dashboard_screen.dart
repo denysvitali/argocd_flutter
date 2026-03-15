@@ -314,7 +314,7 @@ class _HeroBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.headerDark,
+        color: AppColors.headerSurface(theme),
         borderRadius: AppRadius.md,
       ),
       child: Column(
@@ -327,7 +327,7 @@ class _HeroBanner extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.textOnDarkMuted,
+              color: AppColors.headerMutedForeground(theme),
             ),
           ),
           const SizedBox(height: 8),
@@ -336,16 +336,16 @@ class _HeroBanner extends StatelessWidget {
             runSpacing: 10,
             children: <Widget>[
               _inlineMetric(theme, label: 'Total', value: '$totalApps'),
-              _divider(),
+              _divider(theme),
               _inlineMetric(theme, label: 'Healthy', value: '$healthyCount'),
-              _divider(),
+              _divider(theme),
               _inlineMetric(
                 theme,
                 label: 'Out of sync',
                 value: '$outOfSyncCount',
                 highlight: outOfSyncCount > 0 ? AppColors.amber : null,
               ),
-              _divider(),
+              _divider(theme),
               _inlineMetric(
                 theme,
                 label: 'Degraded',
@@ -374,7 +374,7 @@ class _HeroBanner extends StatelessWidget {
             child: Text(
               value,
               style: theme.textTheme.titleMedium?.copyWith(
-                color: highlight ?? Colors.white,
+                color: highlight ?? AppColors.headerForeground(theme),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -383,7 +383,7 @@ class _HeroBanner extends StatelessWidget {
             child: Text(
               label,
               style: theme.textTheme.labelSmall?.copyWith(
-                color: AppColors.textOnDarkMuted,
+                color: AppColors.headerMutedForeground(theme),
               ),
             ),
           ),
@@ -392,12 +392,12 @@ class _HeroBanner extends StatelessWidget {
     );
   }
 
-  Widget _divider() {
+  Widget _divider(ThemeData theme) {
     return Container(
       width: 1,
       height: 32,
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      color: Colors.white.withValues(alpha: 0.12),
+      color: AppColors.headerDivider(theme),
     );
   }
 }

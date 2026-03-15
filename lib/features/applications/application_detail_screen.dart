@@ -374,8 +374,8 @@ class _HeroHeader extends StatelessWidget {
         right: 18,
         bottom: 54,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.headerDark,
+      decoration: BoxDecoration(
+        color: AppColors.headerSurface(theme),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -387,7 +387,7 @@ class _HeroHeader extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w700,
-              color: Colors.white,
+              color: AppColors.headerForeground(theme),
             ),
           ),
           const SizedBox(height: 4),
@@ -396,7 +396,7 @@ class _HeroHeader extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.textOnDarkMuted,
+              color: AppColors.headerMutedForeground(theme),
             ),
           ),
           const SizedBox(height: 10),
@@ -1364,4 +1364,3 @@ class _LabeledText extends StatelessWidget {
     );
   }
 }
-

@@ -400,10 +400,10 @@ class _ThemeCard extends StatelessWidget {
                             shape: BoxShape.circle,
                             color: theme.colorScheme.primary,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.check,
                             size: 11,
-                            color: Colors.white,
+                            color: theme.colorScheme.onPrimary,
                           ),
                         ),
                       ),
