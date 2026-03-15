@@ -325,6 +325,14 @@ class _SlowArgoCdApi implements ArgoCdApi {
   }) async {}
 
   @override
+  Future<List<ManagedResource>> fetchManagedResources(
+    AppSession session,
+    String applicationName,
+  ) async {
+    return const <ManagedResource>[];
+  }
+
+  @override
   Future<void> deleteResource(
     AppSession session, {
     required String applicationName,
@@ -426,6 +434,14 @@ class _ErrorArgoCdApi implements ArgoCdApi {
     String applicationName, {
     bool cascade = true,
   }) async {}
+
+  @override
+  Future<List<ManagedResource>> fetchManagedResources(
+    AppSession session,
+    String applicationName,
+  ) async {
+    return const <ManagedResource>[];
+  }
 
   @override
   Future<void> deleteResource(
@@ -530,6 +546,14 @@ class _CountingArgoCdApi implements ArgoCdApi {
     String applicationName, {
     bool cascade = true,
   }) async {}
+
+  @override
+  Future<List<ManagedResource>> fetchManagedResources(
+    AppSession session,
+    String applicationName,
+  ) async {
+    return const <ManagedResource>[];
+  }
 
   @override
   Future<void> deleteResource(

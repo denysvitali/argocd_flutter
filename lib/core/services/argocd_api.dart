@@ -67,6 +67,31 @@ abstract class ArgoCdApi {
     required String group,
     required String version,
   });
+  Future<List<ManagedResource>> fetchManagedResources(
+    AppSession session,
+    String applicationName,
+  );
+}
+
+class ManagedResource {
+  const ManagedResource({
+    required this.kind,
+    required this.name,
+    required this.namespace,
+    required this.group,
+    required this.targetState,
+    required this.liveState,
+  });
+
+  final String kind;
+  final String name;
+  final String namespace;
+  final String group;
+  final String? targetState;
+  final String? liveState;
+
+  bool get hasDiff =>
+      targetState != null && liveState != null && targetState != liveState;
 }
 
 class NetworkArgoCdApi implements ArgoCdApi {
@@ -432,6 +457,43 @@ class NetworkArgoCdApi implements ArgoCdApi {
         rethrow;
       }
       throw const ArgoCdException('Failed to load resource manifest.');
+    } finally {
+      dio.close(force: true);
+    }
+  }
+
+  @override
+  Future<List<ManagedResource>> fetchManagedResources(
+    AppSession session,
+    String applicationName,
+  ) async {
+    final dio = _createDio(session.serverUrl, token: session.token);
+    try {
+      final encodedApp = Uri.encodeComponent(applicationName);
+      final response = await dio.get<dynamic>(
+        '/api/v1/applications/$encodedApp/managed-resources',
+      );
+      _throwIfRequestFailed(response);
+      final body = parseMap(response.data);
+      final items = parseList(body['items']);
+      return items.map((dynamic item) {
+        final map = parseMap(item);
+        return ManagedResource(
+          kind: parseString(map['kind'], fallback: 'Resource'),
+          name: parseString(map['name'], fallback: 'Unknown'),
+          namespace: parseString(map['namespace'], fallback: '-'),
+          group: parseString(map['group'], fallback: ''),
+          targetState: map['targetState'] as String?,
+          liveState: map['liveState'] as String?,
+        );
+      }).toList();
+    } on DioException catch (error) {
+      throw ArgoCdException(_formatDioError(error));
+    } catch (error) {
+      if (error is ArgoCdException) {
+        rethrow;
+      }
+      throw const ArgoCdException('Failed to load managed resources.');
     } finally {
       dio.close(force: true);
     }

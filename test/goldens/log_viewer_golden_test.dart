@@ -224,6 +224,14 @@ class _LogViewerApi implements ArgoCdApi {
       );
 
   @override
+  Future<List<ManagedResource>> fetchManagedResources(
+    AppSession session,
+    String applicationName,
+  ) async {
+    return const <ManagedResource>[];
+  }
+
+  @override
   Future<void> deleteResource(
     AppSession session, {
     required String applicationName,

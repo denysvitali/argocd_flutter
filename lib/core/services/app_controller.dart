@@ -317,6 +317,16 @@ class AppController extends ChangeNotifier {
     );
   }
 
+  Future<List<ManagedResource>> fetchManagedResources(
+    String applicationName,
+  ) async {
+    final session = _session;
+    if (session == null) {
+      throw const ArgoCdException('Not signed in.');
+    }
+    return _api.fetchManagedResources(session, applicationName);
+  }
+
   Future<void> signOut() async {
     _session = null;
     _applications = const <ArgoApplication>[];

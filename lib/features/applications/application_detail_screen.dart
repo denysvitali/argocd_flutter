@@ -7,6 +7,7 @@ import 'package:argocd_flutter/ui/resource_icons.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
 
+import 'app_diff_screen.dart';
 import 'log_viewer_screen.dart';
 import 'manifest_viewer_screen.dart';
 import 'resource_tree_screen.dart';
@@ -373,6 +374,16 @@ class _DetailBody extends StatelessWidget {
           onRefresh: onRefresh,
           onSync: onSync,
           onDelete: onDelete,
+          onDiff: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => AppDiffScreen(
+                  controller: controller,
+                  applicationName: application.name,
+                ),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -1213,12 +1224,14 @@ class _BottomActionBar extends StatelessWidget {
     required this.onRefresh,
     required this.onSync,
     required this.onDelete,
+    required this.onDiff,
   });
 
   final bool actionInFlight;
   final VoidCallback onRefresh;
   final VoidCallback onSync;
   final VoidCallback onDelete;
+  final VoidCallback onDiff;
 
   @override
   Widget build(BuildContext context) {
@@ -1256,6 +1269,20 @@ class _BottomActionBar extends StatelessWidget {
                   textStyle: theme.textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            height: buttonHeight,
+            child: OutlinedButton.icon(
+              onPressed: onDiff,
+              icon: const Icon(Icons.compare_arrows, size: 18),
+              label: const Text('Diff'),
+              style: OutlinedButton.styleFrom(
+                textStyle: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),

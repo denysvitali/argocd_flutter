@@ -644,5 +644,13 @@ class _FakeArgoCdApi implements ArgoCdApi {
   }
 
   @override
+  Future<List<ManagedResource>> fetchManagedResources(
+    AppSession session,
+    String applicationName,
+  ) async {
+    return const <ManagedResource>[];
+  }
+
+  @override
   Future<void> verifyServer(String serverUrl) async {}
 }

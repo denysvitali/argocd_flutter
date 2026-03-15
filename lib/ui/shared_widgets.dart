@@ -450,10 +450,12 @@ class SectionCard extends StatelessWidget {
 class EmptyStateCard extends StatelessWidget {
   const EmptyStateCard({
     super.key,
+    this.icon,
     required this.title,
     required this.subtitle,
   });
 
+  final IconData? icon;
   final String title;
   final String subtitle;
 
@@ -473,6 +475,10 @@ class EmptyStateCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
+            if (icon != null) ...<Widget>[
+              Icon(icon, size: 32, color: AppColors.grey),
+              const SizedBox(height: 8),
+            ],
             Text(
               title,
               style: theme.textTheme.titleSmall?.copyWith(
