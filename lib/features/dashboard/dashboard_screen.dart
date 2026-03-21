@@ -1283,7 +1283,7 @@ List<_BreakdownSegment> _buildSyncSegments(List<ArgoApplication> applications) {
     ),
     _BreakdownSegment(
       label: 'OutOfSync',
-      color: AppColors.coral,
+      color: AppColors.amber,
       count: applications
           .where(
             (application) => _normalized(application.syncStatus) != 'synced',

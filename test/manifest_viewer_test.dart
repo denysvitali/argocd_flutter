@@ -262,7 +262,8 @@ void main() {
       // Should show top-level keys as collapsible sections
       expect(find.text('metadata'), findsWidgets);
       expect(find.text('spec'), findsWidgets);
-      expect(find.text('status'), findsWidgets);
+      // status is stripped by default (server-managed field)
+      expect(find.text('status'), findsNothing);
       expect(find.textContaining('Lines:'), findsOneWidget);
     });
 

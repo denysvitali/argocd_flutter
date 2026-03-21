@@ -963,7 +963,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     }
 
     if (_hideManagedFields) {
-      manifestDecoded = _stripManagedFields(manifestDecoded);
+      manifestDecoded = _stripServerFields(manifestDecoded);
     }
 
     final yamlText = jsonToYaml(manifestDecoded);
@@ -1015,7 +1015,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       final parsed = jsonDecode(text);
       if (parsed is Map<String, dynamic>) {
         final cleaned =
-            _hideManagedFields ? _stripManagedFields(parsed) : parsed;
+            _hideManagedFields ? _stripServerFields(parsed) : parsed;
         return jsonToYaml(cleaned);
       }
     } catch (_) {
@@ -1024,8 +1024,8 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     return text;
   }
 
-  Map<String, dynamic> _stripManagedFields(Map<String, dynamic> obj) {
-    final result = Map<String, dynamic>.of(obj);
+  Map<String, dynamic> _stripServerFields(Map<String, dynamic> obj) {
+    final result = Map<String, dynamic>.of(obj)..remove('status');
     final metadata = result['metadata'];
     if (metadata is Map<String, dynamic> &&
         metadata.containsKey('managedFields')) {

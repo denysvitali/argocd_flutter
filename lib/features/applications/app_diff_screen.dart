@@ -357,7 +357,7 @@ String _formatManifest(String jsonString, bool hideManagedFields) {
     final parsed = jsonDecode(jsonString);
     if (parsed is Map<String, dynamic>) {
       final cleaned =
-          hideManagedFields ? _stripManagedFields(parsed) : parsed;
+          hideManagedFields ? _stripServerFields(parsed) : parsed;
       return jsonToYaml(cleaned);
     }
   } catch (_) {
@@ -366,8 +366,8 @@ String _formatManifest(String jsonString, bool hideManagedFields) {
   return jsonString;
 }
 
-Map<String, dynamic> _stripManagedFields(Map<String, dynamic> obj) {
-  final result = Map<String, dynamic>.of(obj);
+Map<String, dynamic> _stripServerFields(Map<String, dynamic> obj) {
+  final result = Map<String, dynamic>.of(obj)..remove('status');
   final metadata = result['metadata'];
   if (metadata is Map<String, dynamic> &&
       metadata.containsKey('managedFields')) {

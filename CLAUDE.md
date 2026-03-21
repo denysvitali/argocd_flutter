@@ -102,10 +102,12 @@ Imperative `Navigator.of(context).push(MaterialPageRoute(...))`. No named routes
 
 All services are constructor-injected in `main.dart`. No service locator, no `get_it`, no `Provider` package. Abstractions used for testability:
 
-| Abstract | Production | Test Fake |
+| Abstract / Service | Production | Test Fake |
 |---|---|---|
 | `ArgoCdApi` | `NetworkArgoCdApi` | `FakeArgoCdApi` (in test_helpers.dart) |
 | `SessionStorage` | `SecureSessionStorage` | `MemorySessionStorage` (in test_helpers.dart) |
+| `ThemeController` | (concrete, uses `shared_preferences`) | — |
+| `CertificateProvider` | (concrete, reports Android cert trust status) | — |
 
 The `HealthMonitor` ↔ `AppController` circular dependency is broken via `late final` in `main.dart`:
 ```dart
@@ -184,7 +186,7 @@ GitHub Actions (`.github/workflows/ci.yml`):
 4. **build-release** — on main/tags; decodes keystore from `KEYSTORE_BASE64` secret, creates GitHub Release
 5. **build-web** + **deploy-web** — on main; deploys to GitHub Pages
 
-Flutter `3.38.7`, Java 21 (Temurin). `DART_VM_OPTIONS: --max-gen-heap-size=4096` (4 GB heap cap). Concurrency group cancels in-progress runs on the same ref. The `analyze` and `test` jobs run independently (no `needs:` dependency between them).
+Flutter `3.41.2`, Java 21 (Temurin). `DART_VM_OPTIONS: --max-gen-heap-size=4096` (4 GB heap cap). Concurrency group cancels in-progress runs on the same ref. The `analyze` and `test` jobs run independently (no `needs:` dependency between them).
 
 ## Dependencies
 

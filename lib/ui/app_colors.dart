@@ -101,7 +101,7 @@ abstract final class AppColors {
   static Color syncColor(String status) {
     return switch (status.toLowerCase()) {
       'synced' => cobalt,
-      _ => coral,
+      _ => amber,
     };
   }
 }
