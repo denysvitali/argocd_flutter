@@ -255,160 +255,160 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('colorForResourceKind', () {
-    group('workload kinds return cobalt', () {
-      test('Deployment returns cobalt', () {
-        expect(colorForResourceKind('Deployment'), AppColors.cobalt);
+    group('workload kinds return teal', () {
+      test('Deployment returns teal', () {
+        expect(colorForResourceKind('Deployment'), AppColors.teal);
       });
 
-      test('StatefulSet returns cobalt', () {
-        expect(colorForResourceKind('StatefulSet'), AppColors.cobalt);
+      test('StatefulSet returns teal', () {
+        expect(colorForResourceKind('StatefulSet'), AppColors.teal);
       });
 
-      test('DaemonSet returns cobalt', () {
-        expect(colorForResourceKind('DaemonSet'), AppColors.cobalt);
+      test('DaemonSet returns teal', () {
+        expect(colorForResourceKind('DaemonSet'), AppColors.teal);
       });
 
-      test('ReplicaSet returns cobalt', () {
-        expect(colorForResourceKind('ReplicaSet'), AppColors.cobalt);
-      });
-    });
-
-    group('pod kind returns teal', () {
-      test('Pod returns teal', () {
-        expect(colorForResourceKind('Pod'), AppColors.teal);
+      test('ReplicaSet returns teal', () {
+        expect(colorForResourceKind('ReplicaSet'), AppColors.teal);
       });
     });
 
-    group('networking kinds return amber', () {
-      test('Service returns amber', () {
-        expect(colorForResourceKind('Service'), AppColors.amber);
-      });
-
-      test('Ingress returns amber', () {
-        expect(colorForResourceKind('Ingress'), AppColors.amber);
-      });
-
-      test('Endpoints returns amber', () {
-        expect(colorForResourceKind('Endpoints'), AppColors.amber);
-      });
-
-      test('EndpointSlice returns amber', () {
-        expect(colorForResourceKind('EndpointSlice'), AppColors.amber);
+    group('pod kind returns healthy', () {
+      test('Pod returns healthy', () {
+        expect(colorForResourceKind('Pod'), AppColors.healthy);
       });
     });
 
-    group('config kinds return coral', () {
-      test('ConfigMap returns coral', () {
-        expect(colorForResourceKind('ConfigMap'), AppColors.coral);
+    group('networking kinds return outOfSync', () {
+      test('Service returns outOfSync', () {
+        expect(colorForResourceKind('Service'), AppColors.outOfSync);
       });
 
-      test('Secret returns coral', () {
-        expect(colorForResourceKind('Secret'), AppColors.coral);
-      });
-    });
-
-    group('job kinds return grey', () {
-      test('Job returns grey', () {
-        expect(colorForResourceKind('Job'), AppColors.grey);
+      test('Ingress returns outOfSync', () {
+        expect(colorForResourceKind('Ingress'), AppColors.outOfSync);
       });
 
-      test('CronJob returns grey', () {
-        expect(colorForResourceKind('CronJob'), AppColors.grey);
+      test('Endpoints returns outOfSync', () {
+        expect(colorForResourceKind('Endpoints'), AppColors.outOfSync);
+      });
+
+      test('EndpointSlice returns outOfSync', () {
+        expect(colorForResourceKind('EndpointSlice'), AppColors.outOfSync);
       });
     });
 
-    group('storage kinds return greyLight', () {
-      test('PersistentVolumeClaim returns greyLight', () {
-        expect(colorForResourceKind('PersistentVolumeClaim'), AppColors.greyLight);
+    group('config kinds return degraded', () {
+      test('ConfigMap returns degraded', () {
+        expect(colorForResourceKind('ConfigMap'), AppColors.degraded);
       });
 
-      test('PersistentVolume returns greyLight', () {
-        expect(colorForResourceKind('PersistentVolume'), AppColors.greyLight);
-      });
-
-      test('StorageClass returns greyLight', () {
-        expect(colorForResourceKind('StorageClass'), AppColors.greyLight);
+      test('Secret returns degraded', () {
+        expect(colorForResourceKind('Secret'), AppColors.degraded);
       });
     });
 
-    group('RBAC kinds return amber', () {
-      test('ServiceAccount returns amber', () {
-        expect(colorForResourceKind('ServiceAccount'), AppColors.amber);
+    group('job kinds return gray6', () {
+      test('Job returns gray6', () {
+        expect(colorForResourceKind('Job'), AppColors.gray6);
       });
 
-      test('Role returns amber', () {
-        expect(colorForResourceKind('Role'), AppColors.amber);
-      });
-
-      test('ClusterRole returns amber', () {
-        expect(colorForResourceKind('ClusterRole'), AppColors.amber);
-      });
-
-      test('RoleBinding returns amber', () {
-        expect(colorForResourceKind('RoleBinding'), AppColors.amber);
-      });
-
-      test('ClusterRoleBinding returns amber', () {
-        expect(colorForResourceKind('ClusterRoleBinding'), AppColors.amber);
+      test('CronJob returns gray6', () {
+        expect(colorForResourceKind('CronJob'), AppColors.gray6);
       });
     });
 
-    group('cluster kinds return cobalt', () {
-      test('Namespace returns cobalt', () {
-        expect(colorForResourceKind('Namespace'), AppColors.cobalt);
+    group('storage kinds return gray5', () {
+      test('PersistentVolumeClaim returns gray5', () {
+        expect(colorForResourceKind('PersistentVolumeClaim'), AppColors.gray5);
       });
 
-      test('Node returns cobalt', () {
-        expect(colorForResourceKind('Node'), AppColors.cobalt);
-      });
-    });
-
-    group('certificate kinds return teal', () {
-      test('Certificate returns teal', () {
-        expect(colorForResourceKind('Certificate'), AppColors.teal);
+      test('PersistentVolume returns gray5', () {
+        expect(colorForResourceKind('PersistentVolume'), AppColors.gray5);
       });
 
-      test('Issuer returns teal', () {
-        expect(colorForResourceKind('Issuer'), AppColors.teal);
-      });
-
-      test('ClusterIssuer returns teal', () {
-        expect(colorForResourceKind('ClusterIssuer'), AppColors.teal);
+      test('StorageClass returns gray5', () {
+        expect(colorForResourceKind('StorageClass'), AppColors.gray5);
       });
     });
 
-    group('event kind returns greyLight', () {
-      test('Event returns greyLight', () {
-        expect(colorForResourceKind('Event'), AppColors.greyLight);
+    group('RBAC kinds return suspended', () {
+      test('ServiceAccount returns suspended', () {
+        expect(colorForResourceKind('ServiceAccount'), AppColors.suspended);
+      });
+
+      test('Role returns suspended', () {
+        expect(colorForResourceKind('Role'), AppColors.suspended);
+      });
+
+      test('ClusterRole returns suspended', () {
+        expect(colorForResourceKind('ClusterRole'), AppColors.suspended);
+      });
+
+      test('RoleBinding returns suspended', () {
+        expect(colorForResourceKind('RoleBinding'), AppColors.suspended);
+      });
+
+      test('ClusterRoleBinding returns suspended', () {
+        expect(colorForResourceKind('ClusterRoleBinding'), AppColors.suspended);
       });
     });
 
-    group('unknown kinds return grey default', () {
-      test('unknown kind returns grey', () {
-        expect(colorForResourceKind('SomeUnknownResource'), AppColors.grey);
+    group('cluster kinds return tealDark', () {
+      test('Namespace returns tealDark', () {
+        expect(colorForResourceKind('Namespace'), AppColors.tealDark);
       });
 
-      test('empty string returns grey', () {
-        expect(colorForResourceKind(''), AppColors.grey);
+      test('Node returns tealDark', () {
+        expect(colorForResourceKind('Node'), AppColors.tealDark);
+      });
+    });
+
+    group('certificate kinds return healthy', () {
+      test('Certificate returns healthy', () {
+        expect(colorForResourceKind('Certificate'), AppColors.healthy);
       });
 
-      test('Application (ArgoCD kind) returns grey default', () {
+      test('Issuer returns healthy', () {
+        expect(colorForResourceKind('Issuer'), AppColors.healthy);
+      });
+
+      test('ClusterIssuer returns healthy', () {
+        expect(colorForResourceKind('ClusterIssuer'), AppColors.healthy);
+      });
+    });
+
+    group('event kind returns gray5', () {
+      test('Event returns gray5', () {
+        expect(colorForResourceKind('Event'), AppColors.gray5);
+      });
+    });
+
+    group('unknown kinds return gray6 default', () {
+      test('unknown kind returns gray6', () {
+        expect(colorForResourceKind('SomeUnknownResource'), AppColors.gray6);
+      });
+
+      test('empty string returns gray6', () {
+        expect(colorForResourceKind(''), AppColors.gray6);
+      });
+
+      test('Application (ArgoCD kind) returns gray6 default', () {
         // Application has an icon but no specific color mapping — falls to default
-        expect(colorForResourceKind('Application'), AppColors.grey);
+        expect(colorForResourceKind('Application'), AppColors.gray6);
       });
     });
 
     group('case sensitivity', () {
-      test('lowercase deployment returns cobalt', () {
-        expect(colorForResourceKind('deployment'), AppColors.cobalt);
+      test('lowercase deployment returns teal', () {
+        expect(colorForResourceKind('deployment'), AppColors.teal);
       });
 
-      test('uppercase POD returns teal', () {
-        expect(colorForResourceKind('POD'), AppColors.teal);
+      test('uppercase POD returns healthy', () {
+        expect(colorForResourceKind('POD'), AppColors.healthy);
       });
 
-      test('mixed-case sErViCe returns amber', () {
-        expect(colorForResourceKind('sErViCe'), AppColors.amber);
+      test('mixed-case sErViCe returns outOfSync', () {
+        expect(colorForResourceKind('sErViCe'), AppColors.outOfSync);
       });
     });
   });
