@@ -362,7 +362,7 @@ void main() {
       await tester.pumpWidget(wrapSignIn(controller: controller));
       await tester.pumpAndSettle();
 
-      expect(find.text('ArgoCD Flutter'), findsOneWidget);
+      expect(find.text('Argo CD'), findsOneWidget);
       expect(find.byIcon(Icons.cloud_sync_outlined), findsOneWidget);
     });
   });

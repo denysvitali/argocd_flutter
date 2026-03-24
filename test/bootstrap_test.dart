@@ -32,7 +32,7 @@ void main() {
 
       // The sign-in screen also contains this text but we are still in the
       // booting stage, so only the bootstrap label should be present.
-      expect(find.text('ArgoCD Flutter'), findsOneWidget);
+      expect(find.text('Argo CD'), findsOneWidget);
     });
 
     testWidgets('shows CircularProgressIndicator', (
@@ -100,7 +100,7 @@ void main() {
       // Icon, title and progress indicator should all be present inside the
       // widget tree.
       expect(find.byIcon(Icons.cloud_queue_rounded), findsOneWidget);
-      expect(find.text('ArgoCD Flutter'), findsOneWidget);
+      expect(find.text('Argo CD'), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
   });
