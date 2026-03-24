@@ -234,7 +234,7 @@ class _SectionHeader extends StatelessWidget {
           width: 3,
           height: 16,
           decoration: BoxDecoration(
-            color: AppColors.cobalt,
+            color: AppColors.teal,
             borderRadius: BorderRadius.circular(1.5),
           ),
         ),
@@ -544,14 +544,17 @@ class _AttentionItem extends StatelessWidget {
   Color _severityColor() {
     final health = _normalized(application.healthStatus);
     if (health == 'degraded') {
-      return AppColors.coral;
+      return AppColors.degraded;
     }
-    if (health == 'progressing' || health == 'missing') {
-      return AppColors.amber;
+    if (health == 'progressing') {
+      return AppColors.progressing;
+    }
+    if (health == 'missing') {
+      return AppColors.missing;
     }
     final sync = _normalized(application.syncStatus);
     if (sync != 'synced') {
-      return AppColors.cobalt;
+      return AppColors.outOfSync;
     }
     return AppColors.grey;
   }
@@ -831,12 +834,12 @@ class _IncidentCard extends StatelessWidget {
 
   Color get _eventColor {
     return switch (event.kind) {
-      HealthEventKind.degraded => AppColors.coral,
-      HealthEventKind.drifted => AppColors.amber,
-      HealthEventKind.failed => AppColors.coral,
-      HealthEventKind.operationFailed => AppColors.coral,
-      HealthEventKind.recovered => AppColors.teal,
-      HealthEventKind.synced => AppColors.cobalt,
+      HealthEventKind.degraded => AppColors.degraded,
+      HealthEventKind.drifted => AppColors.outOfSync,
+      HealthEventKind.failed => AppColors.degraded,
+      HealthEventKind.operationFailed => AppColors.degraded,
+      HealthEventKind.recovered => AppColors.healthy,
+      HealthEventKind.synced => AppColors.synced,
     };
   }
 
@@ -1064,10 +1067,10 @@ class _TimelineEntry extends StatelessWidget {
                 height: 8,
                 margin: const EdgeInsets.only(top: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.cobalt,
+                  color: AppColors.teal,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: AppColors.cobalt.withValues(alpha: 0.3),
+                    color: AppColors.teal.withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
@@ -1220,7 +1223,7 @@ List<_BreakdownSegment> _buildHealthSegments(
   return <_BreakdownSegment>[
     _BreakdownSegment(
       label: 'Healthy',
-      color: AppColors.teal,
+      color: AppColors.healthy,
       count: applications
           .where(
             (application) => _normalized(application.healthStatus) == 'healthy',
@@ -1229,7 +1232,7 @@ List<_BreakdownSegment> _buildHealthSegments(
     ),
     _BreakdownSegment(
       label: 'Progressing',
-      color: AppColors.amber,
+      color: AppColors.progressing,
       count: applications
           .where(
             (application) =>
@@ -1239,7 +1242,7 @@ List<_BreakdownSegment> _buildHealthSegments(
     ),
     _BreakdownSegment(
       label: 'Degraded',
-      color: AppColors.coral,
+      color: AppColors.degraded,
       count: applications
           .where(
             (application) =>
@@ -1249,7 +1252,7 @@ List<_BreakdownSegment> _buildHealthSegments(
     ),
     _BreakdownSegment(
       label: 'Missing',
-      color: AppColors.greyLight,
+      color: AppColors.missing,
       count: applications
           .where(
             (application) => _normalized(application.healthStatus) == 'missing',
@@ -1258,7 +1261,7 @@ List<_BreakdownSegment> _buildHealthSegments(
     ),
     _BreakdownSegment(
       label: 'Unknown',
-      color: AppColors.grey,
+      color: AppColors.unknown,
       count: applications
           .where(
             (application) => !_knownHealthStatuses.contains(
@@ -1274,7 +1277,7 @@ List<_BreakdownSegment> _buildSyncSegments(List<ArgoApplication> applications) {
   return <_BreakdownSegment>[
     _BreakdownSegment(
       label: 'Synced',
-      color: AppColors.cobalt,
+      color: AppColors.synced,
       count: applications
           .where(
             (application) => _normalized(application.syncStatus) == 'synced',
@@ -1283,7 +1286,7 @@ List<_BreakdownSegment> _buildSyncSegments(List<ArgoApplication> applications) {
     ),
     _BreakdownSegment(
       label: 'OutOfSync',
-      color: AppColors.amber,
+      color: AppColors.outOfSync,
       count: applications
           .where(
             (application) => _normalized(application.syncStatus) != 'synced',

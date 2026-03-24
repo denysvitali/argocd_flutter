@@ -141,9 +141,9 @@ class SettingsScreen extends StatelessWidget {
                   icon: const Icon(Icons.logout, size: 18),
                   label: const Text('Sign out'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.coral,
+                    foregroundColor: AppColors.degraded,
                     side: const BorderSide(
-                      color: AppColors.coral,
+                      color: AppColors.degraded,
                       width: 1,
                     ),
                   ),
@@ -518,7 +518,7 @@ class _ConnectionDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = connected ? AppColors.teal : AppColors.coral;
+    final color = connected ? AppColors.healthy : AppColors.degraded;
 
     return Container(
       width: 18,
@@ -689,14 +689,14 @@ class _NotificationsSection extends StatelessWidget {
                       height: 8,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AppColors.teal,
+                        color: AppColors.healthy,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'Polling active',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.teal,
+                        color: AppColors.healthy,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

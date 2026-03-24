@@ -104,15 +104,15 @@ class _SignInScreenState extends State<SignInScreen> {
     final certificateStatus = widget.controller.certificateStatus;
     final errorMessage = widget.controller.errorMessage;
     final showError = errorMessage != null && errorMessage != _dismissedError;
-    final pageBgColor = isDark ? AppColors.ink : AppColors.canvas;
+    final pageBgColor = isDark ? AppColors.darkBackground : AppColors.canvas;
+    // ArgoCD login uses a purple gradient background.
     final heroColor = isDark
         ? colorScheme.surfaceContainerHigh
-        : AppColors.headerDark;
-    final heroTitleColor =
-        isDark ? colorScheme.onSurface : AppColors.headerForeground(theme);
+        : const Color(0xFF2E325A);
+    final heroTitleColor = isDark ? colorScheme.onSurface : AppColors.white;
     final heroBodyColor = isDark
         ? colorScheme.onSurfaceVariant
-        : AppColors.textOnDarkMuted;
+        : AppColors.white.withValues(alpha: 0.8);
 
     return Scaffold(
       body: ColoredBox(
@@ -139,17 +139,13 @@ class _SignInScreenState extends State<SignInScreen> {
                                   heroColor,
                                   Color.lerp(
                                     heroColor,
-                                    AppColors.cobalt,
+                                    AppColors.teal,
                                     0.08,
                                   )!,
                                 ]
                               : <Color>[
-                                  heroColor,
-                                  Color.lerp(
-                                    heroColor,
-                                    AppColors.cobalt,
-                                    0.15,
-                                  )!,
+                                  const Color(0xFF7A8BCF),
+                                  const Color(0xFF2E325A),
                                 ],
                         ),
                       ),
@@ -159,11 +155,11 @@ class _SignInScreenState extends State<SignInScreen> {
                           Icon(
                             Icons.cloud_sync_outlined,
                             size: 36,
-                            color: AppColors.cobalt,
+                            color: AppColors.orange,
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            'ArgoCD Flutter',
+                            'Argo CD',
                             style: theme.textTheme.headlineSmall?.copyWith(
                               color: heroTitleColor,
                               fontWeight: FontWeight.w700,
@@ -660,13 +656,13 @@ class _CertificateBanner extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: isDark
-            ? AppColors.cobalt.withValues(alpha: 0.1)
-            : AppColors.cobaltLight,
+            ? AppColors.teal.withValues(alpha: 0.1)
+            : AppColors.tealLight,
         borderRadius: AppRadius.md,
         border: Border.all(
           color: isDark
-              ? AppColors.cobalt.withValues(alpha: 0.25)
-              : AppColors.cobalt.withValues(alpha: 0.15),
+              ? AppColors.teal.withValues(alpha: 0.25)
+              : AppColors.teal.withValues(alpha: 0.15),
         ),
       ),
       child: Row(
@@ -674,7 +670,7 @@ class _CertificateBanner extends StatelessWidget {
         children: <Widget>[
           Icon(
             Icons.verified_user_outlined,
-            color: AppColors.cobalt,
+            color: AppColors.teal,
             size: 20,
           ),
           const SizedBox(width: 12),

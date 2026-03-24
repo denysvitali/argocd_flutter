@@ -380,7 +380,7 @@ class _DetailBody extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
               unselectedLabelStyle: theme.textTheme.labelLarge,
-              indicatorColor: AppColors.cobalt,
+              indicatorColor: AppColors.teal,
               tabs: const <Widget>[
                 Tab(text: 'Overview'),
                 Tab(text: 'Resources'),
@@ -579,10 +579,10 @@ class _ToolbarButton extends StatelessWidget {
     final Color bg;
 
     if (isDanger) {
-      fg = onPressed != null ? AppColors.coral : theme.disabledColor;
+      fg = onPressed != null ? AppColors.degraded : theme.disabledColor;
       bg = fg.withValues(alpha: 0.1);
     } else if (isPrimary) {
-      fg = onPressed != null ? AppColors.cobalt : theme.disabledColor;
+      fg = onPressed != null ? AppColors.teal : theme.disabledColor;
       bg = fg.withValues(alpha: 0.15);
     } else {
       fg = onPressed != null
@@ -851,7 +851,7 @@ class _ResourceTreeCard extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AppColors.cobaltLight,
+                  color: AppColors.tealLight,
                   borderRadius: AppRadius.base,
                 ),
                 child: const ExcludeSemantics(
@@ -1152,7 +1152,7 @@ class _TimelineEntry extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final relativeTime = formatRelativeTime(entry.deployedAt);
-    final dotColor = isCurrent ? AppColors.teal : AppColors.grey;
+    final dotColor = isCurrent ? AppColors.healthy : AppColors.grey;
 
     return IntrinsicHeight(
       child: Row(
@@ -1200,19 +1200,19 @@ class _TimelineEntry extends StatelessWidget {
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: isCurrent
-                    ? AppColors.teal.withValues(alpha: 0.04)
+                    ? AppColors.healthy.withValues(alpha: 0.04)
                     : theme.colorScheme.surface,
                 borderRadius: AppRadius.md,
                 border: Border.all(
                   color: isCurrent
-                      ? AppColors.teal.withValues(alpha: 0.5)
+                      ? AppColors.healthy.withValues(alpha: 0.5)
                       : theme.dividerColor,
                   width: isCurrent ? 1.5 : 1.0,
                 ),
                 boxShadow: <BoxShadow>[
                   if (isCurrent)
                     BoxShadow(
-                      color: AppColors.teal.withValues(alpha: 0.1),
+                      color: AppColors.healthy.withValues(alpha: 0.1),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     )
@@ -1235,7 +1235,7 @@ class _TimelineEntry extends StatelessWidget {
                           padding: EdgeInsets.only(right: 8),
                           child: StatusChip(
                             label: 'Current',
-                            color: AppColors.teal,
+                            color: AppColors.healthy,
                           ),
                         ),
                       Text(
@@ -1407,19 +1407,19 @@ class _InlineResourceSummary extends StatelessWidget {
                 icon: Icons.favorite,
                 label: 'Healthy',
                 count: healthyCount,
-                color: AppColors.teal,
+                color: AppColors.healthy,
               ),
               _ResourceCountBadge(
                 icon: Icons.autorenew,
                 label: 'Progressing',
                 count: progressingCount,
-                color: AppColors.amber,
+                color: AppColors.progressing,
               ),
               _ResourceCountBadge(
                 icon: Icons.heart_broken,
                 label: 'Degraded',
                 count: degradedCount,
-                color: AppColors.coral,
+                color: AppColors.degraded,
               ),
               if (otherCount > 0)
                 _ResourceCountBadge(

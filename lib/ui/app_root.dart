@@ -26,8 +26,8 @@ ThemeData buildLightAppTheme() {
     splashFactory: InkRipple.splashFactory,
     scaffoldBackgroundColor: AppColors.canvas,
     colorScheme: const ColorScheme.light(
-      primary: AppColors.cobalt,
-      secondary: AppColors.teal,
+      primary: AppColors.teal,
+      secondary: AppColors.healthy,
       surface: AppColors.white,
       onPrimary: AppColors.white,
       onSecondary: AppColors.white,
@@ -45,22 +45,28 @@ ThemeData buildLightAppTheme() {
         fontSize: 18,
       ),
     ),
-    dividerColor: AppColors.border,
+    dividerColor: AppColors.gray4,
     appBarTheme: const AppBarTheme(toolbarHeight: 48),
     navigationBarTheme: NavigationBarThemeData(
-      height: 56,
-      labelTextStyle: const WidgetStatePropertyAll<TextStyle>(
-        TextStyle(
+      height: 60,
+      backgroundColor: AppColors.sidebarDark,
+      surfaceTintColor: Colors.transparent,
+      indicatorColor: AppColors.teal.withValues(alpha: 0.2),
+      labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
+        final selected = states.contains(WidgetState.selected);
+        return TextStyle(
           fontFamily: _bodyFontFamily,
           fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+          fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+          color: selected ? AppColors.white : AppColors.gray5,
+        );
+      }),
       iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
-        final color = states.contains(WidgetState.selected)
-            ? AppColors.white
-            : AppColors.grey;
-        return IconThemeData(size: 24, color: color);
+        final selected = states.contains(WidgetState.selected);
+        return IconThemeData(
+          size: 24,
+          color: selected ? AppColors.orange : AppColors.gray5,
+        );
       }),
     ),
   );
@@ -68,52 +74,57 @@ ThemeData buildLightAppTheme() {
 
 ThemeData buildDarkAppTheme() {
   final darkBaseTextTheme = ThemeData.dark().textTheme.apply(
-    bodyColor: AppColors.border,
-    displayColor: AppColors.border,
+    bodyColor: AppColors.gray3,
+    displayColor: AppColors.gray3,
     fontFamily: _displayFontFamily,
   );
 
   return ThemeData(
     useMaterial3: true,
     splashFactory: InkRipple.splashFactory,
-    scaffoldBackgroundColor: AppColors.ink,
+    scaffoldBackgroundColor: AppColors.darkBackground,
     colorScheme: const ColorScheme.dark(
-      primary: AppColors.cobalt,
-      secondary: AppColors.teal,
+      primary: AppColors.teal,
+      secondary: AppColors.healthy,
       surface: AppColors.darkSurface,
       onPrimary: AppColors.white,
       onSecondary: AppColors.white,
-      onSurface: AppColors.border,
+      onSurface: AppColors.gray3,
     ),
     textTheme: darkBaseTextTheme.copyWith(
       bodyMedium: const TextStyle(
         fontFamily: _bodyFontFamily,
-        color: AppColors.border,
+        color: AppColors.gray3,
         fontSize: 16,
       ),
       bodyLarge: const TextStyle(
         fontFamily: _bodyFontFamily,
-        color: AppColors.border,
+        color: AppColors.gray3,
         fontSize: 18,
       ),
     ),
     dividerColor: AppColors.darkBorder,
     appBarTheme: const AppBarTheme(toolbarHeight: 48),
     navigationBarTheme: NavigationBarThemeData(
-      height: 56,
-      indicatorColor: AppColors.cobalt,
-      labelTextStyle: const WidgetStatePropertyAll<TextStyle>(
-        TextStyle(
+      height: 60,
+      backgroundColor: AppColors.sidebarDark,
+      surfaceTintColor: Colors.transparent,
+      indicatorColor: AppColors.teal.withValues(alpha: 0.2),
+      labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
+        final selected = states.contains(WidgetState.selected);
+        return TextStyle(
           fontFamily: _bodyFontFamily,
           fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+          fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+          color: selected ? AppColors.white : AppColors.gray5,
+        );
+      }),
       iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
-        final color = states.contains(WidgetState.selected)
-            ? AppColors.white
-            : AppColors.grey;
-        return IconThemeData(size: 24, color: color);
+        final selected = states.contains(WidgetState.selected);
+        return IconThemeData(
+          size: 24,
+          color: selected ? AppColors.orange : AppColors.gray5,
+        );
       }),
     ),
   );
@@ -223,7 +234,7 @@ class _HomeShellState extends State<HomeShell> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${event.summary}$suffix'),
-        backgroundColor: AppColors.coral,
+        backgroundColor: AppColors.degraded,
         behavior: SnackBarBehavior.floating,
         action: SnackBarAction(
           label: 'View',
@@ -282,54 +293,43 @@ class _HomeShellState extends State<HomeShell> {
         index: _index,
         children: _pages,
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(
-              color: Theme.of(context).dividerColor,
-              width: 1,
-            ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        animationDuration: const Duration(milliseconds: 400),
+        labelBehavior: compactNav
+            ? NavigationDestinationLabelBehavior.onlyShowSelected
+            : NavigationDestinationLabelBehavior.alwaysShow,
+        onDestinationSelected: (value) {
+          setState(() {
+            _index = value;
+          });
+        },
+        destinations: const <NavigationDestination>[
+          NavigationDestination(
+            icon: Icon(Icons.analytics_outlined),
+            selectedIcon: Icon(Icons.analytics),
+            label: 'Dashboard',
+            tooltip: 'Dashboard',
           ),
-        ),
-        child: NavigationBar(
-          selectedIndex: _index,
-          indicatorColor: AppColors.cobalt,
-          animationDuration: const Duration(milliseconds: 400),
-          labelBehavior: compactNav
-              ? NavigationDestinationLabelBehavior.onlyShowSelected
-              : NavigationDestinationLabelBehavior.alwaysShow,
-          onDestinationSelected: (value) {
-            setState(() {
-              _index = value;
-            });
-          },
-          destinations: const <NavigationDestination>[
-            NavigationDestination(
-              icon: Icon(Icons.analytics_outlined),
-              selectedIcon: Icon(Icons.analytics),
-              label: 'Dashboard',
-              tooltip: 'Dashboard',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.dashboard_outlined),
-              selectedIcon: Icon(Icons.dashboard_rounded),
-              label: 'Applications',
-              tooltip: 'Applications',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.folder_outlined),
-              selectedIcon: Icon(Icons.folder),
-              label: 'Projects',
-              tooltip: 'Projects',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.settings_outlined),
-              selectedIcon: Icon(Icons.settings),
-              label: 'Settings',
-              tooltip: 'Settings',
-            ),
-          ],
-        ),
+          NavigationDestination(
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard_rounded),
+            label: 'Applications',
+            tooltip: 'Applications',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.folder_outlined),
+            selectedIcon: Icon(Icons.folder),
+            label: 'Projects',
+            tooltip: 'Projects',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: 'Settings',
+            tooltip: 'Settings',
+          ),
+        ],
       ),
     );
   }
@@ -366,8 +366,6 @@ class _BootstrapScreenState extends State<_BootstrapScreen>
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
       body: Center(
         child: FadeTransition(
@@ -378,16 +376,16 @@ class _BootstrapScreenState extends State<_BootstrapScreen>
               Icon(
                 Icons.cloud_queue_rounded,
                 size: 64,
-                color: colorScheme.primary,
+                color: AppColors.teal,
               ),
               const SizedBox(height: 16),
               Text(
-                'ArgoCD Flutter',
+                'Argo CD',
                 style: TextStyle(
                   fontFamily: _displayFontFamily,
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: colorScheme.primary,
+                  color: AppColors.teal,
                 ),
               ),
               const SizedBox(height: 32),
@@ -396,7 +394,7 @@ class _BootstrapScreenState extends State<_BootstrapScreen>
                 height: 32,
                 child: CircularProgressIndicator(
                   strokeWidth: 3,
-                  color: colorScheme.primary,
+                  color: AppColors.orange,
                 ),
               ),
             ],

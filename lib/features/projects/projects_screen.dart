@@ -355,7 +355,7 @@ class _SearchBar extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: AppRadius.base,
-          borderSide: const BorderSide(color: AppColors.cobalt, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.teal, width: 1.5),
         ),
       ),
     );
@@ -399,14 +399,14 @@ class _ProjectFilterChips extends StatelessWidget {
       selected: selected,
       onSelected: (_) => onSelected(filter),
       visualDensity: VisualDensity.compact,
-      selectedColor: AppColors.teal.withValues(alpha: 0.16),
-      checkmarkColor: AppColors.teal,
+      selectedColor: AppColors.healthy.withValues(alpha: 0.16),
+      checkmarkColor: AppColors.healthy,
       labelStyle: TextStyle(
-        color: selected ? AppColors.teal : AppColors.grey,
+        color: selected ? AppColors.healthy : AppColors.grey,
         fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
       ),
       side: BorderSide(
-        color: selected ? AppColors.teal : AppColors.outline(theme),
+        color: selected ? AppColors.healthy : AppColors.outline(theme),
       ),
       shape: RoundedRectangleBorder(borderRadius: AppRadius.sm),
     );
@@ -548,11 +548,11 @@ class _ProjectCard extends StatelessWidget {
 
   Color _accentColor() {
     if (project.destinations.length >= 5) {
-      return AppColors.coral;
+      return AppColors.degraded;
     } else if (project.destinations.length >= 2) {
-      return AppColors.teal;
+      return AppColors.healthy;
     }
-    return AppColors.cobalt;
+    return AppColors.teal;
   }
 
   @override
@@ -661,20 +661,20 @@ class _ProjectCard extends StatelessWidget {
                     icon: Icons.code_outlined,
                     count: project.sourceRepos.length,
                     label: 'repos',
-                    color: AppColors.cobalt,
+                    color: AppColors.teal,
                   ),
                   _CountBadge(
                     icon: Icons.dns_outlined,
                     count: project.destinations.length,
                     label: 'destinations',
-                    color: AppColors.teal,
+                    color: AppColors.healthy,
                   ),
                   if (project.clusterResourceWhitelist.isNotEmpty)
                     _CountBadge(
                       icon: Icons.shield_outlined,
                       count: project.clusterResourceWhitelist.length,
                       label: 'rules',
-                      color: AppColors.coral,
+                      color: AppColors.degraded,
                     ),
                 ],
               ),

@@ -39,23 +39,24 @@ IconData iconForResourceKind(String kind) {
 
 Color colorForResourceKind(String kind) {
   return switch (kind.toLowerCase()) {
-    'deployment' || 'statefulset' || 'daemonset' => AppColors.cobalt,
-    'replicaset' => AppColors.cobalt,
-    'pod' => AppColors.teal,
-    'service' || 'ingress' || 'endpoints' || 'endpointslice' => AppColors.amber,
-    'configmap' || 'secret' => AppColors.coral,
-    'job' || 'cronjob' => AppColors.grey,
+    'deployment' || 'statefulset' || 'daemonset' => AppColors.teal,
+    'replicaset' => AppColors.teal,
+    'pod' => AppColors.healthy,
+    'service' || 'ingress' || 'endpoints' || 'endpointslice' =>
+      AppColors.outOfSync,
+    'configmap' || 'secret' => AppColors.degraded,
+    'job' || 'cronjob' => AppColors.gray6,
     'persistentvolumeclaim' ||
     'persistentvolume' ||
-    'storageclass' => AppColors.greyLight,
+    'storageclass' => AppColors.gray5,
     'serviceaccount' ||
     'role' ||
     'clusterrole' ||
     'rolebinding' ||
-    'clusterrolebinding' => AppColors.amber,
-    'namespace' || 'node' => AppColors.cobalt,
-    'certificate' || 'issuer' || 'clusterissuer' => AppColors.teal,
-    'event' => AppColors.greyLight,
-    _ => AppColors.grey,
+    'clusterrolebinding' => AppColors.suspended,
+    'namespace' || 'node' => AppColors.tealDark,
+    'certificate' || 'issuer' || 'clusterissuer' => AppColors.healthy,
+    'event' => AppColors.gray5,
+    _ => AppColors.gray6,
   };
 }

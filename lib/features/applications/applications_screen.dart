@@ -365,21 +365,32 @@ class _FilterChips extends StatelessWidget {
     String label,
   ) {
     final isSelected = activeFilter == chip;
+    final chipColor = _chipColor(chip);
 
     return FilterChip(
       label: Text('$label ${counts[chip] ?? 0}'),
       selected: isSelected,
       onSelected: (_) => onSelected(chip),
-      selectedColor: AppColors.cobalt.withValues(alpha: 0.15),
-      checkmarkColor: AppColors.cobalt,
+      selectedColor: chipColor.withValues(alpha: 0.15),
+      checkmarkColor: chipColor,
       labelStyle: TextStyle(
-        color: isSelected ? AppColors.cobalt : AppColors.grey,
+        color: isSelected ? chipColor : AppColors.grey,
         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
       ),
-      side: BorderSide(color: isSelected ? AppColors.cobalt : AppColors.border),
+      side: BorderSide(color: isSelected ? chipColor : AppColors.border),
       shape: RoundedRectangleBorder(borderRadius: AppRadius.sm),
       visualDensity: VisualDensity.compact,
     );
+  }
+
+  static Color _chipColor(ApplicationFilterChip chip) {
+    return switch (chip) {
+      ApplicationFilterChip.all => AppColors.teal,
+      ApplicationFilterChip.healthy => AppColors.healthy,
+      ApplicationFilterChip.degraded => AppColors.degraded,
+      ApplicationFilterChip.outOfSync => AppColors.outOfSync,
+      ApplicationFilterChip.progressing => AppColors.progressing,
+    };
   }
 }
 
@@ -587,7 +598,7 @@ class _ApplicationCard extends StatelessWidget {
             borderRadius: AppRadius.base,
             child: Container(
               decoration: BoxDecoration(
-                border: Border(left: BorderSide(color: healthColor, width: 3)),
+                border: Border(left: BorderSide(color: healthColor, width: 5)),
               ),
               padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
               child: Column(
@@ -762,7 +773,7 @@ class _ApplicationGridCard extends StatelessWidget {
             borderRadius: AppRadius.base,
             child: Container(
               decoration: BoxDecoration(
-                border: Border(left: BorderSide(color: healthColor, width: 3)),
+                border: Border(left: BorderSide(color: healthColor, width: 5)),
               ),
               padding: const EdgeInsets.all(10),
               child: Column(

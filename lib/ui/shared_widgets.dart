@@ -419,6 +419,10 @@ class StatusChip extends StatelessWidget {
 }
 
 /// Returns an ArgoCD-style icon for a health status string.
+///
+/// Icons match the ArgoCD web UI FontAwesome mappings:
+/// healthy=heart, degraded=heart-broken, progressing=circle-notch,
+/// suspended=pause-circle, missing=warning (ghost equivalent).
 IconData healthStatusIcon(String status) {
   return switch (status.toLowerCase()) {
     'healthy' => Icons.favorite,
@@ -431,10 +435,13 @@ IconData healthStatusIcon(String status) {
 }
 
 /// Returns an ArgoCD-style icon for a sync status string.
+///
+/// Icons match the ArgoCD web UI: synced=check-circle,
+/// outofsync=arrow-circle-up.
 IconData syncStatusIcon(String status) {
   return switch (status.toLowerCase()) {
     'synced' => Icons.check_circle,
-    'outofsync' => Icons.sync_problem,
+    'outofsync' => Icons.arrow_circle_up,
     _ => Icons.help_outline,
   };
 }
