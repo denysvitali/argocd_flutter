@@ -44,7 +44,7 @@ void main() {
       await tester.pumpWidget(_wrapDashboard(controller));
       await tester.pumpAndSettle();
 
-      expect(find.text('Health Breakdown'), findsOneWidget);
+      expect(find.text('HEALTH BREAKDOWN'), findsOneWidget);
 
       // Hero banner metric chip values are visible
       expect(find.text('Total'), findsOneWidget);
@@ -64,9 +64,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Scroll down to find the Needs Attention section
-      await _scrollTo(tester, find.text('Needs Attention'));
+      await _scrollTo(tester, find.text('NEEDS ATTENTION'));
 
-      expect(find.text('Needs Attention'), findsOneWidget);
+      expect(find.text('NEEDS ATTENTION'), findsOneWidget);
 
       // Scroll more to see the degraded app
       await _scrollTo(tester, find.text('degraded-app').first);
@@ -83,9 +83,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Scroll down to find the Recent Activity section
-      await _scrollTo(tester, find.text('Recent Activity'));
+      await _scrollTo(tester, find.text('RECENT ACTIVITY'));
 
-      expect(find.text('Recent Activity'), findsOneWidget);
+      expect(find.text('RECENT ACTIVITY'), findsOneWidget);
     });
 
     testWidgets('shows all healthy message when nothing needs attention', (
@@ -104,6 +104,7 @@ void main() {
             syncStatus: 'Synced',
             healthStatus: 'Healthy',
             operationPhase: 'Succeeded',
+            operationMessage: null,
             lastSyncedAt: '2026-03-10T10:00:00Z',
             resources: <ArgoResource>[],
             history: <ArgoHistoryEntry>[],
@@ -150,9 +151,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Scroll down to find the Health Breakdown section
-      await _scrollTo(tester, find.text('Health Breakdown'));
+      await _scrollTo(tester, find.text('HEALTH BREAKDOWN'));
 
-      expect(find.text('Health Breakdown'), findsOneWidget);
+      expect(find.text('HEALTH BREAKDOWN'), findsOneWidget);
     });
   });
 }
@@ -173,6 +174,7 @@ const List<ArgoApplication> _testApplications = <ArgoApplication>[
     syncStatus: 'Synced',
     healthStatus: 'Healthy',
     operationPhase: 'Succeeded',
+    operationMessage: null,
     lastSyncedAt: '2026-03-10T10:00:00Z',
     resources: <ArgoResource>[],
     history: <ArgoHistoryEntry>[],
@@ -188,6 +190,7 @@ const List<ArgoApplication> _testApplications = <ArgoApplication>[
     syncStatus: 'Synced',
     healthStatus: 'Healthy',
     operationPhase: 'Succeeded',
+    operationMessage: null,
     lastSyncedAt: '2026-03-10T09:30:00Z',
     resources: <ArgoResource>[],
     history: <ArgoHistoryEntry>[],
@@ -203,6 +206,7 @@ const List<ArgoApplication> _testApplications = <ArgoApplication>[
     syncStatus: 'Synced',
     healthStatus: 'Degraded',
     operationPhase: 'Succeeded',
+    operationMessage: null,
     lastSyncedAt: '2026-03-10T08:00:00Z',
     resources: <ArgoResource>[],
     history: <ArgoHistoryEntry>[],
@@ -218,6 +222,7 @@ const List<ArgoApplication> _testApplications = <ArgoApplication>[
     syncStatus: 'OutOfSync',
     healthStatus: 'Healthy',
     operationPhase: 'Running',
+    operationMessage: null,
     lastSyncedAt: '2026-03-10T07:00:00Z',
     resources: <ArgoResource>[],
     history: <ArgoHistoryEntry>[],

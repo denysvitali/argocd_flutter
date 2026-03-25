@@ -177,6 +177,7 @@ void main() {
         syncStatus: syncStatus,
         healthStatus: healthStatus,
         operationPhase: 'Succeeded',
+        operationMessage: null,
         lastSyncedAt: null,
         resources: const <ArgoResource>[],
         history: const <ArgoHistoryEntry>[],

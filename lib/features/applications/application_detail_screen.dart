@@ -503,6 +503,12 @@ class _HeroHeader extends StatelessWidget {
                 label: application.syncStatus,
                 color: AppColors.syncColor(application.syncStatus),
               ),
+              if (application.operationPhase.toLowerCase() == 'failed')
+                const StatusChip(
+                  icon: Icons.error_outline,
+                  label: 'Op Failed',
+                  color: AppColors.degraded,
+                ),
               if (application.lastSyncedAt != null)
                 StatusChip(
                   icon: Icons.schedule,
@@ -637,6 +643,8 @@ class _OverviewTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(14),
       children: <Widget>[
+        if (application.hasOperationError)
+          _OperationErrorBanner(application: application),
         _SummarySection(application: application),
         const SizedBox(height: 14),
         _SourceSection(application: application),
@@ -656,6 +664,58 @@ class _OverviewTab extends StatelessWidget {
   }
 }
 
+class _OperationErrorBanner extends StatelessWidget {
+  const _OperationErrorBanner({required this.application});
+
+  final ArgoApplication application;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.degraded.withValues(alpha: 0.08),
+        borderRadius: AppRadius.md,
+        border: Border.all(
+          color: AppColors.degraded.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              const Icon(
+                Icons.error_outline,
+                size: 18,
+                color: AppColors.degraded,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Last sync operation failed',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: AppColors.degraded,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SelectableText(
+            application.operationMessage!,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SummarySection extends StatelessWidget {
   const _SummarySection({required this.application});
 
@@ -664,37 +724,45 @@ class _SummarySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SectionCard(
-      title: 'Summary',
+      title: null,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          // Status panel - horizontal sections
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              _DetailPill(label: 'Project', value: application.project),
-              _DetailPill(label: 'Namespace', value: application.namespace),
-              _DetailPill(label: 'Phase', value: application.operationPhase),
+              Expanded(child: _StatusPanelItem(
+                label: 'HEALTH',
+                value: application.healthStatus,
+                valueColor: AppColors.healthColor(application.healthStatus),
+                icon: healthStatusIcon(application.healthStatus),
+              )),
+              Expanded(child: _StatusPanelItem(
+                label: 'SYNC',
+                value: application.syncStatus,
+                valueColor: AppColors.syncColor(application.syncStatus),
+                icon: syncStatusIcon(application.syncStatus),
+              )),
             ],
           ),
           const SizedBox(height: 12),
-          const Divider(color: AppColors.border),
-          const SizedBox(height: 6),
+          const Divider(height: 1, color: AppColors.border),
+          const SizedBox(height: 12),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              _StatusIndicator(
-                label: 'Health',
-                value: application.healthStatus,
-                color: AppColors.healthColor(application.healthStatus),
-                icon: healthStatusIcon(application.healthStatus),
-              ),
-              const SizedBox(width: 24),
-              _StatusIndicator(
-                label: 'Sync',
-                value: application.syncStatus,
-                color: AppColors.syncColor(application.syncStatus),
-                icon: syncStatusIcon(application.syncStatus),
-              ),
+              Expanded(child: _StatusPanelItem(
+                label: 'PROJECT',
+                value: application.project,
+              )),
+              Expanded(child: _StatusPanelItem(
+                label: 'NAMESPACE',
+                value: application.namespace,
+              )),
+              Expanded(child: _StatusPanelItem(
+                label: 'PHASE',
+                value: application.operationPhase,
+              )),
             ],
           ),
         ],
@@ -703,49 +771,49 @@ class _SummarySection extends StatelessWidget {
   }
 }
 
-class _StatusIndicator extends StatelessWidget {
-  const _StatusIndicator({
+class _StatusPanelItem extends StatelessWidget {
+  const _StatusPanelItem({
     required this.label,
     required this.value,
-    required this.color,
-    required this.icon,
+    this.valueColor,
+    this.icon,
   });
 
   final String label;
   final String value;
-  final Color color;
-  final IconData icon;
+  final Color? valueColor;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
+        Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: AppColors.grey,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.8,
           ),
-          child: Icon(icon, size: 16, color: color),
         ),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        const SizedBox(height: 4),
+        Row(
+          mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            Text(
-              value,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: color,
+            if (icon != null) ...<Widget>[
+              Icon(icon, size: 16, color: valueColor),
+              const SizedBox(width: 4),
+            ],
+            Flexible(
+              child: Text(
+                value,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: valueColor ?? theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.w700,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -1509,48 +1577,6 @@ class _ResourceCountBadge extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Shared helpers
 // ---------------------------------------------------------------------------
-
-class _DetailPill extends StatelessWidget {
-  const _DetailPill({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: AppRadius.base,
-        border: Border.all(
-          color: theme.dividerColor.withValues(alpha: 0.6),
-        ),
-      ),
-      child: Text.rich(
-        TextSpan(
-          children: <TextSpan>[
-            TextSpan(
-              text: '$label: ',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            TextSpan(
-              text: value,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onSurface,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _LabeledText extends StatelessWidget {
   const _LabeledText({required this.label, required this.value});

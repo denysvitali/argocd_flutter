@@ -77,7 +77,7 @@ void main() {
     expect(find.text('History'), findsOneWidget);
 
     // Overview tab content is visible by default
-    expect(find.text('Summary'), findsOneWidget);
+    expect(find.text('HEALTH'), findsOneWidget);
     expect(find.text('Source'), findsOneWidget);
   });
 
@@ -245,6 +245,72 @@ void main() {
     expect(find.text('Progressing'), findsOneWidget);
   });
 
+  testWidgets('shows operation error banner when last sync failed', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 1920);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    api = _FakeArgoCdApi(
+      applications: const <ArgoApplication>[
+        ArgoApplication(
+          name: 'failing-app',
+          project: 'platform',
+          namespace: 'payments',
+          cluster: 'https://kubernetes.default.svc',
+          repoUrl: 'https://github.com/example/platform',
+          path: 'apps/failing-app',
+          targetRevision: 'main',
+          syncStatus: 'OutOfSync',
+          healthStatus: 'Degraded',
+          operationPhase: 'Failed',
+          operationMessage:
+              'one or more objects failed to apply, reason: deployment.apps "web" not found',
+          lastSyncedAt: '2026-03-10T10:00:00Z',
+          resources: <ArgoResource>[],
+          history: <ArgoHistoryEntry>[],
+        ),
+      ],
+    );
+    final storage = _MemorySessionStorage()
+      ..seedSession(
+        const AppSession(
+          serverUrl: 'https://argocd.example.com',
+          username: 'ops',
+          token: 'token',
+        ),
+      );
+    controller = AppController(
+      storage: storage,
+      api: api,
+      certificateProvider: const CertificateProvider(),
+    );
+    await controller.initialize();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
+        home: ApplicationDetailScreen(
+          controller: controller,
+          applicationName: 'failing-app',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Error banner is shown
+    expect(find.text('Last sync operation failed'), findsOneWidget);
+    expect(
+      find.textContaining('one or more objects failed to apply'),
+      findsOneWidget,
+    );
+
+    // Op Failed chip is shown in the header
+    expect(find.text('Op Failed'), findsOneWidget);
+  });
+
   testWidgets('pod logs open without forcing container name to pod name', (
     WidgetTester tester,
   ) async {
@@ -325,6 +391,7 @@ class _FakeArgoCdApi implements ArgoCdApi {
           syncStatus: 'Synced',
           healthStatus: 'Healthy',
           operationPhase: 'Succeeded',
+          operationMessage: null,
           lastSyncedAt: '2026-03-10T10:00:00Z',
           resources: <ArgoResource>[
             ArgoResource(

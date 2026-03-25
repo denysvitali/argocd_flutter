@@ -627,3 +627,69 @@ class FactBadge extends StatelessWidget {
     );
   }
 }
+
+/// A single segment in a [StatusSegmentBar].
+class StatusSegment {
+  const StatusSegment({required this.color, required this.count});
+
+  final Color color;
+  final int count;
+}
+
+/// ArgoCD-style proportional colored bar showing status distribution.
+///
+/// Each segment's width is proportional to its [StatusSegment.count].
+/// Segments with count == 0 are skipped. Adjacent segments are separated
+/// by a thin white line.
+class StatusSegmentBar extends StatelessWidget {
+  const StatusSegmentBar({
+    super.key,
+    required this.segments,
+    this.height = 8,
+  });
+
+  final List<StatusSegment> segments;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final nonZero =
+        segments.where((s) => s.count > 0).toList(growable: false);
+    final total = segments.fold<int>(0, (sum, s) => sum + s.count);
+
+    if (total == 0 || nonZero.isEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(height / 2),
+        child: SizedBox(
+          height: height,
+          child: Container(color: AppColors.gray4),
+        ),
+      );
+    }
+
+    final children = <Widget>[];
+    for (var i = 0; i < nonZero.length; i++) {
+      if (i > 0) {
+        children.add(SizedBox(width: 1.5, child: ColoredBox(color: AppColors.white)));
+      }
+      children.add(
+        Expanded(
+          flex: nonZero[i].count,
+          child: ColoredBox(color: nonZero[i].color),
+        ),
+      );
+    }
+
+    final percentages = nonZero
+        .map((s) => '${s.count} (${(s.count / total * 100).round()}%)')
+        .join(', ');
+
+    return Semantics(
+      label: 'Status bar: $percentages',
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(height / 2),
+        child: SizedBox(height: height, child: Row(children: children)),
+      ),
+    );
+  }
+}

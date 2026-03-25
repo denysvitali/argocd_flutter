@@ -123,6 +123,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             healthyCount: 0,
             outOfSyncCount: 0,
             degradedCount: 0,
+            healthSegments: const [],
           ),
           const SizedBox(height: 10),
           _EmptyDashboard(),
@@ -148,6 +149,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           healthyCount: healthyCount,
           outOfSyncCount: outOfSyncCount,
           degradedCount: degradedCount,
+          healthSegments: _healthSegments.map((s) => StatusSegment(color: s.color, count: s.count)).toList(),
         ),
         const SizedBox(height: 10),
         _SectionHeader(title: 'Health Breakdown'),
@@ -240,11 +242,11 @@ class _SectionHeader extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         Text(
-          title,
-          style: theme.textTheme.titleSmall?.copyWith(
+          title.toUpperCase(),
+          style: theme.textTheme.labelMedium?.copyWith(
             fontWeight: FontWeight.w700,
             color: AppColors.mutedText(theme),
-            letterSpacing: 0.2,
+            letterSpacing: 0.8,
           ),
         ),
       ],
@@ -307,6 +309,7 @@ class _HeroBanner extends StatelessWidget {
     required this.healthyCount,
     required this.outOfSyncCount,
     required this.degradedCount,
+    required this.healthSegments,
   });
 
   final AppController controller;
@@ -314,17 +317,30 @@ class _HeroBanner extends StatelessWidget {
   final int healthyCount;
   final int outOfSyncCount;
   final int degradedCount;
+  final List<StatusSegment> healthSegments;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final session = controller.session;
 
-    return SectionCard(
-      title: 'Cluster Summary',
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.headerSurface(theme),
+        borderRadius: AppRadius.md,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
+          Text(
+            'Cluster Summary',
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: AppColors.headerForeground(theme),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 2),
           Text(
             session == null
                 ? 'Connect to ArgoCD to monitor your deployments.'
@@ -332,36 +348,98 @@ class _HeroBanner extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.mutedText(theme),
+              color: AppColors.headerMutedForeground(theme),
             ),
           ),
           const SizedBox(height: 10),
           Row(
             children: <Widget>[
-              Expanded(child: SummaryTile(label: 'Total', value: totalApps)),
-              const SizedBox(width: 8),
               Expanded(
-                child: SummaryTile(label: 'Healthy', value: healthyCount),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: SummaryTile(
-                  label: 'Drifted',
-                  value: outOfSyncCount,
-                  valueColor: outOfSyncCount > 0 ? AppColors.amber : null,
+                child: _HeaderStatChip(
+                  label: 'Total',
+                  value: totalApps,
+                  theme: theme,
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: SummaryTile(
+                child: _HeaderStatChip(
+                  label: 'Healthy',
+                  value: healthyCount,
+                  theme: theme,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _HeaderStatChip(
+                  label: 'Drifted',
+                  value: outOfSyncCount,
+                  valueColor: outOfSyncCount > 0 ? AppColors.outOfSync : null,
+                  theme: theme,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _HeaderStatChip(
                   label: 'Degraded',
                   value: degradedCount,
-                  valueColor: degradedCount > 0 ? AppColors.coral : null,
+                  valueColor: degradedCount > 0 ? AppColors.degraded : null,
+                  theme: theme,
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          StatusSegmentBar(segments: healthSegments),
         ],
+      ),
+    );
+  }
+}
+
+class _HeaderStatChip extends StatelessWidget {
+  const _HeaderStatChip({
+    required this.label,
+    required this.value,
+    required this.theme,
+    this.valueColor,
+  });
+
+  final String label;
+  final int value;
+  final ThemeData theme;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: '$value $label',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.headerChipBackground(theme),
+          borderRadius: AppRadius.sm,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Text(
+              '$value',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: valueColor ?? AppColors.headerForeground(theme),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.headerMutedForeground(theme),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

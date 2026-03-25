@@ -71,7 +71,8 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       expect(find.text('payments-api'), findsOneWidget);
-      expect(find.text('Applications'), findsOneWidget);
+      // 'Applications' appears both in the AppBar title and the overview header.
+      expect(find.text('Applications'), findsAtLeastNWidgets(1));
     });
 
     testWidgets('search filters applications by name', (
@@ -317,6 +318,7 @@ const _sampleApplications = <ArgoApplication>[
     syncStatus: 'Synced',
     healthStatus: 'Healthy',
     operationPhase: 'Succeeded',
+    operationMessage: null,
     lastSyncedAt: '2025-03-10T10:00:00Z',
     resources: <ArgoResource>[],
     history: <ArgoHistoryEntry>[],
@@ -332,6 +334,7 @@ const _sampleApplications = <ArgoApplication>[
     syncStatus: 'OutOfSync',
     healthStatus: 'Degraded',
     operationPhase: 'Failed',
+    operationMessage: 'one or more objects failed to apply',
     lastSyncedAt: '2025-03-09T08:00:00Z',
     resources: <ArgoResource>[],
     history: <ArgoHistoryEntry>[],

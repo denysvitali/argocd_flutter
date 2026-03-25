@@ -129,6 +129,7 @@ class _IntegrationFakeApi implements ArgoCdApi {
       syncStatus: 'Synced',
       healthStatus: 'Healthy',
       operationPhase: 'Succeeded',
+      operationMessage: null,
       lastSyncedAt: '2026-03-10T10:00:00Z',
       resources: <ArgoResource>[],
       history: <ArgoHistoryEntry>[],

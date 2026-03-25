@@ -12,6 +12,7 @@ class ArgoApplication {
     required this.syncStatus,
     required this.healthStatus,
     required this.operationPhase,
+    required this.operationMessage,
     required this.lastSyncedAt,
     required this.resources,
     required this.history,
@@ -44,6 +45,7 @@ class ArgoApplication {
         operationState['phase'],
         fallback: status['operationState'] == null ? 'Idle' : 'Unknown',
       ),
+      operationMessage: parseString(operationState['message']),
       lastSyncedAt: parseString(sync['reconciledAt']),
       resources: parseList(status['resources'])
           .map((dynamic item) => ArgoResource.fromJson(parseMap(item)))
@@ -64,12 +66,17 @@ class ArgoApplication {
   final String syncStatus;
   final String healthStatus;
   final String operationPhase;
+  final String? operationMessage;
   final String? lastSyncedAt;
   final List<ArgoResource> resources;
   final List<ArgoHistoryEntry> history;
 
   bool get isOutOfSync => syncStatus.toLowerCase() != 'synced';
   bool get isHealthy => healthStatus.toLowerCase() == 'healthy';
+  bool get hasOperationError =>
+      operationPhase.toLowerCase() == 'failed' &&
+      operationMessage != null &&
+      operationMessage!.isNotEmpty;
 }
 
 class ArgoResource {

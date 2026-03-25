@@ -472,7 +472,7 @@ class _OverviewStrip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.headerSurfaceAlt(theme),
+        color: AppColors.headerSurface(theme),
         borderRadius: AppRadius.md,
       ),
       child: Column(

@@ -121,6 +121,44 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
     final outOfSyncCount = allApplications
         .where((application) => application.isOutOfSync)
         .length;
+    final healthSegments = <StatusSegment>[
+      StatusSegment(
+        color: AppColors.healthy,
+        count: allApplications.where((a) => a.isHealthy).length,
+      ),
+      StatusSegment(
+        color: AppColors.progressing,
+        count: allApplications
+            .where((a) => a.healthStatus.toLowerCase() == 'progressing')
+            .length,
+      ),
+      StatusSegment(
+        color: AppColors.degraded,
+        count: allApplications
+            .where((a) => a.healthStatus.toLowerCase() == 'degraded')
+            .length,
+      ),
+      StatusSegment(
+        color: AppColors.missing,
+        count: allApplications
+            .where((a) => a.healthStatus.toLowerCase() == 'missing')
+            .length,
+      ),
+      StatusSegment(
+        color: AppColors.unknown,
+        count: allApplications.length -
+            allApplications
+                .where(
+                  (a) => const <String>{
+                    'healthy',
+                    'progressing',
+                    'degraded',
+                    'missing',
+                  }.contains(a.healthStatus.toLowerCase()),
+                )
+                .length,
+      ),
+    ];
     final searchedApplications = allApplications
         .where((application) {
           if (normalizedQuery.isEmpty) {
@@ -197,6 +235,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               totalApplications: allApplications.length,
               unhealthyCount: unhealthyCount,
               outOfSyncCount: outOfSyncCount,
+              healthSegments: healthSegments,
             ),
             const SizedBox(height: 8),
             _SearchBar(
@@ -502,61 +541,159 @@ class _OverviewStrip extends StatelessWidget {
     required this.totalApplications,
     required this.unhealthyCount,
     required this.outOfSyncCount,
+    required this.healthSegments,
   });
 
   final AppController controller;
   final int totalApplications;
   final int unhealthyCount;
   final int outOfSyncCount;
+  final List<StatusSegment> healthSegments;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final session = controller.session;
+    final fg = AppColors.headerForeground(theme);
+    final muted = AppColors.headerMutedForeground(theme);
+    final chipBg = AppColors.headerChipBackground(theme);
 
-    return SectionCard(
-      title: 'Overview',
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.headerSurface(theme),
+        borderRadius: AppRadius.md,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            session == null
-                ? 'Connect to ArgoCD to inspect application health.'
-                : '${session.username} on ${session.serverUrl}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.mutedText(theme),
-            ),
-          ),
-          const SizedBox(height: 10),
+          // Title row
           Row(
             children: <Widget>[
-              Expanded(
-                child: SummaryTile(
-                  label: 'Apps',
-                  value: totalApplications,
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: chipBg,
+                  borderRadius: AppRadius.sm,
+                ),
+                child: Icon(
+                  Icons.apps_rounded,
+                  size: 16,
+                  color: fg,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Expanded(
-                child: SummaryTile(
-                  label: 'Drifted',
-                  value: outOfSyncCount,
-                  valueColor: outOfSyncCount > 0 ? AppColors.amber : null,
+                child: Text(
+                  'Applications',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: fg,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: SummaryTile(
-                  label: 'Unhealthy',
-                  value: unhealthyCount,
-                  valueColor: unhealthyCount > 0 ? AppColors.coral : null,
+              if (session != null)
+                Flexible(
+                  child: Text(
+                    session.serverUrl,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.end,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: muted,
+                    ),
+                  ),
                 ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Metric chips
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: <Widget>[
+              _MetricChip(
+                value: totalApplications,
+                label: 'Total',
+                background: chipBg,
+                fg: fg,
+                muted: muted,
+              ),
+              _MetricChip(
+                value: outOfSyncCount,
+                label: 'Drifted',
+                background: outOfSyncCount > 0
+                    ? AppColors.outOfSync.withValues(alpha: 0.22)
+                    : chipBg,
+                fg: outOfSyncCount > 0 ? AppColors.outOfSync : fg,
+                muted: muted,
+              ),
+              _MetricChip(
+                value: unhealthyCount,
+                label: 'Unhealthy',
+                background: unhealthyCount > 0
+                    ? AppColors.degraded.withValues(alpha: 0.22)
+                    : chipBg,
+                fg: unhealthyCount > 0 ? AppColors.degraded : fg,
+                muted: muted,
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          // Health segment bar
+          StatusSegmentBar(segments: healthSegments),
         ],
+      ),
+    );
+  }
+}
+
+class _MetricChip extends StatelessWidget {
+  const _MetricChip({
+    required this.value,
+    required this.label,
+    required this.background,
+    required this.fg,
+    required this.muted,
+  });
+
+  final int value;
+  final String label;
+  final Color background;
+  final Color fg;
+  final Color muted;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      label: '$value $label',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: AppRadius.sm,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Text(
+              '$value',
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: fg,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: muted,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -620,7 +757,7 @@ class _ApplicationCard extends StatelessWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '${application.project} / ${application.namespace}',
+                              application.project,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
                                 fontWeight: FontWeight.w600,
@@ -649,7 +786,56 @@ class _ApplicationCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
+                  // Cluster + namespace metadata row
+                  Row(
+                    children: <Widget>[
+                      ExcludeSemantics(
+                        child: Icon(
+                          Icons.dns_outlined,
+                          size: 12,
+                          color: AppColors.mutedText(theme),
+                        ),
+                      ),
+                      const SizedBox(width: 3),
+                      Flexible(
+                        child: Text(
+                          _clusterShortName(application.cluster),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.mutedText(theme),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Text(
+                          '\u2022',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.greyLight,
+                          ),
+                        ),
+                      ),
+                      ExcludeSemantics(
+                        child: Icon(
+                          Icons.view_in_ar_outlined,
+                          size: 12,
+                          color: AppColors.mutedText(theme),
+                        ),
+                      ),
+                      const SizedBox(width: 3),
+                      Flexible(
+                        child: Text(
+                          application.namespace,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.mutedText(theme),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
                   Wrap(
                     spacing: 6,
                     runSpacing: 4,
@@ -850,6 +1036,16 @@ String _repoHost(String repoUrl) {
     return uri.host;
   }
   return repoUrl;
+}
+
+String _clusterShortName(String cluster) {
+  // Show just the hostname portion if the cluster is a URL.
+  final uri = Uri.tryParse(cluster);
+  if (uri != null && uri.host.isNotEmpty) {
+    return uri.host;
+  }
+  // Already a short name or an in-cluster reference.
+  return cluster.isEmpty ? 'in-cluster' : cluster;
 }
 
 String _pathLabel(String path) {
