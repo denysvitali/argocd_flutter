@@ -5,6 +5,7 @@ import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/models/argo_project.dart';
 import 'package:argocd_flutter/core/models/argo_resource_node.dart';
 import 'package:dio/dio.dart';
+import 'package:sentry_dio/sentry_dio.dart';
 
 import '../api/native_adapter_helper.dart'
     if (dart.library.js_interop) '../api/native_adapter_helper_web.dart';
@@ -533,6 +534,7 @@ class NetworkArgoCdApi implements ArgoCdApi {
     );
 
     dio.httpClientAdapter = createNativeAdapter();
+    dio.addSentry();
     dio.options.headers['User-Agent'] = 'ArgoCdFlutter/1.0';
     if (token != null && token.isNotEmpty) {
       dio.options.headers['Authorization'] = 'Bearer $token';

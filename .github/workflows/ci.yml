@@ -243,9 +243,21 @@ jobs:
 
       - name: Build Release APK
         run: |
+          SENTRY_RELEASE="argocd_flutter@1.0.0+${{ steps.build_meta.outputs.BUILD_NUMBER }}"
           devenv shell -- flutter build apk --release --no-pub \
             --target-platform android-arm64 \
-            --build-number ${{ steps.build_meta.outputs.BUILD_NUMBER }}
+            --build-number ${{ steps.build_meta.outputs.BUILD_NUMBER }} \
+            --dart-define=SENTRY_RELEASE=$SENTRY_RELEASE \
+            --split-debug-info=build/debug-info \
+            --obfuscate
+
+      - name: Upload Sentry debug symbols
+        if: env.SENTRY_AUTH_TOKEN != ''
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_RELEASE: argocd_flutter@1.0.0+${{ steps.build_meta.outputs.BUILD_NUMBER }}
+          SENTRY_DIST: ${{ steps.build_meta.outputs.BUILD_NUMBER }}
+        run: devenv shell -- flutter pub run sentry_dart_plugin
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4

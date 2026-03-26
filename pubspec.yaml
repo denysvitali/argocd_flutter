@@ -16,12 +16,15 @@ dependencies:
   flutter_secure_storage: ^10.0.0
   native_dio_adapter: ^1.4.0
   shared_preferences: ^2.5.3
+  sentry_flutter: ^9.14.0
+  sentry_dio: ^9.14.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
   golden_toolkit: ^0.15.0
+  sentry_dart_plugin: ^2.3.0
 
 flutter:
   uses-material-design: true

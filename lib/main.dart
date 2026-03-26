@@ -7,9 +7,15 @@ import 'package:argocd_flutter/core/services/theme_controller.dart';
 import 'package:argocd_flutter/ui/app_root.dart';
 import 'package:flutter/material.dart';
 
-void main() {
-  WidgetsFlutterBinding.ensureInitialized();
+import 'sentry_init_native.dart'
+    if (dart.library.js_interop) 'sentry_init_web.dart';
 
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initSentryForPlatform(_runApp);
+}
+
+Future<void> _runApp() async {
   final themeController = ThemeController();
 
   // Create controller first, then wire HealthMonitor's refresh callback.
