@@ -241,6 +241,7 @@ void main() {
 class _MemorySessionStorage implements SessionStorage {
   AppSession? _session;
   String? _serverUrl;
+  String? _lastUsername;
 
   @override
   Future<void> clearSession() async {
@@ -251,6 +252,9 @@ class _MemorySessionStorage implements SessionStorage {
   Future<String?> loadLastServerUrl() async => _serverUrl;
 
   @override
+  Future<String?> loadLastUsername() async => _lastUsername;
+
+  @override
   Future<AppSession?> loadSession() async => _session;
 
   @override
@@ -259,14 +263,21 @@ class _MemorySessionStorage implements SessionStorage {
   }
 
   @override
+  Future<void> saveLastUsername(String username) async {
+    _lastUsername = username;
+  }
+
+  @override
   Future<void> saveSession(AppSession session) async {
     _session = session;
     _serverUrl = session.serverUrl;
+    _lastUsername = session.username;
   }
 
   void seedSession(AppSession session) {
     _session = session;
     _serverUrl = session.serverUrl;
+    _lastUsername = session.username;
   }
 }
 
@@ -320,8 +331,7 @@ class _FakeLogApi implements ArgoCdApi {
   Future<List<ArgoResourceNode>> fetchResourceTree(
     AppSession session,
     String applicationName,
-  ) async =>
-      const <ArgoResourceNode>[];
+  ) async => const <ArgoResourceNode>[];
 
   @override
   Future<String> fetchResourceManifest(
@@ -332,8 +342,7 @@ class _FakeLogApi implements ArgoCdApi {
     required String kind,
     required String group,
     required String version,
-  }) async =>
-      '';
+  }) async => '';
 
   @override
   Future<void> syncApplication(
@@ -390,8 +399,8 @@ class _FakeLogApi implements ArgoCdApi {
 /// An API fake whose fetchResourceLogs behaviour is controlled by a callback.
 class _ToggleLogApi extends _FakeLogApi {
   _ToggleLogApi({required String Function() onFetch})
-      : _onFetch = onFetch,
-        super(logs: '');
+    : _onFetch = onFetch,
+      super(logs: '');
 
   final String Function() _onFetch;
 
@@ -403,8 +412,7 @@ class _ToggleLogApi extends _FakeLogApi {
     required String podName,
     String? containerName,
     int tailLines = 500,
-  }) async =>
-      _onFetch();
+  }) async => _onFetch();
 }
 
 /// An API fake that counts how many times fetchResourceLogs has been called.

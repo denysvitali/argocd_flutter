@@ -59,6 +59,9 @@ class AppController extends ChangeNotifier {
   String _lastServerUrl = '';
   String get lastServerUrl => _lastServerUrl;
 
+  String _lastUsername = '';
+  String get lastUsername => _lastUsername;
+
   CertificateStatus? _certificateStatus;
   CertificateStatus? get certificateStatus => _certificateStatus;
 
@@ -76,6 +79,7 @@ class AppController extends ChangeNotifier {
   Future<void> _initializeImpl() async {
     _certificateStatus = await _certificateProvider.getStatus();
     _lastServerUrl = await _storage.loadLastServerUrl() ?? '';
+    _lastUsername = await _storage.loadLastUsername() ?? '';
 
     final storedSession = await _storage.loadSession();
     if (storedSession == null) {
@@ -86,6 +90,7 @@ class AppController extends ChangeNotifier {
 
     _session = storedSession;
     _lastServerUrl = storedSession.serverUrl;
+    _lastUsername = storedSession.username;
     _stage = AppStage.authenticated;
     _loadingApplications = true;
     notifyListeners();
@@ -115,24 +120,28 @@ class AppController extends ChangeNotifier {
   }) async {
     await _runBusyAction(() async {
       final normalizedServerUrl = serverUrl.trim();
+      final normalizedUsername = username.trim();
       _errorMessage = null;
       await _storage.saveLastServerUrl(normalizedServerUrl);
+      await _storage.saveLastUsername(normalizedUsername);
       _lastServerUrl = normalizedServerUrl;
+      _lastUsername = normalizedUsername;
 
       await _api.verifyServer(normalizedServerUrl);
       final nextSession = await _api.signIn(
         serverUrl: normalizedServerUrl,
-        username: username.trim(),
+        username: normalizedUsername,
         password: password,
       );
 
       _session = nextSession;
-      _stage = AppStage.authenticated;
       await _storage.saveSession(nextSession);
       await Future.wait<void>(<Future<void>>[
         refreshApplications(showSpinner: false),
         refreshProjects(showSpinner: false),
       ]);
+      _stage = AppStage.authenticated;
+      _healthMonitor?.resume();
     });
   }
 
@@ -347,10 +356,6 @@ class AppController extends ChangeNotifier {
     final normalizedServerUrl = serverUrl.trim();
     await _storage.saveLastServerUrl(normalizedServerUrl);
     _lastServerUrl = normalizedServerUrl;
-    if (_session != null) {
-      await signOut();
-      return;
-    }
     notifyListeners();
   }
 

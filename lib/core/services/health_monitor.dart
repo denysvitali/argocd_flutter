@@ -35,6 +35,7 @@ class HealthMonitor extends ChangeNotifier {
   Timer? _timer;
   bool _enabled = false;
   bool _initialized = false;
+  bool _pollInFlight = false;
   Duration _pollInterval;
   final Set<String> _mutedApps = <String>{};
 
@@ -59,6 +60,7 @@ class HealthMonitor extends ChangeNotifier {
 
   Future<void> initialize() async {
     if (_initialized) {
+      resume();
       return;
     }
     _initialized = true;
@@ -126,21 +128,25 @@ class HealthMonitor extends ChangeNotifier {
       final currHealth = app.healthStatus.toLowerCase();
       if (prevHealth != currHealth) {
         if (currHealth == 'degraded') {
-          newEvents.add(HealthEvent(
-            applicationName: app.name,
-            kind: HealthEventKind.degraded,
-            previousValue: prev.healthStatus,
-            currentValue: app.healthStatus,
-            detectedAt: now,
-          ));
+          newEvents.add(
+            HealthEvent(
+              applicationName: app.name,
+              kind: HealthEventKind.degraded,
+              previousValue: prev.healthStatus,
+              currentValue: app.healthStatus,
+              detectedAt: now,
+            ),
+          );
         } else if (currHealth == 'healthy' && prevHealth == 'degraded') {
-          newEvents.add(HealthEvent(
-            applicationName: app.name,
-            kind: HealthEventKind.recovered,
-            previousValue: prev.healthStatus,
-            currentValue: app.healthStatus,
-            detectedAt: now,
-          ));
+          newEvents.add(
+            HealthEvent(
+              applicationName: app.name,
+              kind: HealthEventKind.recovered,
+              previousValue: prev.healthStatus,
+              currentValue: app.healthStatus,
+              detectedAt: now,
+            ),
+          );
         }
       }
 
@@ -149,21 +155,25 @@ class HealthMonitor extends ChangeNotifier {
       final currSync = app.syncStatus.toLowerCase();
       if (prevSync != currSync) {
         if (currSync != 'synced') {
-          newEvents.add(HealthEvent(
-            applicationName: app.name,
-            kind: HealthEventKind.drifted,
-            previousValue: prev.syncStatus,
-            currentValue: app.syncStatus,
-            detectedAt: now,
-          ));
+          newEvents.add(
+            HealthEvent(
+              applicationName: app.name,
+              kind: HealthEventKind.drifted,
+              previousValue: prev.syncStatus,
+              currentValue: app.syncStatus,
+              detectedAt: now,
+            ),
+          );
         } else if (currSync == 'synced' && prevSync != 'synced') {
-          newEvents.add(HealthEvent(
-            applicationName: app.name,
-            kind: HealthEventKind.synced,
-            previousValue: prev.syncStatus,
-            currentValue: app.syncStatus,
-            detectedAt: now,
-          ));
+          newEvents.add(
+            HealthEvent(
+              applicationName: app.name,
+              kind: HealthEventKind.synced,
+              previousValue: prev.syncStatus,
+              currentValue: app.syncStatus,
+              detectedAt: now,
+            ),
+          );
         }
       }
 
@@ -171,13 +181,15 @@ class HealthMonitor extends ChangeNotifier {
       final prevOp = prev.operationPhase.toLowerCase();
       final currOp = app.operationPhase.toLowerCase();
       if (prevOp != currOp && currOp == 'failed') {
-        newEvents.add(HealthEvent(
-          applicationName: app.name,
-          kind: HealthEventKind.operationFailed,
-          previousValue: prev.operationPhase,
-          currentValue: app.operationPhase,
-          detectedAt: now,
-        ));
+        newEvents.add(
+          HealthEvent(
+            applicationName: app.name,
+            kind: HealthEventKind.operationFailed,
+            previousValue: prev.operationPhase,
+            currentValue: app.operationPhase,
+            detectedAt: now,
+          ),
+        );
       }
 
       _previousState[app.name] = _AppSnapshot(
@@ -188,10 +200,10 @@ class HealthMonitor extends ChangeNotifier {
     }
 
     // Remove apps that no longer exist.
-    final currentNames = applications.map((ArgoApplication a) => a.name).toSet();
-    _previousState.removeWhere(
-      (String key, _) => !currentNames.contains(key),
-    );
+    final currentNames = applications
+        .map((ArgoApplication a) => a.name)
+        .toSet();
+    _previousState.removeWhere((String key, _) => !currentNames.contains(key));
 
     if (newEvents.isNotEmpty) {
       _events.insertAll(0, newEvents);
@@ -285,20 +297,39 @@ class HealthMonitor extends ChangeNotifier {
 
   bool isAppMuted(String name) => _mutedApps.contains(name);
 
+  void resume() {
+    if (_enabled && !isPolling) {
+      _startTimer();
+      notifyListeners();
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Timer
   // ---------------------------------------------------------------------------
 
   void _startTimer() {
     _stopTimer();
-    _timer = Timer.periodic(_pollInterval, (_) {
-      _onRefreshRequested();
-    });
+    _timer = Timer.periodic(_pollInterval, (_) => _poll());
   }
 
   void _stopTimer() {
     _timer?.cancel();
     _timer = null;
+  }
+
+  Future<void> _poll() async {
+    if (_pollInFlight) {
+      return;
+    }
+    _pollInFlight = true;
+    try {
+      await _onRefreshRequested();
+    } catch (_) {
+      // Poll failures should not crash the app or create unhandled async errors.
+    } finally {
+      _pollInFlight = false;
+    }
   }
 
   // ---------------------------------------------------------------------------

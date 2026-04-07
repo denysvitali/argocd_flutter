@@ -17,168 +17,193 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final session = controller.session;
-    final certificateStatus = controller.certificateStatus;
+    final monitor = controller.healthMonitor;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        padding: const EdgeInsets.all(12),
-        children: <Widget>[
-          _SectionCard(
-            title: 'Appearance',
-            icon: Icons.palette_outlined,
+    return AnimatedBuilder(
+      animation: Listenable.merge(<Listenable>[
+        controller,
+        themeController,
+        ?monitor,
+      ]),
+      builder: (BuildContext context, Widget? child) {
+        final session = controller.session;
+        final certificateStatus = controller.certificateStatus;
+        final savedServerDiffers =
+            session != null &&
+            controller.lastServerUrl.isNotEmpty &&
+            controller.lastServerUrl != session.serverUrl;
+
+        return Scaffold(
+          appBar: AppBar(title: const Text('Settings')),
+          body: ListView(
+            padding: const EdgeInsets.all(12),
             children: <Widget>[
-              _ThemePicker(themeController: themeController),
-            ],
-          ),
-          if (controller.healthMonitor != null) ...<Widget>[
-            const SizedBox(height: 8),
-            _NotificationsSection(monitor: controller.healthMonitor!),
-          ],
-          const SizedBox(height: 8),
-          _SectionCard(
-            title: 'Connection',
-            icon: Icons.cloud_outlined,
-            children: <Widget>[
-              _ConnectionTile(
-                icon: Icons.dns_outlined,
-                title: 'Server',
-                subtitle:
-                    session?.serverUrl ?? controller.lastServerUrl,
-                trailing: _ConnectionDot(
-                  connected: session != null,
-                ),
-              ),
-              const Divider(height: 1),
-              _ConnectionTile(
-                icon: Icons.person_outline,
-                title: 'Username',
-                subtitle: session?.username ?? 'Signed out',
-              ),
-              const Divider(height: 1),
-              _ConnectionTile(
-                icon: Icons.wifi_outlined,
-                title: 'Session state',
-                subtitle:
-                    session == null ? 'No active session' : 'Authenticated',
-                trailing: _ConnectionDot(connected: session != null),
-              ),
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+              _SectionCard(
+                title: 'Appearance',
+                icon: Icons.palette_outlined,
                 children: <Widget>[
-                  OutlinedButton.icon(
-                    onPressed: controller.busy
-                        ? null
-                        : () => _showServerDialog(context),
-                    icon: const Icon(Icons.edit_outlined, size: 18),
-                    label: const Text('Edit server'),
+                  _ThemePicker(themeController: themeController),
+                ],
+              ),
+              if (monitor != null) ...<Widget>[
+                const SizedBox(height: 8),
+                _NotificationsSection(monitor: monitor),
+              ],
+              const SizedBox(height: 8),
+              _SectionCard(
+                title: 'Connection',
+                icon: Icons.cloud_outlined,
+                children: <Widget>[
+                  _ConnectionTile(
+                    icon: Icons.dns_outlined,
+                    title: 'Server',
+                    subtitle: session?.serverUrl ?? controller.lastServerUrl,
+                    trailing: _ConnectionDot(connected: session != null),
                   ),
-                  OutlinedButton.icon(
-                    onPressed: controller.busy
-                        ? null
-                        : () => _testConnection(context),
-                    icon: const Icon(Icons.network_ping, size: 18),
-                    label: const Text('Test connection'),
+                  if (savedServerDiffers) ...<Widget>[
+                    const Divider(height: 1),
+                    _ConnectionTile(
+                      icon: Icons.bookmark_outline,
+                      title: 'Saved next server',
+                      subtitle: controller.lastServerUrl,
+                    ),
+                  ],
+                  const Divider(height: 1),
+                  _ConnectionTile(
+                    icon: Icons.person_outline,
+                    title: 'Username',
+                    subtitle: session?.username.isNotEmpty == true
+                        ? session!.username
+                        : (controller.lastUsername.isNotEmpty
+                              ? controller.lastUsername
+                              : 'Signed out'),
                   ),
-                  OutlinedButton.icon(
-                    onPressed: controller.busy
-                        ? null
-                        : () => controller.refreshProjects(),
-                    icon: const Icon(Icons.sync_outlined, size: 18),
-                    label: const Text('Refresh projects'),
+                  const Divider(height: 1),
+                  _ConnectionTile(
+                    icon: Icons.wifi_outlined,
+                    title: 'Session state',
+                    subtitle: session == null
+                        ? 'No active session'
+                        : 'Authenticated',
+                    trailing: _ConnectionDot(connected: session != null),
                   ),
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: <Widget>[
+                      OutlinedButton.icon(
+                        onPressed: controller.busy
+                            ? null
+                            : () => _showServerDialog(context),
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        label: const Text('Edit server'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: controller.busy
+                            ? null
+                            : () => _testConnection(context),
+                        icon: const Icon(Icons.network_ping, size: 18),
+                        label: const Text('Test connection'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: controller.busy
+                            ? null
+                            : () => controller.refreshProjects(),
+                        icon: const Icon(Icons.sync_outlined, size: 18),
+                        label: const Text('Refresh projects'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              _SectionCard(
+                title: 'Certificates',
+                icon: Icons.verified_user_outlined,
+                children: <Widget>[
+                  _ConnectionTile(
+                    icon: Icons.security_outlined,
+                    title: 'Support',
+                    subtitle: certificateStatus?.supported == true
+                        ? 'Enabled'
+                        : 'Unavailable',
+                  ),
+                  const Divider(height: 1),
+                  _ConnectionTile(
+                    icon: Icons.info_outline,
+                    title: 'Details',
+                    subtitle:
+                        certificateStatus?.message ??
+                        'Loading certificate support...',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              _SectionCard(
+                title: 'Actions',
+                icon: Icons.bolt_outlined,
+                children: <Widget>[
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: controller.busy
+                          ? null
+                          : () => controller.refreshApplications(),
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: const Text('Refresh applications'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: controller.busy
+                          ? null
+                          : () => _confirmSignOut(context),
+                      icon: const Icon(Icons.logout, size: 18),
+                      label: const Text('Sign out'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.degraded,
+                        side: const BorderSide(
+                          color: AppColors.degraded,
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              _SectionCard(
+                title: 'About',
+                icon: Icons.info_outline,
+                children: <Widget>[
+                  _ConnectionTile(
+                    icon: Icons.apps_outlined,
+                    title: 'Application',
+                    subtitle: 'ArgoCD Flutter',
+                  ),
+                  const Divider(height: 1),
+                  _ConnectionTile(
+                    icon: Icons.flutter_dash_outlined,
+                    title: 'Framework',
+                    subtitle: 'Flutter 3.38+',
+                  ),
+                  const Divider(height: 1),
+                  _ConnectionTile(
+                    icon: Icons.code_outlined,
+                    title: 'Source',
+                    subtitle: 'github.com/argocd-flutter',
+                  ),
+                  const SizedBox(height: 8),
+                  const _VersionBadge(),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          _SectionCard(
-            title: 'Certificates',
-            icon: Icons.verified_user_outlined,
-            children: <Widget>[
-              _ConnectionTile(
-                icon: Icons.security_outlined,
-                title: 'Support',
-                subtitle: certificateStatus?.supported == true
-                    ? 'Enabled'
-                    : 'Unavailable',
-              ),
-              const Divider(height: 1),
-              _ConnectionTile(
-                icon: Icons.info_outline,
-                title: 'Details',
-                subtitle:
-                    certificateStatus?.message ??
-                    'Loading certificate support...',
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _SectionCard(
-            title: 'Actions',
-            icon: Icons.bolt_outlined,
-            children: <Widget>[
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: controller.busy
-                      ? null
-                      : () => controller.refreshApplications(),
-                  icon: const Icon(Icons.refresh, size: 18),
-                  label: const Text('Refresh applications'),
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: controller.busy
-                      ? null
-                      : () => _confirmSignOut(context),
-                  icon: const Icon(Icons.logout, size: 18),
-                  label: const Text('Sign out'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.degraded,
-                    side: const BorderSide(
-                      color: AppColors.degraded,
-                      width: 1,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _SectionCard(
-            title: 'About',
-            icon: Icons.info_outline,
-            children: <Widget>[
-              _ConnectionTile(
-                icon: Icons.apps_outlined,
-                title: 'Application',
-                subtitle: 'ArgoCD Flutter',
-              ),
-              const Divider(height: 1),
-              _ConnectionTile(
-                icon: Icons.flutter_dash_outlined,
-                title: 'Framework',
-                subtitle: 'Flutter 3.38+',
-              ),
-              const Divider(height: 1),
-              _ConnectionTile(
-                icon: Icons.code_outlined,
-                title: 'Source',
-                subtitle: 'github.com/argocd-flutter',
-              ),
-              const SizedBox(height: 8),
-              const _VersionBadge(),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -255,9 +280,11 @@ class SettingsScreen extends StatelessWidget {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text(
-          'Server URL updated. Sign in again to connect to the new server.',
+          controller.session == null
+              ? 'Server URL updated.'
+              : 'Saved for the next sign-in. Your current session stays connected.',
         ),
       ),
     );
@@ -373,10 +400,7 @@ class _ThemeCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
             decoration: BoxDecoration(
               borderRadius: AppRadius.base,
-              border: Border.all(
-                color: borderColor,
-                width: selected ? 1.5 : 1,
-              ),
+              border: Border.all(color: borderColor, width: selected ? 1.5 : 1),
             ),
             child: Column(
               children: <Widget>[
@@ -460,11 +484,7 @@ class _SectionCard extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              Icon(
-                icon,
-                size: 20,
-                color: theme.colorScheme.primary,
-              ),
+              Icon(icon, size: 20, color: theme.colorScheme.primary),
               const SizedBox(width: 10),
               Text(
                 title,
@@ -501,11 +521,7 @@ class _ConnectionTile extends StatelessWidget {
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon),
       title: Text(title),
-      subtitle: Text(
-        subtitle,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
+      subtitle: Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
       trailing: trailing,
     );
   }

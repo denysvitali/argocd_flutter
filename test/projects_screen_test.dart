@@ -501,6 +501,7 @@ const List<ArgoProject> _sampleProjects = <ArgoProject>[
 class _MemorySessionStorage implements SessionStorage {
   AppSession? _session;
   String? _serverUrl;
+  String? _lastUsername;
 
   @override
   Future<void> clearSession() async {
@@ -511,6 +512,9 @@ class _MemorySessionStorage implements SessionStorage {
   Future<String?> loadLastServerUrl() async => _serverUrl;
 
   @override
+  Future<String?> loadLastUsername() async => _lastUsername;
+
+  @override
   Future<AppSession?> loadSession() async => _session;
 
   @override
@@ -519,14 +523,21 @@ class _MemorySessionStorage implements SessionStorage {
   }
 
   @override
+  Future<void> saveLastUsername(String username) async {
+    _lastUsername = username;
+  }
+
+  @override
   Future<void> saveSession(AppSession session) async {
     _session = session;
     _serverUrl = session.serverUrl;
+    _lastUsername = session.username;
   }
 
   void seedSession(AppSession session) {
     _session = session;
     _serverUrl = session.serverUrl;
+    _lastUsername = session.username;
   }
 }
 

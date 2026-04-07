@@ -8,6 +8,8 @@ import 'package:argocd_flutter/features/dashboard/dashboard_screen.dart';
 import 'package:argocd_flutter/features/projects/project_detail_screen.dart';
 import 'package:argocd_flutter/features/projects/projects_screen.dart';
 import 'package:argocd_flutter/features/settings/settings_screen.dart';
+import 'package:argocd_flutter/core/models/argo_application.dart';
+import 'package:argocd_flutter/core/models/argo_project.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:flutter/material.dart';
 
@@ -218,6 +220,19 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 
+  void _openProject(String projectName) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) {
+          return ProjectDetailScreen(
+            controller: widget.controller,
+            projectName: projectName,
+          );
+        },
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -262,18 +277,7 @@ class _HomeShellState extends State<HomeShell> {
         ),
         ProjectsScreen(
           controller: widget.controller,
-          onOpenProject: (projectName) {
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (context) {
-                  return ProjectDetailScreen(
-                    controller: widget.controller,
-                    projectName: projectName,
-                  );
-                },
-              ),
-            );
-          },
+          onOpenProject: _openProject,
         ),
         SettingsScreen(
           controller: widget.controller,
@@ -289,9 +293,11 @@ class _HomeShellState extends State<HomeShell> {
     final compactNav = MediaQuery.sizeOf(context).width < 600;
 
     return Scaffold(
-      body: _IndexedStackWithTickerMode(
-        index: _index,
-        children: _pages,
+      body: _IndexedStackWithTickerMode(index: _index, children: _pages),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showQuickSearch,
+        icon: const Icon(Icons.search),
+        label: Text(compactNav ? 'Search' : 'Quick search'),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
@@ -330,6 +336,17 @@ class _HomeShellState extends State<HomeShell> {
             tooltip: 'Settings',
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _showQuickSearch() async {
+    await showSearch<void>(
+      context: context,
+      delegate: _ShellSearchDelegate(
+        controller: widget.controller,
+        onOpenApplication: _openApplication,
+        onOpenProject: _openProject,
       ),
     );
   }
@@ -373,11 +390,7 @@ class _BootstrapScreenState extends State<_BootstrapScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.cloud_queue_rounded,
-                size: 64,
-                color: AppColors.teal,
-              ),
+              Icon(Icons.cloud_queue_rounded, size: 64, color: AppColors.teal),
               const SizedBox(height: 16),
               Text(
                 'Argo CD',
@@ -430,6 +443,130 @@ class _IndexedStackWithTickerMode extends StatelessWidget {
             child: children[i],
           ),
       ],
+    );
+  }
+}
+
+class _ShellSearchDelegate extends SearchDelegate<void> {
+  _ShellSearchDelegate({
+    required this.controller,
+    required this.onOpenApplication,
+    required this.onOpenProject,
+  });
+
+  final AppController controller;
+  final ValueChanged<String> onOpenApplication;
+  final ValueChanged<String> onOpenProject;
+
+  @override
+  String get searchFieldLabel => 'Search applications or projects';
+
+  @override
+  List<Widget>? buildActions(BuildContext context) {
+    return <Widget>[
+      if (query.isNotEmpty)
+        IconButton(onPressed: () => query = '', icon: const Icon(Icons.close)),
+    ];
+  }
+
+  @override
+  Widget? buildLeading(BuildContext context) {
+    return IconButton(
+      onPressed: () => close(context, null),
+      icon: const Icon(Icons.arrow_back),
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) => _buildResults(context);
+
+  @override
+  Widget buildSuggestions(BuildContext context) => _buildResults(context);
+
+  Widget _buildResults(BuildContext context) {
+    final normalizedQuery = query.trim().toLowerCase();
+    final matchingApplications = controller.applications
+        .where((app) {
+          if (normalizedQuery.isEmpty) {
+            return true;
+          }
+          return app.name.toLowerCase().contains(normalizedQuery) ||
+              app.project.toLowerCase().contains(normalizedQuery) ||
+              app.namespace.toLowerCase().contains(normalizedQuery);
+        })
+        .toList(growable: false);
+    final matchingProjects = controller.projects
+        .where((project) {
+          if (normalizedQuery.isEmpty) {
+            return true;
+          }
+          return project.name.toLowerCase().contains(normalizedQuery) ||
+              project.description.toLowerCase().contains(normalizedQuery);
+        })
+        .toList(growable: false);
+
+    if (matchingApplications.isEmpty && matchingProjects.isEmpty) {
+      return const Center(child: Text('No matching applications or projects.'));
+    }
+
+    return ListView(
+      children: <Widget>[
+        if (matchingApplications.isNotEmpty) ...<Widget>[
+          _SearchSectionHeader(title: 'Applications'),
+          ...matchingApplications.map(
+            (ArgoApplication application) => ListTile(
+              leading: const Icon(Icons.dashboard_outlined),
+              title: Text(application.name),
+              subtitle: Text(
+                '${application.project} • ${application.namespace}',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                close(context, null);
+                onOpenApplication(application.name);
+              },
+            ),
+          ),
+        ],
+        if (matchingProjects.isNotEmpty) ...<Widget>[
+          _SearchSectionHeader(title: 'Projects'),
+          ...matchingProjects.map(
+            (ArgoProject project) => ListTile(
+              leading: const Icon(Icons.folder_outlined),
+              title: Text(project.name),
+              subtitle: Text(
+                project.description.isEmpty
+                    ? '${project.destinations.length} destinations'
+                    : project.description,
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                close(context, null);
+                onOpenProject(project.name);
+              },
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _SearchSectionHeader extends StatelessWidget {
+  const _SearchSectionHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Text(
+        title,
+        style: Theme.of(
+          context,
+        ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+      ),
     );
   }
 }

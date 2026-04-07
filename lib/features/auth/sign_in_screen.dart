@@ -28,7 +28,9 @@ class _SignInScreenState extends State<SignInScreen> {
   void initState() {
     super.initState();
     final lastUrl = widget.controller.lastServerUrl;
+    final lastUsername = widget.controller.lastUsername;
     _serverController.text = lastUrl;
+    _usernameController.text = lastUsername;
     _serverUrlRemembered = lastUrl.isNotEmpty;
     _serverController.addListener(_onServerUrlChanged);
   }
@@ -75,10 +77,7 @@ class _SignInScreenState extends State<SignInScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: AppRadius.md,
-        borderSide: BorderSide(
-          color: theme.colorScheme.primary,
-          width: 2,
-        ),
+        borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: AppRadius.md,
@@ -86,10 +85,7 @@ class _SignInScreenState extends State<SignInScreen> {
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: AppRadius.md,
-        borderSide: BorderSide(
-          color: theme.colorScheme.error,
-          width: 2,
-        ),
+        borderSide: BorderSide(color: theme.colorScheme.error, width: 2),
       ),
       filled: true,
       fillColor: theme.colorScheme.surface,
@@ -137,11 +133,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           colors: isDark
                               ? <Color>[
                                   heroColor,
-                                  Color.lerp(
-                                    heroColor,
-                                    AppColors.teal,
-                                    0.08,
-                                  )!,
+                                  Color.lerp(heroColor, AppColors.teal, 0.08)!,
                                 ]
                               : <Color>[
                                   const Color(0xFF7A8BCF),
@@ -527,9 +519,10 @@ class _ShimmerIconState extends State<_ShimmerIcon>
     return AnimatedBuilder(
       animation: _animationController,
       builder: (context, child) {
-        final pulse = 0.4 + 0.6 * ((math.sin(
-          _animationController.value * 2 * math.pi,
-        ) + 1) / 2);
+        final pulse =
+            0.4 +
+            0.6 *
+                ((math.sin(_animationController.value * 2 * math.pi) + 1) / 2);
         return Opacity(opacity: pulse, child: child);
       },
       child: const SizedBox(
@@ -564,17 +557,14 @@ class _ErrorBannerState extends State<_ErrorBanner>
       vsync: this,
       duration: const Duration(milliseconds: 350),
     );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, -0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
-    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOut,
-    ));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, -0.3), end: Offset.zero).animate(
+          CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+        );
+    _fadeAnimation = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
     _slideController.forward();
   }
 
@@ -668,11 +658,7 @@ class _CertificateBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Icon(
-            Icons.verified_user_outlined,
-            color: AppColors.teal,
-            size: 20,
-          ),
+          Icon(Icons.verified_user_outlined, color: AppColors.teal, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

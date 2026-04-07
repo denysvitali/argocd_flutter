@@ -190,6 +190,7 @@ void main() {
 class _MemorySessionStorage implements SessionStorage {
   AppSession? _session;
   String? _serverUrl;
+  String? _lastUsername;
 
   @override
   Future<void> clearSession() async {
@@ -200,6 +201,9 @@ class _MemorySessionStorage implements SessionStorage {
   Future<String?> loadLastServerUrl() async => _serverUrl;
 
   @override
+  Future<String?> loadLastUsername() async => _lastUsername;
+
+  @override
   Future<AppSession?> loadSession() async => _session;
 
   @override
@@ -208,14 +212,21 @@ class _MemorySessionStorage implements SessionStorage {
   }
 
   @override
+  Future<void> saveLastUsername(String username) async {
+    _lastUsername = username;
+  }
+
+  @override
   Future<void> saveSession(AppSession session) async {
     _session = session;
     _serverUrl = session.serverUrl;
+    _lastUsername = session.username;
   }
 
   void seedSession(AppSession session) {
     _session = session;
     _serverUrl = session.serverUrl;
+    _lastUsername = session.username;
   }
 }
 
@@ -226,22 +237,21 @@ class _SlowArgoCdApi implements ArgoCdApi {
   void completeAll() {
     for (final c in _completers) {
       if (!c.isCompleted) {
-        c.complete(const ArgoProject(
-          name: 'platform',
-          description: '',
-          sourceRepos: <String>[],
-          destinations: <ArgoProjectDestination>[],
-          clusterResourceWhitelist: <ArgoProjectClusterResource>[],
-        ));
+        c.complete(
+          const ArgoProject(
+            name: 'platform',
+            description: '',
+            sourceRepos: <String>[],
+            destinations: <ArgoProjectDestination>[],
+            clusterResourceWhitelist: <ArgoProjectClusterResource>[],
+          ),
+        );
       }
     }
   }
 
   @override
-  Future<ArgoProject> fetchProject(
-    AppSession session,
-    String projectName,
-  ) {
+  Future<ArgoProject> fetchProject(AppSession session, String projectName) {
     final c = Completer<ArgoProject>();
     _completers.add(c);
     return c.future;
@@ -271,15 +281,13 @@ class _SlowArgoCdApi implements ArgoCdApi {
     AppSession session,
     String applicationName, {
     bool refresh = false,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<List<ArgoResourceNode>> fetchResourceTree(
     AppSession session,
     String applicationName,
-  ) async =>
-      const <ArgoResourceNode>[];
+  ) async => const <ArgoResourceNode>[];
 
   @override
   Future<String> fetchResourceLogs(
@@ -289,8 +297,7 @@ class _SlowArgoCdApi implements ArgoCdApi {
     required String podName,
     String? containerName,
     int tailLines = 500,
-  }) async =>
-      '';
+  }) async => '';
 
   @override
   Future<String> fetchResourceManifest(
@@ -301,8 +308,7 @@ class _SlowArgoCdApi implements ArgoCdApi {
     required String kind,
     required String group,
     required String version,
-  }) async =>
-      '';
+  }) async => '';
 
   @override
   Future<void> syncApplication(
@@ -355,8 +361,7 @@ class _ErrorArgoCdApi implements ArgoCdApi {
   Future<ArgoProject> fetchProject(
     AppSession session,
     String projectName,
-  ) async =>
-      throw ArgoCdException(_message);
+  ) async => throw ArgoCdException(_message);
 
   @override
   Future<AppSession> signIn({
@@ -382,15 +387,13 @@ class _ErrorArgoCdApi implements ArgoCdApi {
     AppSession session,
     String applicationName, {
     bool refresh = false,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<List<ArgoResourceNode>> fetchResourceTree(
     AppSession session,
     String applicationName,
-  ) async =>
-      const <ArgoResourceNode>[];
+  ) async => const <ArgoResourceNode>[];
 
   @override
   Future<String> fetchResourceLogs(
@@ -400,8 +403,7 @@ class _ErrorArgoCdApi implements ArgoCdApi {
     required String podName,
     String? containerName,
     int tailLines = 500,
-  }) async =>
-      '';
+  }) async => '';
 
   @override
   Future<String> fetchResourceManifest(
@@ -412,8 +414,7 @@ class _ErrorArgoCdApi implements ArgoCdApi {
     required String kind,
     required String group,
     required String version,
-  }) async =>
-      '';
+  }) async => '';
 
   @override
   Future<void> syncApplication(
@@ -459,7 +460,7 @@ class _ErrorArgoCdApi implements ArgoCdApi {
 /// An API whose fetchProject behaviour is controlled by a callback.
 class _CountingArgoCdApi implements ArgoCdApi {
   _CountingArgoCdApi({required ArgoProject Function() onFetch})
-      : _onFetch = onFetch;
+    : _onFetch = onFetch;
 
   final ArgoProject Function() _onFetch;
 
@@ -467,8 +468,7 @@ class _CountingArgoCdApi implements ArgoCdApi {
   Future<ArgoProject> fetchProject(
     AppSession session,
     String projectName,
-  ) async =>
-      _onFetch();
+  ) async => _onFetch();
 
   @override
   Future<AppSession> signIn({
@@ -494,15 +494,13 @@ class _CountingArgoCdApi implements ArgoCdApi {
     AppSession session,
     String applicationName, {
     bool refresh = false,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<List<ArgoResourceNode>> fetchResourceTree(
     AppSession session,
     String applicationName,
-  ) async =>
-      const <ArgoResourceNode>[];
+  ) async => const <ArgoResourceNode>[];
 
   @override
   Future<String> fetchResourceLogs(
@@ -512,8 +510,7 @@ class _CountingArgoCdApi implements ArgoCdApi {
     required String podName,
     String? containerName,
     int tailLines = 500,
-  }) async =>
-      '';
+  }) async => '';
 
   @override
   Future<String> fetchResourceManifest(
@@ -524,8 +521,7 @@ class _CountingArgoCdApi implements ArgoCdApi {
     required String kind,
     required String group,
     required String version,
-  }) async =>
-      '';
+  }) async => '';
 
   @override
   Future<void> syncApplication(
@@ -567,4 +563,3 @@ class _CountingArgoCdApi implements ArgoCdApi {
     bool force = false,
   }) => Future<void>.value();
 }
-
