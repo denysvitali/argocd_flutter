@@ -2,7 +2,7 @@ import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:flutter/material.dart';
 
-const EdgeInsets kPagePadding = EdgeInsets.fromLTRB(12, 8, 12, 12);
+const EdgeInsets kPagePadding = EdgeInsets.fromLTRB(16, 10, 16, 18);
 
 /// Converts a decoded JSON value to a YAML-formatted string.
 String jsonToYaml(dynamic value, {int indent = 0}) {
@@ -384,17 +384,24 @@ class StatusChip extends StatelessWidget {
     return Semantics(
       label: 'Status: $label',
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
         decoration: BoxDecoration(
           color: color.withValues(
-            alpha: theme.brightness == Brightness.dark ? 0.22 : 0.12,
+            alpha: theme.brightness == Brightness.dark ? 0.24 : 0.10,
           ),
           borderRadius: AppRadius.pill,
           border: Border.all(
             color: color.withValues(
-              alpha: theme.brightness == Brightness.dark ? 0.6 : 0.45,
+              alpha: theme.brightness == Brightness.dark ? 0.54 : 0.32,
             ),
           ),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: color.withValues(alpha: 0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -455,20 +462,16 @@ class SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final borderColor = AppColors.outline(theme);
+    final shadowColor = AppColors.surfaceShadow(theme, alpha: 0.08);
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: AppRadius.md,
-        border: Border.all(color: theme.dividerColor),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: theme.colorScheme.shadow.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        border: Border.all(color: borderColor),
+        boxShadow: AppElevation.subtle(shadowColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -481,7 +484,7 @@ class SectionCard extends StatelessWidget {
                 letterSpacing: 0.1,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
           ],
           child,
         ],
@@ -509,18 +512,29 @@ class EmptyStateCard extends StatelessWidget {
     return Semantics(
       label: '$title. $subtitle',
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
-          borderRadius: AppRadius.base,
-          border: Border.all(color: theme.dividerColor),
+          borderRadius: AppRadius.md,
+          border: Border.all(color: AppColors.outline(theme)),
+          boxShadow: AppElevation.subtle(
+            AppColors.surfaceShadow(theme, alpha: 0.06),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             if (icon != null) ...<Widget>[
-              Icon(icon, size: 32, color: AppColors.grey),
-              const SizedBox(height: 8),
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.teal.withValues(alpha: 0.10),
+                  borderRadius: AppRadius.md,
+                ),
+                child: Icon(icon, size: 24, color: AppColors.teal),
+              ),
+              const SizedBox(height: 10),
             ],
             Text(
               title,
@@ -532,7 +546,7 @@ class EmptyStateCard extends StatelessWidget {
             Text(
               subtitle,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.grey,
+                color: AppColors.mutedText(theme),
               ),
             ),
           ],
@@ -563,9 +577,12 @@ class SummaryTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest,
+          color: theme.colorScheme.surfaceContainerLow,
           borderRadius: AppRadius.md,
-          border: Border.all(color: theme.dividerColor),
+          border: Border.all(color: AppColors.outline(theme)),
+          boxShadow: AppElevation.light(
+            AppColors.surfaceShadow(theme, alpha: 0.05),
+          ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -607,8 +624,9 @@ class FactBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: AppRadius.sm,
+        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -618,7 +636,10 @@ class FactBadge extends StatelessWidget {
           Flexible(
             child: Text(
               label,
-              style: theme.textTheme.bodySmall,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -642,19 +663,14 @@ class StatusSegment {
 /// Segments with count == 0 are skipped. Adjacent segments are separated
 /// by a thin white line.
 class StatusSegmentBar extends StatelessWidget {
-  const StatusSegmentBar({
-    super.key,
-    required this.segments,
-    this.height = 8,
-  });
+  const StatusSegmentBar({super.key, required this.segments, this.height = 8});
 
   final List<StatusSegment> segments;
   final double height;
 
   @override
   Widget build(BuildContext context) {
-    final nonZero =
-        segments.where((s) => s.count > 0).toList(growable: false);
+    final nonZero = segments.where((s) => s.count > 0).toList(growable: false);
     final total = segments.fold<int>(0, (sum, s) => sum + s.count);
 
     if (total == 0 || nonZero.isEmpty) {
@@ -662,7 +678,7 @@ class StatusSegmentBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(height / 2),
         child: SizedBox(
           height: height,
-          child: Container(color: AppColors.gray4),
+          child: Container(color: Theme.of(context).colorScheme.outlineVariant),
         ),
       );
     }
@@ -670,7 +686,12 @@ class StatusSegmentBar extends StatelessWidget {
     final children = <Widget>[];
     for (var i = 0; i < nonZero.length; i++) {
       if (i > 0) {
-        children.add(SizedBox(width: 1.5, child: ColoredBox(color: AppColors.white)));
+        children.add(
+          SizedBox(
+            width: 2,
+            child: ColoredBox(color: Theme.of(context).colorScheme.surface),
+          ),
+        );
       }
       children.add(
         Expanded(
@@ -688,7 +709,10 @@ class StatusSegmentBar extends StatelessWidget {
       label: 'Status bar: $percentages',
       child: ClipRRect(
         borderRadius: BorderRadius.circular(height / 2),
-        child: SizedBox(height: height, child: Row(children: children)),
+        child: SizedBox(
+          height: height,
+          child: Row(children: children),
+        ),
       ),
     );
   }

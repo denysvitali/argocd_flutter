@@ -146,7 +146,8 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
       ),
       StatusSegment(
         color: AppColors.unknown,
-        count: allApplications.length -
+        count:
+            allApplications.length -
             allApplications
                 .where(
                   (a) => const <String>{
@@ -237,7 +238,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               outOfSyncCount: outOfSyncCount,
               healthSegments: healthSegments,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             _SearchBar(
               controller: _searchController,
               onChanged: _onSearchChanged,
@@ -249,7 +250,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               },
               showClear: _query.isNotEmpty,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             _FilterChips(
               activeFilter: _activeFilter,
               counts: filterCounts,
@@ -259,7 +260,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                 });
               },
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             LayoutBuilder(
               builder: (BuildContext context, BoxConstraints constraints) {
                 final stackedControls = constraints.maxWidth < 700;
@@ -329,7 +330,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                 );
               },
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             if (widget.controller.errorMessage != null)
               ErrorRetryWidget(
                 message: widget.controller.errorMessage!,
@@ -410,13 +411,17 @@ class _FilterChips extends StatelessWidget {
       label: Text('$label ${counts[chip] ?? 0}'),
       selected: isSelected,
       onSelected: (_) => onSelected(chip),
-      selectedColor: chipColor.withValues(alpha: 0.15),
+      selectedColor: chipColor.withValues(alpha: 0.12),
       checkmarkColor: chipColor,
       labelStyle: TextStyle(
         color: isSelected ? chipColor : AppColors.grey,
         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
       ),
-      side: BorderSide(color: isSelected ? chipColor : AppColors.border),
+      side: BorderSide(
+        color: isSelected
+            ? chipColor
+            : Theme.of(context).colorScheme.outlineVariant,
+      ),
       shape: RoundedRectangleBorder(borderRadius: AppRadius.sm),
       visualDensity: VisualDensity.compact,
     );
@@ -500,8 +505,11 @@ class _SearchBar extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.inputFill(theme),
-        borderRadius: AppRadius.base,
+        borderRadius: AppRadius.md,
         border: Border.all(color: outlineColor),
+        boxShadow: AppElevation.light(
+          AppColors.surfaceShadow(theme, alpha: 0.04),
+        ),
       ),
       child: TextField(
         controller: controller,
@@ -559,10 +567,14 @@ class _OverviewStrip extends StatelessWidget {
     final chipBg = AppColors.headerChipBackground(theme);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.headerSurface(theme),
         borderRadius: AppRadius.md,
+        border: Border.all(color: AppColors.headerDivider(theme)),
+        boxShadow: AppElevation.subtle(
+          AppColors.surfaceShadow(theme, alpha: 0.12),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -576,11 +588,7 @@ class _OverviewStrip extends StatelessWidget {
                   color: chipBg,
                   borderRadius: AppRadius.sm,
                 ),
-                child: Icon(
-                  Icons.apps_rounded,
-                  size: 16,
-                  color: fg,
-                ),
+                child: Icon(Icons.apps_rounded, size: 16, color: fg),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -599,9 +607,7 @@ class _OverviewStrip extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.end,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: muted,
-                    ),
+                    style: theme.textTheme.labelSmall?.copyWith(color: muted),
                   ),
                 ),
             ],
@@ -720,24 +726,28 @@ class _ApplicationCard extends StatelessWidget {
     final healthColor = AppColors.healthColor(application.healthStatus);
 
     return Material(
-      color: theme.colorScheme.surface,
+      color: Colors.transparent,
       borderRadius: AppRadius.base,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: AppRadius.base,
+        borderRadius: AppRadius.md,
         child: Container(
           decoration: BoxDecoration(
-            border: Border.all(color: theme.dividerColor),
-            borderRadius: AppRadius.base,
+            color: theme.colorScheme.surface,
+            border: Border.all(color: AppColors.outline(theme)),
+            borderRadius: AppRadius.md,
+            boxShadow: AppElevation.light(
+              AppColors.surfaceShadow(theme, alpha: 0.06),
+            ),
           ),
           child: ClipRRect(
-            borderRadius: AppRadius.base,
+            borderRadius: AppRadius.md,
             child: Container(
               decoration: BoxDecoration(
                 border: Border(left: BorderSide(color: healthColor, width: 5)),
               ),
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+              padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[

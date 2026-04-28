@@ -10,10 +10,7 @@ import 'test_helpers.dart';
 Future<void> _pumpBootstrap(WidgetTester tester) async {
   final controller = createTestController(storage: MemorySessionStorage());
   await tester.pumpWidget(
-    ArgoCdApp(
-      controller: controller,
-      themeController: ThemeController(),
-    ),
+    ArgoCdApp(controller: controller, themeController: ThemeController()),
   );
   // Do NOT call pump/pumpAndSettle here – the initial frame already shows
   // the _BootstrapScreen because initialize() is async and hasn't settled yet.
@@ -21,10 +18,10 @@ Future<void> _pumpBootstrap(WidgetTester tester) async {
 
 void main() {
   group('BootstrapScreen', () {
-    testWidgets('shows cloud_queue_rounded icon', (WidgetTester tester) async {
+    testWidgets('shows hub icon', (WidgetTester tester) async {
       await _pumpBootstrap(tester);
 
-      expect(find.byIcon(Icons.cloud_queue_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.hub_rounded), findsOneWidget);
     });
 
     testWidgets('shows ArgoCD Flutter title', (WidgetTester tester) async {
@@ -35,9 +32,7 @@ void main() {
       expect(find.text('Argo CD'), findsOneWidget);
     });
 
-    testWidgets('shows CircularProgressIndicator', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('shows CircularProgressIndicator', (WidgetTester tester) async {
       await _pumpBootstrap(tester);
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
@@ -62,10 +57,7 @@ void main() {
       );
       // At the very first frame the bootstrap animation has just begun —
       // at least one FadeTransition should have near-zero opacity.
-      expect(
-        fadeTransitions.any((ft) => ft.opacity.value < 0.1),
-        isTrue,
-      );
+      expect(fadeTransitions.any((ft) => ft.opacity.value < 0.1), isTrue);
     });
 
     testWidgets('fade animation progresses to near full opacity after 800ms', (
@@ -99,7 +91,7 @@ void main() {
 
       // Icon, title and progress indicator should all be present inside the
       // widget tree.
-      expect(find.byIcon(Icons.cloud_queue_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.hub_rounded), findsOneWidget);
       expect(find.text('Argo CD'), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });

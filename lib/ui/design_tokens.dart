@@ -1,7 +1,7 @@
-/// Design tokens for consistent spacing, border radius, opacity values,
-/// elevation/shadows, and shared card decorations across the application.
-///
-/// All values are compile-time constants and can be used in `const` contexts.
+// Design tokens for consistent spacing, border radius, opacity values,
+// elevation/shadows, and shared card decorations across the application.
+//
+// All values are compile-time constants and can be used in `const` contexts.
 
 import 'package:flutter/painting.dart';
 
@@ -14,6 +14,7 @@ abstract final class AppSpacing {
   static const double xxl = 20;
   static const double xxxl = 24;
   static const double huge = 32;
+  static const double giant = 40;
 }
 
 abstract final class AppRadius {
@@ -60,27 +61,27 @@ abstract final class AppElevation {
   static const List<BoxShadow> none = <BoxShadow>[];
 
   /// Subtle elevation for cards that need gentle depth perception.
-  /// Two-layer shadow for a more natural, diffused look.
+  /// Multi-layer shadow for crisp, modern surface separation.
   static List<BoxShadow> subtle(Color shadowColor) => <BoxShadow>[
-        BoxShadow(
-          color: shadowColor.withValues(alpha: 0.06),
-          blurRadius: 12,
-          offset: const Offset(0, 4),
-        ),
-        BoxShadow(
-          color: shadowColor.withValues(alpha: 0.03),
-          blurRadius: 4,
-          offset: const Offset(0, 2),
-        ),
-      ];
+    BoxShadow(
+      color: shadowColor.withValues(alpha: 0.07),
+      blurRadius: 18,
+      offset: const Offset(0, 10),
+    ),
+    BoxShadow(
+      color: shadowColor.withValues(alpha: 0.03),
+      blurRadius: 6,
+      offset: const Offset(0, 2),
+    ),
+  ];
 
   /// Light elevation for attention items or interactive cards.
   static List<BoxShadow> light(Color shadowColor, {double alpha = 0.08}) =>
       <BoxShadow>[
         BoxShadow(
           color: shadowColor.withValues(alpha: alpha),
-          blurRadius: 4,
-          offset: const Offset(0, 1),
+          blurRadius: 14,
+          offset: const Offset(0, 6),
         ),
       ];
 }

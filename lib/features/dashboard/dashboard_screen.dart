@@ -41,19 +41,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _totalApps = applications.length;
     _healthyCount = applications
         .where(
-          (application) =>
-              _normalized(application.healthStatus) == 'healthy',
+          (application) => _normalized(application.healthStatus) == 'healthy',
         )
         .length;
     _outOfSyncCount = applications
-        .where(
-          (application) => _normalized(application.syncStatus) != 'synced',
-        )
+        .where((application) => _normalized(application.syncStatus) != 'synced')
         .length;
     _degradedCount = applications
         .where(
-          (application) =>
-              _normalized(application.healthStatus) == 'degraded',
+          (application) => _normalized(application.healthStatus) == 'degraded',
         )
         .length;
     _healthSegments = _buildHealthSegments(applications);
@@ -149,7 +145,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           healthyCount: healthyCount,
           outOfSyncCount: outOfSyncCount,
           degradedCount: degradedCount,
-          healthSegments: _healthSegments.map((s) => StatusSegment(color: s.color, count: s.count)).toList(),
+          healthSegments: _healthSegments
+              .map((s) => StatusSegment(color: s.color, count: s.count))
+              .toList(),
         ),
         const SizedBox(height: 10),
         _SectionHeader(title: 'Health Breakdown'),
@@ -325,71 +323,111 @@ class _HeroBanner extends StatelessWidget {
     final session = controller.session;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.headerSurface(theme),
         borderRadius: AppRadius.md,
+        border: Border.all(color: AppColors.headerDivider(theme)),
+        boxShadow: AppElevation.subtle(
+          AppColors.surfaceShadow(theme, alpha: 0.14),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            'Cluster Summary',
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: AppColors.headerForeground(theme),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            session == null
-                ? 'Connect to ArgoCD to monitor your deployments.'
-                : '${session.username} @ ${session.serverUrl}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.headerMutedForeground(theme),
-            ),
-          ),
-          const SizedBox(height: 10),
           Row(
             children: <Widget>[
-              Expanded(
-                child: _HeaderStatChip(
-                  label: 'Total',
-                  value: totalApps,
-                  theme: theme,
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.headerChipBackground(theme, alpha: 0.12),
+                  borderRadius: AppRadius.md,
+                  border: Border.all(color: AppColors.headerDivider(theme)),
+                ),
+                child: const Icon(
+                  Icons.hub_rounded,
+                  color: AppColors.orange,
+                  size: 22,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               Expanded(
-                child: _HeaderStatChip(
-                  label: 'Healthy',
-                  value: healthyCount,
-                  theme: theme,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _HeaderStatChip(
-                  label: 'Drifted',
-                  value: outOfSyncCount,
-                  valueColor: outOfSyncCount > 0 ? AppColors.outOfSync : null,
-                  theme: theme,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _HeaderStatChip(
-                  label: 'Degraded',
-                  value: degradedCount,
-                  valueColor: degradedCount > 0 ? AppColors.degraded : null,
-                  theme: theme,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'Cluster Summary',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: AppColors.headerForeground(theme),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      session == null
+                          ? 'Connect to ArgoCD to monitor your deployments.'
+                          : '${session.username} @ ${session.serverUrl}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.headerMutedForeground(theme),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.headerChipBackground(theme, alpha: 0.08),
+              borderRadius: AppRadius.md,
+              border: Border.all(color: AppColors.headerDivider(theme)),
+            ),
+            child: Row(
+              children: <Widget>[
+                Expanded(
+                  child: _HeaderStatChip(
+                    label: 'Total',
+                    value: totalApps,
+                    theme: theme,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _HeaderStatChip(
+                    label: 'Healthy',
+                    value: healthyCount,
+                    valueColor: AppColors.healthy,
+                    theme: theme,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _HeaderStatChip(
+                    label: 'Drifted',
+                    value: outOfSyncCount,
+                    valueColor: outOfSyncCount > 0 ? AppColors.outOfSync : null,
+                    theme: theme,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _HeaderStatChip(
+                    label: 'Degraded',
+                    value: degradedCount,
+                    valueColor: degradedCount > 0 ? AppColors.degraded : null,
+                    theme: theme,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           StatusSegmentBar(segments: healthSegments),
         ],
       ),
@@ -415,10 +453,11 @@ class _HeaderStatChip extends StatelessWidget {
     return Semantics(
       label: '$value $label',
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.headerChipBackground(theme),
+          color: AppColors.headerChipBackground(theme, alpha: 0.10),
           borderRadius: AppRadius.sm,
+          border: Border.all(color: AppColors.headerDivider(theme)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -939,8 +978,8 @@ class _IncidentCard extends StatelessWidget {
     final timeAgo = elapsed.inMinutes < 1
         ? 'just now'
         : elapsed.inMinutes < 60
-            ? '${elapsed.inMinutes}m ago'
-            : '${elapsed.inHours}h ago';
+        ? '${elapsed.inMinutes}m ago'
+        : '${elapsed.inHours}h ago';
 
     return Dismissible(
       key: ValueKey<String>(
@@ -1031,9 +1070,7 @@ class _IncidentCard extends StatelessWidget {
                 ],
               ),
               borderRadius: AppRadius.base,
-              border: Border(
-                left: BorderSide(color: _eventColor, width: 3),
-              ),
+              border: Border(left: BorderSide(color: _eventColor, width: 3)),
             ),
             child: Row(
               children: <Widget>[
@@ -1163,73 +1200,72 @@ class _TimelineEntry extends StatelessWidget {
           ),
         ),
         Expanded(
-            child: Semantics(
-              label:
-                  'Application ${application.name}, ${application.syncStatus}',
-              button: true,
-              child: InkWell(
-                onTap: onTap,
-                borderRadius: AppRadius.sm,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 8, bottom: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        application.name,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+          child: Semantics(
+            label: 'Application ${application.name}, ${application.syncStatus}',
+            button: true,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: AppRadius.sm,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8, bottom: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      application.name,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${application.project} / ${application.namespace}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.grey,
-                        ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${application.project} / ${application.namespace}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.grey,
                       ),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: <Widget>[
-                          StatusChip(
-                            icon: syncStatusIcon(application.syncStatus),
-                            label: application.syncStatus,
-                            color: AppColors.syncColor(application.syncStatus),
-                          ),
-                          if (application.history.isNotEmpty)
-                            Text(
-                              'rev ${_shortRevision(application.history.first.revision)}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppColors.grey,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: <Widget>[
+                        StatusChip(
+                          icon: syncStatusIcon(application.syncStatus),
+                          label: application.syncStatus,
+                          color: AppColors.syncColor(application.syncStatus),
+                        ),
+                        if (application.history.isNotEmpty)
                           Text(
-                            application.operationPhase,
+                            'rev ${_shortRevision(application.history.first.revision)}',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: AppColors.grey,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          if (syncTime != null && syncTime.isNotEmpty)
-                            Text(
-                              _formatSyncTime(syncTime),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppColors.greyLight,
-                              ),
+                        Text(
+                          application.operationPhase,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.grey,
+                          ),
+                        ),
+                        if (syncTime != null && syncTime.isNotEmpty)
+                          Text(
+                            _formatSyncTime(syncTime),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.greyLight,
                             ),
-                        ],
-                      ),
-                    ],
-                  ),
+                          ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-        ],
-      );
+        ),
+      ],
+    );
   }
 }
 

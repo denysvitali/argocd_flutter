@@ -10,8 +10,8 @@ abstract final class AppColors {
 
   static const Color white = Color(0xFFFFFFFF);
 
-  /// Light-mode canvas / scaffold background (ArgoCD gray-3).
-  static const Color canvas = Color(0xFFDEE6EB);
+  /// Light-mode canvas / scaffold background.
+  static const Color canvas = Color(0xFFF3F6F8);
 
   /// Primary dark text (ArgoCD gray-7).
   static const Color ink = Color(0xFF495763);
@@ -21,8 +21,8 @@ abstract final class AppColors {
 
   // ── Gray scale (ArgoCD official grays) ─────────────────────────────────
 
-  static const Color gray1 = Color(0xFFF8FBFB);
-  static const Color gray2 = Color(0xFFEFF3F5);
+  static const Color gray1 = Color(0xFFFAFCFD);
+  static const Color gray2 = Color(0xFFF0F4F6);
   static const Color gray3 = Color(0xFFDEE6EB);
   static const Color gray4 = Color(0xFFCCD6DD);
   static const Color gray5 = Color(0xFF8FA4B1);
@@ -33,7 +33,7 @@ abstract final class AppColors {
   // ── Brand / accent ─────────────────────────────────────────────────────
 
   /// ArgoCD primary interactive teal (teal-5).
-  static const Color teal = Color(0xFF1FBDD0);
+  static const Color teal = Color(0xFF00A7B7);
 
   /// Darker teal for headings / links (teal-7).
   static const Color tealDark = Color(0xFF006F8A);
@@ -42,7 +42,13 @@ abstract final class AppColors {
   static const Color tealLight = Color(0xFFDFF6F9);
 
   /// Sidebar active icon / loading accent (ArgoCD orange).
-  static const Color orange = Color(0xFFFE733F);
+  static const Color orange = Color(0xFFFF6B35);
+
+  /// Secondary operational accent for focused controls and active rails.
+  static const Color indigo = Color(0xFF3655D4);
+
+  /// Cool accent for informational badges and charts.
+  static const Color azure = Color(0xFF0B84FF);
 
   // ── Status: Health ─────────────────────────────────────────────────────
 
@@ -90,10 +96,11 @@ abstract final class AppColors {
 
   // ── Dark mode surfaces ─────────────────────────────────────────────────
 
-  static const Color darkBackground = Color(0xFF100F0F);
-  static const Color darkSurface = Color(0xFF1E2735);
-  static const Color darkBorder = Color(0xFF495763);
-  static const Color darkSlidingPanel = Color(0xFF28292A);
+  static const Color darkBackground = Color(0xFF0F1317);
+  static const Color darkSurface = Color(0xFF171D23);
+  static const Color darkSurfaceElevated = Color(0xFF202831);
+  static const Color darkBorder = Color(0xFF33414D);
+  static const Color darkSlidingPanel = Color(0xFF232B33);
 
   // ── Legacy aliases (keep in sync with the rest of the codebase) ────────
 
@@ -116,15 +123,15 @@ abstract final class AppColors {
   static const Color border = gray4;
 
   static const Color cobaltLight = tealLight;
-  static const Color blueLight = tealLight;
+  static const Color blueLight = Color(0xFFEAF3FF);
   static const Color canvasSubtle = gray1;
   static const Color peach = Color(0xFFFFF1E9);
 
   // ── Header / dark-surface helpers ──────────────────────────────────────
 
-  static const Color headerDark = sidebarDark;
-  static const Color headerDarkAlt = Color(0xFF15221B);
-  static const Color textOnDarkMuted = Color(0xFF818D94);
+  static const Color headerDark = Color(0xFF111A20);
+  static const Color headerDarkAlt = Color(0xFF203135);
+  static const Color textOnDarkMuted = Color(0xFF9AA8B2);
   static const Color textOnDarkGreen = Color(0xFFDCFCE7);
 
   // ── YAML syntax highlighting ───────────────────────────────────────────
@@ -139,14 +146,14 @@ abstract final class AppColors {
 
   static Color headerSurface(ThemeData theme) {
     return theme.brightness == Brightness.dark
-        ? darkSurface
-        : sidebarDark;
+        ? darkSurfaceElevated
+        : headerDark;
   }
 
   static Color headerSurfaceAlt(ThemeData theme) {
     return theme.brightness == Brightness.dark
         ? headerDarkAlt
-        : theme.colorScheme.surfaceContainerHighest;
+        : const Color(0xFFEAF3F4);
   }
 
   static Color headerForeground(ThemeData theme) {
@@ -171,7 +178,9 @@ abstract final class AppColors {
   }
 
   static Color outline(ThemeData theme) {
-    return theme.brightness == Brightness.dark ? darkBorder : gray4;
+    return theme.brightness == Brightness.dark
+        ? darkBorder
+        : const Color(0xFFD7E0E6);
   }
 
   static Color mutedText(ThemeData theme) {
@@ -179,9 +188,7 @@ abstract final class AppColors {
   }
 
   static Color inputFill(ThemeData theme) {
-    return theme.brightness == Brightness.dark
-        ? darkSurface
-        : gray1;
+    return theme.brightness == Brightness.dark ? darkSurfaceElevated : white;
   }
 
   static Color surfaceShadow(ThemeData theme, {double alpha = 0.08}) {
