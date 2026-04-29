@@ -100,6 +100,12 @@ ThemeData buildLightAppTheme() {
         side: const BorderSide(color: Color(0xFFD7E0E6)),
       ),
     ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(
+        foregroundColor: AppColors.gray7,
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
+      ),
+    ),
     chipTheme: ChipThemeData(
       backgroundColor: scheme.surfaceContainerLow,
       selectedColor: AppColors.teal.withValues(alpha: 0.14),
@@ -185,16 +191,16 @@ ThemeData buildLightAppTheme() {
       shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      height: 66,
-      backgroundColor: AppColors.headerDark,
+      height: 72,
+      backgroundColor: AppColors.sidebarRail,
       surfaceTintColor: Colors.transparent,
-      indicatorColor: AppColors.teal.withValues(alpha: 0.2),
+      indicatorColor: AppColors.teal.withValues(alpha: 0.18),
       labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
         final selected = states.contains(WidgetState.selected);
         return TextStyle(
           fontFamily: _bodyFontFamily,
           fontSize: 12,
-          fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+          fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
           color: selected ? AppColors.white : AppColors.gray5,
         );
       }),
@@ -202,27 +208,27 @@ ThemeData buildLightAppTheme() {
         final selected = states.contains(WidgetState.selected);
         return IconThemeData(
           size: 24,
-          color: selected ? AppColors.orange : AppColors.gray5,
+          color: selected ? AppColors.white : AppColors.textOnDarkMuted,
         );
       }),
     ),
     navigationRailTheme: NavigationRailThemeData(
-      backgroundColor: AppColors.headerDark,
-      indicatorColor: AppColors.teal.withValues(alpha: 0.16),
-      selectedIconTheme: const IconThemeData(color: AppColors.orange, size: 24),
+      backgroundColor: AppColors.sidebarRail,
+      indicatorColor: AppColors.teal.withValues(alpha: 0.18),
+      selectedIconTheme: const IconThemeData(color: AppColors.white, size: 24),
       unselectedIconTheme: const IconThemeData(
-        color: AppColors.gray5,
+        color: AppColors.textOnDarkMuted,
         size: 22,
       ),
       selectedLabelTextStyle: const TextStyle(
         fontFamily: _bodyFontFamily,
         color: AppColors.white,
         fontSize: 12,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w800,
       ),
       unselectedLabelTextStyle: const TextStyle(
         fontFamily: _bodyFontFamily,
-        color: AppColors.gray5,
+        color: AppColors.textOnDarkMuted,
         fontSize: 12,
         fontWeight: FontWeight.w500,
       ),
@@ -312,6 +318,12 @@ ThemeData buildDarkAppTheme() {
         side: const BorderSide(color: AppColors.darkBorder),
       ),
     ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(
+        foregroundColor: AppColors.gray3,
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
+      ),
+    ),
     chipTheme: ChipThemeData(
       backgroundColor: scheme.surfaceContainer,
       selectedColor: AppColors.teal.withValues(alpha: 0.2),
@@ -397,8 +409,8 @@ ThemeData buildDarkAppTheme() {
       shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      height: 66,
-      backgroundColor: AppColors.headerDark,
+      height: 72,
+      backgroundColor: AppColors.sidebarRail,
       surfaceTintColor: Colors.transparent,
       indicatorColor: AppColors.teal.withValues(alpha: 0.2),
       labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
@@ -406,7 +418,7 @@ ThemeData buildDarkAppTheme() {
         return TextStyle(
           fontFamily: _bodyFontFamily,
           fontSize: 12,
-          fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+          fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
           color: selected ? AppColors.white : AppColors.gray5,
         );
       }),
@@ -414,27 +426,27 @@ ThemeData buildDarkAppTheme() {
         final selected = states.contains(WidgetState.selected);
         return IconThemeData(
           size: 24,
-          color: selected ? AppColors.orange : AppColors.gray5,
+          color: selected ? AppColors.white : AppColors.textOnDarkMuted,
         );
       }),
     ),
     navigationRailTheme: NavigationRailThemeData(
-      backgroundColor: AppColors.headerDark,
+      backgroundColor: AppColors.sidebarRail,
       indicatorColor: AppColors.teal.withValues(alpha: 0.18),
-      selectedIconTheme: const IconThemeData(color: AppColors.orange, size: 24),
+      selectedIconTheme: const IconThemeData(color: AppColors.white, size: 24),
       unselectedIconTheme: const IconThemeData(
-        color: AppColors.gray5,
+        color: AppColors.textOnDarkMuted,
         size: 22,
       ),
       selectedLabelTextStyle: const TextStyle(
         fontFamily: _bodyFontFamily,
         color: AppColors.white,
         fontSize: 12,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w800,
       ),
       unselectedLabelTextStyle: const TextStyle(
         fontFamily: _bodyFontFamily,
-        color: AppColors.gray5,
+        color: AppColors.textOnDarkMuted,
         fontSize: 12,
         fontWeight: FontWeight.w500,
       ),
@@ -649,14 +661,21 @@ class _HomeShellState extends State<HomeShell> {
                   color: Theme.of(context).colorScheme.outlineVariant,
                 ),
                 Expanded(
-                  child: _IndexedStackWithTickerMode(
-                    index: _index,
-                    children: _pages,
+                  child: _ShellBackground(
+                    child: _IndexedStackWithTickerMode(
+                      index: _index,
+                      children: _pages,
+                    ),
                   ),
                 ),
               ],
             )
-          : _IndexedStackWithTickerMode(index: _index, children: _pages),
+          : _ShellBackground(
+              child: _IndexedStackWithTickerMode(
+                index: _index,
+                children: _pages,
+              ),
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showQuickSearch,
         icon: const Icon(Icons.search),
@@ -707,15 +726,13 @@ class _FloatingBottomNav extends StatelessWidget {
     final theme = Theme.of(context);
 
     return SafeArea(
-      minimum: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      minimum: const EdgeInsets.fromLTRB(14, 0, 14, 14),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: AppColors.headerDark,
+          color: AppColors.sidebarRail,
           borderRadius: AppRadius.md,
-          border: Border.all(color: AppColors.white.withValues(alpha: 0.08)),
-          boxShadow: AppElevation.subtle(
-            AppColors.surfaceShadow(theme, alpha: 0.20),
-          ),
+          border: Border.all(color: AppColors.white.withValues(alpha: 0.10)),
+          boxShadow: AppElevation.shell(AppColors.surfaceShadow(theme)),
         ),
         child: ClipRRect(
           borderRadius: AppRadius.md,
@@ -747,55 +764,104 @@ class _ShellRail extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return SizedBox(
-      width: 92,
-      child: NavigationRail(
-        selectedIndex: selectedIndex,
-        onDestinationSelected: onDestinationSelected,
-        labelType: NavigationRailLabelType.all,
-        minWidth: 92,
-        minExtendedWidth: 92,
-        leading: Padding(
-          padding: const EdgeInsets.only(top: 18, bottom: 18),
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.headerChipBackground(theme, alpha: 0.14),
-              borderRadius: AppRadius.md,
-              border: Border.all(color: AppColors.headerDivider(theme)),
-            ),
-            child: const Icon(
-              Icons.hub_rounded,
-              color: AppColors.orange,
-              size: 24,
-            ),
-          ),
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[AppColors.sidebarDarkAlt, AppColors.sidebarRail],
         ),
-        trailing: const Expanded(child: SizedBox.shrink()),
-        destinations: const <NavigationRailDestination>[
-          NavigationRailDestination(
-            icon: Icon(Icons.analytics_outlined),
-            selectedIcon: Icon(Icons.analytics),
-            label: Text('Dashboard'),
-          ),
-          NavigationRailDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard_rounded),
-            label: Text('Apps'),
-          ),
-          NavigationRailDestination(
-            icon: Icon(Icons.folder_outlined),
-            selectedIcon: Icon(Icons.folder),
-            label: Text('Projects'),
-          ),
-          NavigationRailDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: Text('Settings'),
-          ),
-        ],
       ),
+      child: SizedBox(
+        width: AppSpacing.shellRail,
+        child: NavigationRail(
+          selectedIndex: selectedIndex,
+          onDestinationSelected: onDestinationSelected,
+          labelType: NavigationRailLabelType.all,
+          minWidth: AppSpacing.shellRail,
+          minExtendedWidth: AppSpacing.shellRail,
+          groupAlignment: -0.78,
+          leading: Padding(
+            padding: const EdgeInsets.only(top: 20, bottom: 24),
+            child: Column(
+              children: <Widget>[
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: AppColors.teal.withValues(alpha: 0.14),
+                    borderRadius: AppRadius.md,
+                    border: Border.all(
+                      color: AppColors.white.withValues(alpha: 0.12),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.hub_rounded,
+                    color: AppColors.orange,
+                    size: 25,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Argo CD',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          trailing: const Expanded(child: SizedBox.shrink()),
+          destinations: const <NavigationRailDestination>[
+            NavigationRailDestination(
+              icon: Icon(Icons.analytics_outlined),
+              selectedIcon: Icon(Icons.analytics),
+              label: Text('Dashboard'),
+            ),
+            NavigationRailDestination(
+              icon: Icon(Icons.dashboard_outlined),
+              selectedIcon: Icon(Icons.dashboard_rounded),
+              label: Text('Apps'),
+            ),
+            NavigationRailDestination(
+              icon: Icon(Icons.folder_outlined),
+              selectedIcon: Icon(Icons.folder),
+              label: Text('Projects'),
+            ),
+            NavigationRailDestination(
+              icon: Icon(Icons.settings_outlined),
+              selectedIcon: Icon(Icons.settings),
+              label: Text('Settings'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ShellBackground extends StatelessWidget {
+  const _ShellBackground({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final base = isDark ? AppColors.darkBackground : AppColors.canvas;
+    final inset = isDark ? AppColors.darkCanvasInset : AppColors.canvasInset;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[base, inset],
+        ),
+      ),
+      child: child,
     );
   }
 }

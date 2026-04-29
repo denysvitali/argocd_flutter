@@ -15,6 +15,7 @@ abstract final class AppSpacing {
   static const double xxxl = 24;
   static const double huge = 32;
   static const double giant = 40;
+  static const double shellRail = 104;
 }
 
 abstract final class AppRadius {
@@ -84,6 +85,20 @@ abstract final class AppElevation {
           offset: const Offset(0, 6),
         ),
       ];
+
+  /// Strong shell elevation for floating navigation and global chrome.
+  static List<BoxShadow> shell(Color shadowColor) => <BoxShadow>[
+    BoxShadow(
+      color: shadowColor.withValues(alpha: 0.18),
+      blurRadius: 34,
+      offset: const Offset(0, 18),
+    ),
+    BoxShadow(
+      color: shadowColor.withValues(alpha: 0.10),
+      blurRadius: 10,
+      offset: const Offset(0, 4),
+    ),
+  ];
 }
 
 /// Shared card decoration factory for consistent styling across all screens.

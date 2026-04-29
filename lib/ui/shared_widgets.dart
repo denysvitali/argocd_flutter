@@ -27,7 +27,15 @@ class AppPageHeader extends StatelessWidget {
     return SafeArea(
       bottom: false,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(2, 2, 2, 0),
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: AppRadius.md,
+          border: Border.all(color: AppColors.outline(theme)),
+          boxShadow: AppElevation.subtle(
+            AppColors.surfaceShadow(theme, alpha: 0.06),
+          ),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
@@ -35,16 +43,22 @@ class AppPageHeader extends StatelessWidget {
               children: <Widget>[
                 if (leadingIcon != null) ...<Widget>[
                   Container(
-                    width: 42,
-                    height: 42,
+                    width: 44,
+                    height: 44,
                     decoration: BoxDecoration(
-                      color: AppColors.headerDark,
-                      borderRadius: AppRadius.md,
-                      boxShadow: AppElevation.light(
-                        AppColors.surfaceShadow(theme, alpha: 0.10),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.10),
+                      borderRadius: AppRadius.base,
+                      border: Border.all(
+                        color: theme.colorScheme.primary.withValues(
+                          alpha: 0.18,
+                        ),
                       ),
                     ),
-                    child: Icon(leadingIcon, color: AppColors.orange, size: 22),
+                    child: Icon(
+                      leadingIcon,
+                      color: theme.colorScheme.primary,
+                      size: 22,
+                    ),
                   ),
                   const SizedBox(width: 12),
                 ],
@@ -57,7 +71,7 @@ class AppPageHeader extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w800,
                           color: theme.colorScheme.onSurface,
                         ),
                       ),
@@ -68,7 +82,7 @@ class AppPageHeader extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: AppColors.mutedText(theme),
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -662,14 +676,13 @@ class SummaryTile extends StatelessWidget {
     return Semantics(
       label: '$value $label',
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerLow,
+          color: (valueColor ?? theme.colorScheme.primary).withValues(
+            alpha: 0.07,
+          ),
           borderRadius: AppRadius.md,
           border: Border.all(color: AppColors.outline(theme)),
-          boxShadow: AppElevation.light(
-            AppColors.surfaceShadow(theme, alpha: 0.05),
-          ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

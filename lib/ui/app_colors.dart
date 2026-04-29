@@ -11,7 +11,10 @@ abstract final class AppColors {
   static const Color white = Color(0xFFFFFFFF);
 
   /// Light-mode canvas / scaffold background.
-  static const Color canvas = Color(0xFFF3F6F8);
+  static const Color canvas = Color(0xFFEAF0F4);
+
+  /// Slightly warmer content plane used inside the app shell.
+  static const Color canvasInset = Color(0xFFF7FAFC);
 
   /// Primary dark text (ArgoCD gray-7).
   static const Color ink = Color(0xFF495763);
@@ -93,10 +96,13 @@ abstract final class AppColors {
 
   /// ArgoCD sidebar background.
   static const Color sidebarDark = Color(0xFF0F2733);
+  static const Color sidebarDarkAlt = Color(0xFF152F3C);
+  static const Color sidebarRail = Color(0xFF0A1A23);
 
   // ── Dark mode surfaces ─────────────────────────────────────────────────
 
   static const Color darkBackground = Color(0xFF0F1317);
+  static const Color darkCanvasInset = Color(0xFF131A20);
   static const Color darkSurface = Color(0xFF171D23);
   static const Color darkSurfaceElevated = Color(0xFF202831);
   static const Color darkBorder = Color(0xFF33414D);
