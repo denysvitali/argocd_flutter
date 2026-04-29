@@ -9,6 +9,8 @@ import 'package:argocd_flutter/ui/resource_icons.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
 
+enum _DiffViewMode { unified, sideBySide }
+
 class AppDiffScreen extends StatefulWidget {
   const AppDiffScreen({
     super.key,
@@ -26,6 +28,8 @@ class AppDiffScreen extends StatefulWidget {
 class _AppDiffScreenState extends State<AppDiffScreen> {
   late Future<List<ManagedResource>> _future;
   bool _hideManagedFields = true;
+  bool _ignoreWhitespace = false;
+  _DiffViewMode _viewMode = _DiffViewMode.unified;
 
   @override
   void initState() {
@@ -46,6 +50,38 @@ class _AppDiffScreenState extends State<AppDiffScreen> {
           style: theme.textTheme.titleMedium,
         ),
         actions: <Widget>[
+          IconButton(
+            tooltip: _viewMode == _DiffViewMode.unified
+                ? 'Side-by-side diff'
+                : 'Unified diff',
+            icon: Icon(
+              _viewMode == _DiffViewMode.unified
+                  ? Icons.view_week
+                  : Icons.subject,
+            ),
+            onPressed: () {
+              setState(() {
+                _viewMode = _viewMode == _DiffViewMode.unified
+                    ? _DiffViewMode.sideBySide
+                    : _DiffViewMode.unified;
+              });
+            },
+          ),
+          IconButton(
+            tooltip: _ignoreWhitespace
+                ? 'Compare whitespace'
+                : 'Ignore whitespace',
+            icon: Icon(
+              _ignoreWhitespace
+                  ? Icons.space_bar
+                  : Icons.format_line_spacing,
+            ),
+            onPressed: () {
+              setState(() {
+                _ignoreWhitespace = !_ignoreWhitespace;
+              });
+            },
+          ),
           IconButton(
             tooltip: _hideManagedFields
                 ? 'Show managed fields'
@@ -126,6 +162,8 @@ class _AppDiffScreenState extends State<AppDiffScreen> {
               return _ResourceDiffCard(
                 resource: diffResources[index],
                 hideManagedFields: _hideManagedFields,
+                ignoreWhitespace: _ignoreWhitespace,
+                viewMode: _viewMode,
               );
             },
           );
@@ -139,10 +177,14 @@ class _ResourceDiffCard extends StatelessWidget {
   const _ResourceDiffCard({
     required this.resource,
     required this.hideManagedFields,
+    required this.ignoreWhitespace,
+    required this.viewMode,
   });
 
   final ManagedResource resource;
   final bool hideManagedFields;
+  final bool ignoreWhitespace;
+  final _DiffViewMode viewMode;
 
   @override
   Widget build(BuildContext context) {
@@ -159,17 +201,22 @@ class _ResourceDiffCard extends StatelessWidget {
     );
     final targetLines = _trimTrailing(targetYaml.split('\n'));
     final liveLines = _trimTrailing(liveYaml.split('\n'));
-    final sections = computeDiff(targetLines, liveLines);
-
-    // Count stats from all hunk lines.
-    var added = 0;
-    var removed = 0;
-    for (final section in sections) {
-      for (final line in section.lines) {
-        if (line.kind == DiffLineKind.added) added++;
-        if (line.kind == DiffLineKind.removed) removed++;
-      }
-    }
+    final diffLines = computeDiffLines(
+      targetLines,
+      liveLines,
+      ignoreWhitespace: ignoreWhitespace,
+    );
+    final stats = computeDiffStats(diffLines);
+    final sections = computeDiff(
+      targetLines,
+      liveLines,
+      ignoreWhitespace: ignoreWhitespace,
+    );
+    final sideBySideSections = computeSideBySideDiff(
+      targetLines,
+      liveLines,
+      ignoreWhitespace: ignoreWhitespace,
+    );
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
@@ -214,27 +261,20 @@ class _ResourceDiffCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  _DiffStats(added: added, removed: removed),
+                  _DiffStats(stats: stats),
                 ],
               ),
             ),
             Container(
               color: theme.colorScheme.surfaceContainerLowest,
               padding: const EdgeInsets.symmetric(vertical: 4),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    for (final section in sections)
-                      if (section.isCollapsed)
-                        _CollapsedSection(count: section.collapsedCount)
-                      else
-                        for (final line in section.lines)
-                          _DiffLineWidget(line: line),
-                  ],
-                ),
-              ),
+              child: stats.hasChanges
+                  ? _DiffBody(
+                      sections: sections,
+                      sideBySideSections: sideBySideSections,
+                      viewMode: viewMode,
+                    )
+                  : const _NoVisibleDiff(),
             ),
           ],
         ),
@@ -244,10 +284,9 @@ class _ResourceDiffCard extends StatelessWidget {
 }
 
 class _DiffStats extends StatelessWidget {
-  const _DiffStats({required this.added, required this.removed});
+  const _DiffStats({required this.stats});
 
-  final int added;
-  final int removed;
+  final DiffStats stats;
 
   @override
   Widget build(BuildContext context) {
@@ -255,18 +294,28 @@ class _DiffStats extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        if (added > 0)
+        if (stats.changed > 0)
           Text(
-            '+$added',
+            '~${stats.changed}',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        if (stats.changed > 0 && (stats.added > 0 || stats.removed > 0))
+          const SizedBox(width: 6),
+        if (stats.added > 0)
+          Text(
+            '+${stats.added}',
             style: theme.textTheme.labelSmall?.copyWith(
               color: AppColors.teal,
               fontWeight: FontWeight.w600,
             ),
           ),
-        if (added > 0 && removed > 0) const SizedBox(width: 6),
-        if (removed > 0)
+        if (stats.added > 0 && stats.removed > 0) const SizedBox(width: 6),
+        if (stats.removed > 0)
           Text(
-            '-$removed',
+            '-${stats.removed}',
             style: theme.textTheme.labelSmall?.copyWith(
               color: AppColors.coral,
               fontWeight: FontWeight.w600,
@@ -277,16 +326,80 @@ class _DiffStats extends StatelessWidget {
   }
 }
 
+class _DiffBody extends StatelessWidget {
+  const _DiffBody({
+    required this.sections,
+    required this.sideBySideSections,
+    required this.viewMode,
+  });
+
+  final List<DiffSection> sections;
+  final List<DiffSideBySideSection> sideBySideSections;
+  final _DiffViewMode viewMode;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: viewMode == _DiffViewMode.sideBySide
+            ? _buildSideBySideChildren()
+            : _buildUnifiedChildren(),
+      ),
+    );
+  }
+
+  List<Widget> _buildUnifiedChildren() {
+    return <Widget>[
+      for (final section in sections)
+        if (section.isCollapsed)
+          _CollapsedSection(count: section.collapsedCount)
+        else
+          for (final line in section.lines) _DiffLineWidget(line: line),
+    ];
+  }
+
+  List<Widget> _buildSideBySideChildren() {
+    return <Widget>[
+      for (final section in sideBySideSections)
+        if (section.isCollapsed)
+          _CollapsedSection(count: section.collapsedCount, width: 1440)
+        else
+          for (final row in section.rows) _SideBySideRow(row: row),
+    ];
+  }
+}
+
+class _NoVisibleDiff extends StatelessWidget {
+  const _NoVisibleDiff();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Text(
+        'No visible diff with the current filters.',
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
 class _CollapsedSection extends StatelessWidget {
-  const _CollapsedSection({required this.count});
+  const _CollapsedSection({required this.count, this.width = 2000});
 
   final int count;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      width: 2000,
+      width: width,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
@@ -335,12 +448,134 @@ class _DiffLineWidget extends StatelessWidget {
     return Container(
       width: 2000,
       color: backgroundColor,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+      child: Row(
+        children: <Widget>[
+          _LineNumber(value: line.oldLineNumber),
+          _LineNumber(value: line.newLineNumber),
+          SizedBox(
+            width: 24,
+            child: Text(
+              line.prefix,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontFamily: 'monospace',
+                color: textColor,
+                height: 1.5,
+              ),
+            ),
+          ),
+          Text(
+            line.text,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontFamily: 'monospace',
+              color: textColor,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SideBySideRow extends StatelessWidget {
+  const _SideBySideRow({required this.row});
+
+  final DiffSideBySideRow row;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        _SideBySideCell(line: row.oldLine, isOldSide: true),
+        _SideBySideCell(line: row.newLine, isOldSide: false),
+      ],
+    );
+  }
+}
+
+class _SideBySideCell extends StatelessWidget {
+  const _SideBySideCell({required this.line, required this.isOldSide});
+
+  final DiffLine? line;
+  final bool isOldSide;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isChanged = line != null && line!.kind != DiffLineKind.unchanged;
+    final backgroundColor = line == null
+        ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35)
+        : switch (line!.kind) {
+            DiffLineKind.added => AppColors.teal.withValues(alpha: 0.10),
+            DiffLineKind.removed => AppColors.coral.withValues(alpha: 0.10),
+            DiffLineKind.unchanged => Colors.transparent,
+          };
+    final textColor = line == null
+        ? theme.colorScheme.onSurfaceVariant
+        : switch (line!.kind) {
+            DiffLineKind.added => AppColors.teal,
+            DiffLineKind.removed => AppColors.coral,
+            DiffLineKind.unchanged =>
+              theme.colorScheme.onSurface.withValues(alpha: 0.65),
+          };
+
+    return Container(
+      width: 720,
+      color: backgroundColor,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+      child: Row(
+        children: <Widget>[
+          _LineNumber(
+            value: isOldSide ? line?.oldLineNumber : line?.newLineNumber,
+          ),
+          SizedBox(
+            width: 24,
+            child: Text(
+              line?.prefix ?? ' ',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontFamily: 'monospace',
+                color: textColor,
+                fontWeight: isChanged ? FontWeight.w600 : null,
+                height: 1.5,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              line?.text ?? '',
+              overflow: TextOverflow.visible,
+              softWrap: false,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontFamily: 'monospace',
+                color: textColor,
+                fontWeight: isChanged ? FontWeight.w600 : null,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LineNumber extends StatelessWidget {
+  const _LineNumber({required this.value});
+
+  final int? value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SizedBox(
+      width: 48,
       child: Text(
-        '${line.prefix} ${line.text}',
+        value?.toString() ?? '',
+        textAlign: TextAlign.right,
         style: theme.textTheme.bodySmall?.copyWith(
           fontFamily: 'monospace',
-          color: textColor,
+          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
           height: 1.5,
         ),
       ),

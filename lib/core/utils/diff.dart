@@ -8,11 +8,19 @@ enum DiffLineKind { unchanged, added, removed }
 
 /// A single line in a unified diff.
 class DiffLine {
-  const DiffLine({required this.prefix, required this.text, required this.kind});
+  const DiffLine({
+    required this.prefix,
+    required this.text,
+    required this.kind,
+    this.oldLineNumber,
+    this.newLineNumber,
+  });
 
   final String prefix;
   final String text;
   final DiffLineKind kind;
+  final int? oldLineNumber;
+  final int? newLineNumber;
 }
 
 /// A section of a diff — either a hunk of changes with surrounding context,
@@ -31,6 +39,51 @@ class DiffSection {
   final bool isCollapsed;
 }
 
+/// Summary counts for a diff.
+class DiffStats {
+  const DiffStats({
+    required this.added,
+    required this.removed,
+    required this.changed,
+    required this.unchanged,
+  });
+
+  final int added;
+  final int removed;
+  final int changed;
+  final int unchanged;
+
+  int get totalChanged => added + removed + changed;
+  bool get hasChanges => totalChanged > 0;
+}
+
+/// One row in a side-by-side diff.
+class DiffSideBySideRow {
+  const DiffSideBySideRow({this.oldLine, this.newLine});
+
+  final DiffLine? oldLine;
+  final DiffLine? newLine;
+
+  bool get isChanged =>
+      oldLine?.kind != DiffLineKind.unchanged ||
+      newLine?.kind != DiffLineKind.unchanged;
+}
+
+/// A side-by-side diff section.
+class DiffSideBySideSection {
+  const DiffSideBySideSection.hunk(this.rows)
+      : collapsedCount = 0,
+        isCollapsed = false;
+
+  const DiffSideBySideSection.collapsed(this.collapsedCount)
+      : rows = const <DiffSideBySideRow>[],
+        isCollapsed = true;
+
+  final List<DiffSideBySideRow> rows;
+  final int collapsedCount;
+  final bool isCollapsed;
+}
+
 /// Computes a unified diff between [oldLines] and [newLines] using the
 /// Myers diff algorithm, then groups the result into sections with
 /// [contextLines] of surrounding unchanged context (default 3).
@@ -41,8 +94,13 @@ List<DiffSection> computeDiff(
   List<String> oldLines,
   List<String> newLines, {
   int contextLines = 3,
+  bool ignoreWhitespace = false,
 }) {
-  final rawDiff = _myersDiff(oldLines, newLines);
+  final rawDiff = _myersDiff(
+    oldLines,
+    newLines,
+    ignoreWhitespace: ignoreWhitespace,
+  );
   if (rawDiff.isEmpty) {
     return const <DiffSection>[];
   }
@@ -53,19 +111,101 @@ List<DiffSection> computeDiff(
 /// which handles its own display logic.
 List<DiffLine> computeDiffLines(
   List<String> oldLines,
-  List<String> newLines,
-) {
-  return _myersDiff(oldLines, newLines);
+  List<String> newLines, {
+  bool ignoreWhitespace = false,
+}) {
+  return _myersDiff(
+    oldLines,
+    newLines,
+    ignoreWhitespace: ignoreWhitespace,
+  );
+}
+
+DiffStats computeDiffStats(List<DiffLine> lines) {
+  var added = 0;
+  var removed = 0;
+  var changed = 0;
+  var unchanged = 0;
+
+  var index = 0;
+  while (index < lines.length) {
+    final line = lines[index];
+    if (line.kind == DiffLineKind.unchanged) {
+      unchanged++;
+      index++;
+      continue;
+    }
+
+    if (line.kind == DiffLineKind.removed) {
+      var removedRun = 0;
+      while (index < lines.length &&
+          lines[index].kind == DiffLineKind.removed) {
+        removedRun++;
+        index++;
+      }
+      var addedRun = 0;
+      while (index < lines.length && lines[index].kind == DiffLineKind.added) {
+        addedRun++;
+        index++;
+      }
+      final paired = removedRun < addedRun ? removedRun : addedRun;
+      changed += paired;
+      removed += removedRun - paired;
+      added += addedRun - paired;
+      continue;
+    }
+
+    added++;
+    index++;
+  }
+
+  return DiffStats(
+    added: added,
+    removed: removed,
+    changed: changed,
+    unchanged: unchanged,
+  );
+}
+
+List<DiffSideBySideSection> computeSideBySideDiff(
+  List<String> oldLines,
+  List<String> newLines, {
+  int contextLines = 3,
+  bool ignoreWhitespace = false,
+}) {
+  final sections = computeDiff(
+    oldLines,
+    newLines,
+    contextLines: contextLines,
+    ignoreWhitespace: ignoreWhitespace,
+  );
+  return <DiffSideBySideSection>[
+    for (final section in sections)
+      if (section.isCollapsed)
+        DiffSideBySideSection.collapsed(section.collapsedCount)
+      else
+        DiffSideBySideSection.hunk(_pairLines(section.lines)),
+  ];
 }
 
 // ---------------------------------------------------------------------------
 // Myers diff implementation
 // ---------------------------------------------------------------------------
 
-List<DiffLine> _myersDiff(List<String> oldLines, List<String> newLines) {
+List<DiffLine> _myersDiff(
+  List<String> oldLines,
+  List<String> newLines, {
+  required bool ignoreWhitespace,
+}) {
   final n = oldLines.length;
   final m = newLines.length;
   final max = n + m;
+  final oldComparable = ignoreWhitespace
+      ? oldLines.map(_normalizeWhitespace).toList(growable: false)
+      : oldLines;
+  final newComparable = ignoreWhitespace
+      ? newLines.map(_normalizeWhitespace).toList(growable: false)
+      : newLines;
 
   if (max == 0) {
     return const <DiffLine>[];
@@ -90,7 +230,7 @@ List<DiffLine> _myersDiff(List<String> oldLines, List<String> newLines) {
       var y = x - k;
 
       // Follow diagonal (unchanged lines).
-      while (x < n && y < m && oldLines[x] == newLines[y]) {
+      while (x < n && y < m && oldComparable[x] == newComparable[y]) {
         x++;
         y++;
       }
@@ -169,7 +309,41 @@ List<DiffLine> _myersDiff(List<String> oldLines, List<String> newLines) {
     ));
   }
 
-  return edits.reversed.toList();
+  return _withLineNumbers(edits.reversed.toList());
+}
+
+List<DiffLine> _withLineNumbers(List<DiffLine> lines) {
+  var oldLineNumber = 1;
+  var newLineNumber = 1;
+
+  return <DiffLine>[
+    for (final line in lines)
+      switch (line.kind) {
+        DiffLineKind.unchanged => DiffLine(
+            prefix: line.prefix,
+            text: line.text,
+            kind: line.kind,
+            oldLineNumber: oldLineNumber++,
+            newLineNumber: newLineNumber++,
+          ),
+        DiffLineKind.removed => DiffLine(
+            prefix: line.prefix,
+            text: line.text,
+            kind: line.kind,
+            oldLineNumber: oldLineNumber++,
+          ),
+        DiffLineKind.added => DiffLine(
+            prefix: line.prefix,
+            text: line.text,
+            kind: line.kind,
+            newLineNumber: newLineNumber++,
+          ),
+      },
+  ];
+}
+
+String _normalizeWhitespace(String line) {
+  return line.trim().replaceAll(RegExp(r'\s+'), ' ');
 }
 
 // ---------------------------------------------------------------------------
@@ -220,4 +394,48 @@ List<DiffSection> _collapseIntoSections(
   }
 
   return sections;
+}
+
+List<DiffSideBySideRow> _pairLines(List<DiffLine> lines) {
+  final rows = <DiffSideBySideRow>[];
+  var index = 0;
+
+  while (index < lines.length) {
+    final line = lines[index];
+    if (line.kind == DiffLineKind.unchanged) {
+      rows.add(DiffSideBySideRow(oldLine: line, newLine: line));
+      index++;
+      continue;
+    }
+
+    if (line.kind == DiffLineKind.removed) {
+      final removed = <DiffLine>[];
+      while (index < lines.length &&
+          lines[index].kind == DiffLineKind.removed) {
+        removed.add(lines[index]);
+        index++;
+      }
+
+      final added = <DiffLine>[];
+      while (index < lines.length && lines[index].kind == DiffLineKind.added) {
+        added.add(lines[index]);
+        index++;
+      }
+
+      final rowCount =
+          removed.length > added.length ? removed.length : added.length;
+      for (var row = 0; row < rowCount; row++) {
+        rows.add(DiffSideBySideRow(
+          oldLine: row < removed.length ? removed[row] : null,
+          newLine: row < added.length ? added[row] : null,
+        ));
+      }
+      continue;
+    }
+
+    rows.add(DiffSideBySideRow(newLine: line));
+    index++;
+  }
+
+  return rows;
 }

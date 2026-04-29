@@ -79,23 +79,95 @@ void main() {
       final lines = computeDiffLines(old, updated);
 
       // 'header' unchanged, 3 added lines, 'footer' unchanged
-      final unchanged =
-          lines.where((l) => l.kind == DiffLineKind.unchanged).toList();
-      final added =
-          lines.where((l) => l.kind == DiffLineKind.added).toList();
+      final unchanged = lines
+          .where((l) => l.kind == DiffLineKind.unchanged)
+          .toList();
+      final added = lines.where((l) => l.kind == DiffLineKind.added).toList();
 
       expect(unchanged.length, 2);
       expect(unchanged[0].text, 'header');
       expect(unchanged[1].text, 'footer');
       expect(added.length, 3);
     });
+
+    test('repeated lines align with the closest unchanged anchors', () {
+      final lines = computeDiffLines(
+        <String>['kind: Deployment', 'name: web', 'name: web', 'replicas: 2'],
+        <String>[
+          'kind: Deployment',
+          'name: web',
+          'annotations: {}',
+          'name: web',
+          'replicas: 3',
+        ],
+      );
+
+      expect(lines.map((line) => '${line.prefix} ${line.text}'), <String>[
+        '  kind: Deployment',
+        '  name: web',
+        '+ annotations: {}',
+        '  name: web',
+        '- replicas: 2',
+        '+ replicas: 3',
+      ]);
+    });
+
+    test('adds old and new line numbers', () {
+      final lines = computeDiffLines(
+        <String>['a', 'old', 'c'],
+        <String>['a', 'new', 'c'],
+      );
+
+      expect(lines[0].oldLineNumber, 1);
+      expect(lines[0].newLineNumber, 1);
+      expect(lines[1].oldLineNumber, 2);
+      expect(lines[1].newLineNumber, isNull);
+      expect(lines[2].oldLineNumber, isNull);
+      expect(lines[2].newLineNumber, 2);
+      expect(lines[3].oldLineNumber, 3);
+      expect(lines[3].newLineNumber, 3);
+    });
+
+    test('can ignore whitespace-only differences', () {
+      final lines = computeDiffLines(
+        <String>['metadata:', '  name: app'],
+        <String>['metadata:', 'name:   app'],
+        ignoreWhitespace: true,
+      );
+
+      expect(lines.length, 2);
+      expect(lines.every((l) => l.kind == DiffLineKind.unchanged), isTrue);
+    });
+  });
+
+  group('computeDiffStats', () {
+    test('counts paired replacements separately from additions and removals', () {
+      final stats = computeDiffStats(computeDiffLines(
+        <String>['a', 'old', 'remove'],
+        <String>['a', 'new', 'add'],
+      ));
+
+      expect(stats.changed, 2);
+      expect(stats.added, 0);
+      expect(stats.removed, 0);
+      expect(stats.unchanged, 1);
+      expect(stats.hasChanges, isTrue);
+    });
+
+    test('reports no changes when whitespace is ignored', () {
+      final stats = computeDiffStats(computeDiffLines(
+        <String>['name: app'],
+        <String>['name:   app'],
+        ignoreWhitespace: true,
+      ));
+
+      expect(stats.hasChanges, isFalse);
+    });
   });
 
   group('computeDiff (with context collapsing)', () {
     test('collapses long unchanged regions', () {
-      final old = <String>[
-        for (var i = 0; i < 20; i++) 'line $i',
-      ];
+      final old = <String>[for (var i = 0; i < 20; i++) 'line $i'];
       final updated = List<String>.of(old)..[10] = 'CHANGED';
       final sections = computeDiff(old, updated, contextLines: 3);
 
@@ -107,15 +179,14 @@ void main() {
 
       // The hunk should contain context + change
       final hunk = sections[1].lines;
-      final changed =
-          hunk.where((l) => l.kind != DiffLineKind.unchanged).toList();
+      final changed = hunk
+          .where((l) => l.kind != DiffLineKind.unchanged)
+          .toList();
       expect(changed.length, 2); // removed 'line 10' + added 'CHANGED'
     });
 
     test('merges nearby hunks', () {
-      final old = <String>[
-        for (var i = 0; i < 20; i++) 'line $i',
-      ];
+      final old = <String>[for (var i = 0; i < 20; i++) 'line $i'];
       // Changes at index 5 and 8 — close enough to merge with context=3
       final updated = List<String>.of(old)
         ..[5] = 'CHANGED_A'
@@ -145,6 +216,22 @@ void main() {
       );
       // Everything changed, so one hunk, no collapsed
       expect(sections.every((s) => !s.isCollapsed), isTrue);
+    });
+  });
+
+  group('computeSideBySideDiff', () {
+    test('pairs removed and added replacement lines into one row', () {
+      final sections = computeSideBySideDiff(
+        <String>['a', 'old', 'c'],
+        <String>['a', 'new', 'c'],
+      );
+
+      final rows = sections.expand((s) => s.rows).toList();
+      final changedRows = rows.where((r) => r.isChanged).toList();
+
+      expect(changedRows.length, 1);
+      expect(changedRows.single.oldLine?.text, 'old');
+      expect(changedRows.single.newLine?.text, 'new');
     });
   });
 }
