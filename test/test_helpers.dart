@@ -125,15 +125,18 @@ class FakeArgoCdApi implements ArgoCdApi {
   FakeArgoCdApi({
     List<ArgoApplication> applications = const <ArgoApplication>[],
     List<ArgoProject> projects = const <ArgoProject>[],
+    List<ManagedResource> managedResources = const <ManagedResource>[],
     this.signInError,
     this.fetchApplicationsError,
     this.fetchProjectsError,
   }) : applications = List<ArgoApplication>.of(applications),
-       projects = List<ArgoProject>.of(projects);
+       projects = List<ArgoProject>.of(projects),
+       managedResources = List<ManagedResource>.of(managedResources);
 
   FakeArgoCdApi.withSeedData()
     : applications = <ArgoApplication>[seedApp],
       projects = <ArgoProject>[seedProject],
+      managedResources = <ManagedResource>[],
       signInError = null,
       fetchApplicationsError = null,
       fetchProjectsError = null;
@@ -141,12 +144,14 @@ class FakeArgoCdApi implements ArgoCdApi {
   FakeArgoCdApi.empty()
     : applications = <ArgoApplication>[],
       projects = <ArgoProject>[],
+      managedResources = <ManagedResource>[],
       signInError = null,
       fetchApplicationsError = null,
       fetchProjectsError = null;
 
   List<ArgoApplication> applications;
   List<ArgoProject> projects;
+  List<ManagedResource> managedResources;
 
   final ArgoCdException? signInError;
   final ArgoCdException? fetchApplicationsError;
@@ -251,7 +256,7 @@ class FakeArgoCdApi implements ArgoCdApi {
     AppSession session,
     String applicationName,
   ) async {
-    return const <ManagedResource>[];
+    return managedResources;
   }
 
   @override
