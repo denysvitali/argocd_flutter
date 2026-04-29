@@ -98,10 +98,27 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          compactActions
-              ? widget.resourceName
-              : '${widget.kind}: ${widget.resourceName}',
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              compactActions
+                  ? widget.resourceName
+                  : '${widget.kind}: ${widget.resourceName}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            Text(
+              widget.namespace.isEmpty
+                  ? widget.applicationName
+                  : '${widget.namespace} / ${widget.applicationName}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
         actions: <Widget>[
           FutureBuilder<String>(
@@ -698,74 +715,73 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     final isExpanded = viewData.query.isNotEmpty ? true : userExpanded;
 
     return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          InkWell(
-            onTap: section.expandable
-                ? () {
-                    setState(() {
-                      _expandedSections[section.key] = !userExpanded;
-                    });
-                  }
-                : null,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Icon(
-                    section.expandable
-                        ? (isExpanded
-                              ? Icons.keyboard_arrow_down
-                              : Icons.keyboard_arrow_right)
-                        : Icons.drag_handle,
-                    size: 16,
-                    color: section.expandable
-                        ? colorScheme.primary
-                        : colorScheme.onSurfaceVariant,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        InkWell(
+          onTap: section.expandable
+              ? () {
+                  setState(() {
+                    _expandedSections[section.key] = !userExpanded;
+                  });
+                }
+              : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(
+                  section.expandable
+                      ? (isExpanded
+                            ? Icons.keyboard_arrow_down
+                            : Icons.keyboard_arrow_right)
+                      : Icons.drag_handle,
+                  size: 16,
+                  color: section.expandable
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  section.key,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontFamily: 'monospace',
+                    fontSize: 13,
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w600,
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    section.key,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontFamily: 'monospace',
-                      fontSize: 13,
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          AnimatedCrossFade(
-            firstCurve: Curves.easeOutCubic,
-            secondCurve: Curves.easeInCubic,
-            sizeCurve: Curves.easeInOutCubic,
-            duration: const Duration(milliseconds: 220),
-            crossFadeState: isExpanded && section.expandable
-                ? CrossFadeState.showFirst
-                : CrossFadeState.showSecond,
-            firstChild: Padding(
-              padding: EdgeInsets.zero,
-              child: _buildExpandableSectionBody(
-                document: document,
-                section: section,
-                viewData: viewData,
-                visibleLines: visibleLines,
-              ),
+        ),
+        AnimatedCrossFade(
+          firstCurve: Curves.easeOutCubic,
+          secondCurve: Curves.easeInCubic,
+          sizeCurve: Curves.easeInOutCubic,
+          duration: const Duration(milliseconds: 220),
+          crossFadeState: isExpanded && section.expandable
+              ? CrossFadeState.showFirst
+              : CrossFadeState.showSecond,
+          firstChild: Padding(
+            padding: EdgeInsets.zero,
+            child: _buildExpandableSectionBody(
+              document: document,
+              section: section,
+              viewData: viewData,
+              visibleLines: visibleLines,
             ),
-            secondChild: section.expandable
-                ? const SizedBox.shrink()
-                : Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
-                    child: _buildScalarSectionLine(document, section, viewData),
-                  ),
           ),
-        ],
-      );
+          secondChild: section.expandable
+              ? const SizedBox.shrink()
+              : Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
+                  child: _buildScalarSectionLine(document, section, viewData),
+                ),
+        ),
+      ],
+    );
   }
-
 
   Widget _buildYamlLine({
     required String keyId,
@@ -922,10 +938,12 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     }
 
     final responseMap = decoded is Map<String, dynamic> ? decoded : null;
-    final manifestPayload = _extractManifestText(
+    final manifestPayload =
+        _extractManifestText(
           responseMap?['manifest'] ??
               (responseMap?['resource'] is Map<String, dynamic>
-                  ? (responseMap?['resource'] as Map<String, dynamic>)['manifest']
+                  ? (responseMap?['resource']
+                        as Map<String, dynamic>)['manifest']
                   : null),
         ) ??
         payload;
@@ -945,7 +963,9 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
 
     String formattedJson;
     try {
-      formattedJson = const JsonEncoder.withIndent('  ').convert(manifestDecoded);
+      formattedJson = const JsonEncoder.withIndent(
+        '  ',
+      ).convert(manifestDecoded);
     } catch (_) {
       formattedJson = manifestPayload;
     }
@@ -1014,8 +1034,9 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     try {
       final parsed = jsonDecode(text);
       if (parsed is Map<String, dynamic>) {
-        final cleaned =
-            _hideManagedFields ? _stripServerFields(parsed) : parsed;
+        final cleaned = _hideManagedFields
+            ? _stripServerFields(parsed)
+            : parsed;
         return jsonToYaml(cleaned);
       }
     } catch (_) {
@@ -1029,8 +1050,8 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     final metadata = result['metadata'];
     if (metadata is Map<String, dynamic> &&
         metadata.containsKey('managedFields')) {
-      result['metadata'] =
-          Map<String, dynamic>.of(metadata)..remove('managedFields');
+      result['metadata'] = Map<String, dynamic>.of(metadata)
+        ..remove('managedFields');
     }
     return result;
   }

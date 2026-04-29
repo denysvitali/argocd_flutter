@@ -90,13 +90,10 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen>
                 Positioned.fill(
                   child: IgnorePointer(
                     child: Container(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .surface
-                          .withValues(alpha: 0.4),
-                      child: const Center(
-                        child: CircularProgressIndicator(),
-                      ),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surface.withValues(alpha: 0.4),
+                      child: const Center(child: CircularProgressIndicator()),
                     ),
                   ),
                 ),
@@ -339,10 +336,7 @@ class _DetailBody extends StatelessWidget {
               ),
             ),
             title: innerBoxIsScrolled
-                ? Text(
-                    application.name,
-                    style: theme.textTheme.titleMedium,
-                  )
+                ? Text(application.name, style: theme.textTheme.titleMedium)
                 : null,
             actions: innerBoxIsScrolled
                 ? <Widget>[
@@ -446,9 +440,7 @@ class _HeroHeader extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: AppColors.headerSurface(theme),
-        border: Border(
-          bottom: BorderSide(color: theme.dividerColor),
-        ),
+        border: Border(bottom: BorderSide(color: theme.dividerColor)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -469,10 +461,7 @@ class _HeroHeader extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 2,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: AppColors.headerChipBackground(theme),
                   borderRadius: AppRadius.sm,
@@ -553,14 +542,6 @@ class _HeroHeader extends StatelessWidget {
       ),
     );
   }
-
-  static String _shortCluster(String cluster) {
-    final uri = Uri.tryParse(cluster);
-    if (uri != null && uri.host.isNotEmpty) {
-      return uri.host;
-    }
-    return cluster;
-  }
 }
 
 class _ToolbarButton extends StatelessWidget {
@@ -604,10 +585,7 @@ class _ToolbarButton extends StatelessWidget {
         onTap: onPressed,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: AppRadius.sm,
-          ),
+          decoration: BoxDecoration(color: bg, borderRadius: AppRadius.sm),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
@@ -640,26 +618,54 @@ class _OverviewTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(14),
-      children: <Widget>[
-        if (application.hasOperationError)
-          _OperationErrorBanner(application: application),
-        _SummarySection(application: application),
-        const SizedBox(height: 14),
-        _SourceSection(application: application),
-        const SizedBox(height: 14),
-        _DestinationSection(application: application),
-        const SizedBox(height: 14),
-        _ResourceTreeCard(
-          controller: controller,
-          applicationName: application.name,
-        ),
-        if (application.resources.isNotEmpty) ...<Widget>[
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 860;
+        final primary = <Widget>[
+          if (application.hasOperationError)
+            _OperationErrorBanner(application: application),
+          _SummarySection(application: application),
           const SizedBox(height: 14),
-          _InlineResourceSummary(resources: application.resources),
-        ],
-      ],
+          _ResourceTreeCard(
+            controller: controller,
+            applicationName: application.name,
+          ),
+          if (application.resources.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 14),
+            _InlineResourceSummary(resources: application.resources),
+          ],
+        ];
+        final secondary = <Widget>[
+          _SourceSection(application: application),
+          const SizedBox(height: 14),
+          _DestinationSection(application: application),
+        ];
+
+        if (!wide) {
+          return ListView(
+            padding: const EdgeInsets.all(14),
+            children: <Widget>[
+              ...primary,
+              const SizedBox(height: 14),
+              ...secondary,
+            ],
+          );
+        }
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: <Widget>[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Expanded(flex: 3, child: Column(children: primary)),
+                const SizedBox(width: 16),
+                Expanded(flex: 2, child: Column(children: secondary)),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -679,9 +685,7 @@ class _OperationErrorBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.degraded.withValues(alpha: 0.08),
         borderRadius: AppRadius.md,
-        border: Border.all(
-          color: AppColors.degraded.withValues(alpha: 0.4),
-        ),
+        border: Border.all(color: AppColors.degraded.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -731,18 +735,22 @@ class _SummarySection extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Expanded(child: _StatusPanelItem(
-                label: 'HEALTH',
-                value: application.healthStatus,
-                valueColor: AppColors.healthColor(application.healthStatus),
-                icon: healthStatusIcon(application.healthStatus),
-              )),
-              Expanded(child: _StatusPanelItem(
-                label: 'SYNC',
-                value: application.syncStatus,
-                valueColor: AppColors.syncColor(application.syncStatus),
-                icon: syncStatusIcon(application.syncStatus),
-              )),
+              Expanded(
+                child: _StatusPanelItem(
+                  label: 'HEALTH',
+                  value: application.healthStatus,
+                  valueColor: AppColors.healthColor(application.healthStatus),
+                  icon: healthStatusIcon(application.healthStatus),
+                ),
+              ),
+              Expanded(
+                child: _StatusPanelItem(
+                  label: 'SYNC',
+                  value: application.syncStatus,
+                  valueColor: AppColors.syncColor(application.syncStatus),
+                  icon: syncStatusIcon(application.syncStatus),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -751,18 +759,24 @@ class _SummarySection extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Expanded(child: _StatusPanelItem(
-                label: 'PROJECT',
-                value: application.project,
-              )),
-              Expanded(child: _StatusPanelItem(
-                label: 'NAMESPACE',
-                value: application.namespace,
-              )),
-              Expanded(child: _StatusPanelItem(
-                label: 'PHASE',
-                value: application.operationPhase,
-              )),
+              Expanded(
+                child: _StatusPanelItem(
+                  label: 'PROJECT',
+                  value: application.project,
+                ),
+              ),
+              Expanded(
+                child: _StatusPanelItem(
+                  label: 'NAMESPACE',
+                  value: application.namespace,
+                ),
+              ),
+              Expanded(
+                child: _StatusPanelItem(
+                  label: 'PHASE',
+                  value: application.operationPhase,
+                ),
+              ),
             ],
           ),
         ],
@@ -1286,8 +1300,7 @@ class _TimelineEntry extends StatelessWidget {
                     )
                   else
                     BoxShadow(
-                      color:
-                          theme.colorScheme.shadow.withValues(alpha: 0.04),
+                      color: theme.colorScheme.shadow.withValues(alpha: 0.04),
                       blurRadius: 4,
                       offset: const Offset(0, 1),
                     ),
@@ -1521,8 +1534,9 @@ class _InlineResourceSummary extends StatelessWidget {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: colorForResourceKind(entry.key)
-                        .withValues(alpha: 0.1),
+                    color: colorForResourceKind(
+                      entry.key,
+                    ).withValues(alpha: 0.1),
                     borderRadius: AppRadius.sm,
                   ),
                   child: Text(

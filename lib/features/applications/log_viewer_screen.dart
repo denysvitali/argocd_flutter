@@ -1,5 +1,6 @@
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
+import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -38,9 +39,6 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
-    final backgroundColor = isDark
-        ? colorScheme.surfaceContainerHighest
-        : colorScheme.surface;
     final logColor = isDark ? AppColors.teal : colorScheme.primary;
     final title = widget.containerName == null || widget.containerName!.isEmpty
         ? widget.podName
@@ -48,7 +46,18 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(title),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(
+              widget.namespace,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
         actions: <Widget>[
           IconButton(
             tooltip: 'Refresh',
@@ -62,56 +71,124 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
           ),
         ],
       ),
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        color: backgroundColor,
-        child: FutureBuilder<String>(
-          future: _future,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator());
-            }
+      body: FutureBuilder<String>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            if (snapshot.hasError) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Text(
-                        snapshot.error.toString(),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.error,
-                        ),
-                        textAlign: TextAlign.center,
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Icon(
+                      Icons.terminal_rounded,
+                      size: 48,
+                      color: colorScheme.error,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      snapshot.error.toString(),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.error,
                       ),
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: _refresh,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            final logs = snapshot.requireData;
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(12),
-              child: SelectableText(
-                logs.isEmpty ? 'No logs returned.' : logs,
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 12,
-                  color: logColor,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: _refresh,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                    ),
+                  ],
                 ),
               ),
             );
-          },
-        ),
+          }
+
+          final logs = snapshot.requireData;
+          final lineCount = logs.isEmpty ? 0 : logs.split('\n').length;
+          final shownLogs = logs.isEmpty ? 'No logs returned.' : logs;
+
+          return Column(
+            children: <Widget>[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest.withValues(
+                    alpha: isDark ? 0.5 : 0.8,
+                  ),
+                  border: Border(
+                    bottom: BorderSide(color: colorScheme.outlineVariant),
+                  ),
+                ),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: <Widget>[
+                    _LogMetaChip(icon: Icons.notes, label: '$lineCount lines'),
+                    _LogMetaChip(
+                      icon: Icons.apps_rounded,
+                      label: widget.applicationName,
+                    ),
+                    if (widget.containerName?.isNotEmpty ?? false)
+                      _LogMetaChip(
+                        icon: Icons.inventory_2_outlined,
+                        label: widget.containerName!,
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  color: isDark
+                      ? colorScheme.surfaceContainerLowest
+                      : colorScheme.surface,
+                  child: Scrollbar(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.black.withValues(alpha: 0.22)
+                              : colorScheme.surfaceContainerLowest,
+                          borderRadius: AppRadius.base,
+                          border: Border.all(color: colorScheme.outlineVariant),
+                        ),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.all(14),
+                            child: SelectableText(
+                              shownLogs,
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 12,
+                                color: logColor,
+                                height: 1.45,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -149,5 +226,39 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Logs copied.')));
+  }
+}
+
+class _LogMetaChip extends StatelessWidget {
+  const _LogMetaChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: AppRadius.pill,
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: 14, color: theme.colorScheme.onSurfaceVariant),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

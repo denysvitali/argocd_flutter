@@ -103,63 +103,111 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
                 filteredRoots = _filterTree(tree, tree.rootNodes);
               }
 
-              return ListView(
-                padding: const EdgeInsets.all(14),
-                children: <Widget>[
-                  _SummaryHeader(nodes: nodes),
-                  const SizedBox(height: 8),
-                  _buildSearchBar(theme),
-                  const SizedBox(height: 8),
-                  if (filteredRoots.isEmpty && _searchQuery.isNotEmpty)
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          children: <Widget>[
-                            Icon(
-                              Icons.search_off_rounded,
-                              size: 48,
-                              color: AppColors.greyLight,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'No resources match "$_searchQuery"',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: AppColors.grey,
-                              ),
-                            ),
-                          ],
+              final hierarchy = _buildHierarchyPanel(
+                theme: theme,
+                tree: tree,
+                filteredRoots: filteredRoots,
+              );
+
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth >= 900) {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        SizedBox(
+                          width: 320,
+                          child: ListView(
+                            padding: const EdgeInsets.all(16),
+                            children: <Widget>[
+                              _SummaryHeader(nodes: nodes),
+                              const SizedBox(height: 12),
+                              _buildSearchBar(theme),
+                            ],
+                          ),
                         ),
-                      ),
-                    )
-                  else
-                    SectionCard(
-                      title: 'Kubernetes Hierarchy',
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          for (int i = 0; i < filteredRoots.length; i++)
-                            _ResourceNodeTile(
-                              key: ValueKey<String>(
-                                '${filteredRoots[i].uid}_$_expandGeneration',
-                              ),
-                              controller: widget.controller,
-                              applicationName: widget.applicationName,
-                              node: filteredRoots[i],
-                              tree: tree,
-                              depth: 0,
-                              isInitiallyExpanded: _allExpanded,
-                              ancestorUids: const <String>{},
-                              isLastChild: i == filteredRoots.length - 1,
-                              onResourceChanged: _refresh,
-                              searchQuery: _searchQuery,
-                            ),
-                        ],
-                      ),
-                    ),
-                ],
+                        VerticalDivider(
+                          width: 1,
+                          color: theme.colorScheme.outlineVariant,
+                        ),
+                        Expanded(
+                          child: ListView(
+                            padding: const EdgeInsets.all(16),
+                            children: <Widget>[hierarchy],
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+
+                  return ListView(
+                    padding: const EdgeInsets.all(14),
+                    children: <Widget>[
+                      _SummaryHeader(nodes: nodes),
+                      const SizedBox(height: 8),
+                      _buildSearchBar(theme),
+                      const SizedBox(height: 8),
+                      hierarchy,
+                    ],
+                  );
+                },
               );
             },
+      ),
+    );
+  }
+
+  Widget _buildHierarchyPanel({
+    required ThemeData theme,
+    required _ResourceTreeData tree,
+    required List<ArgoResourceNode> filteredRoots,
+  }) {
+    if (filteredRoots.isEmpty && _searchQuery.isNotEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            children: <Widget>[
+              Icon(
+                Icons.search_off_rounded,
+                size: 48,
+                color: AppColors.greyLight,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'No resources match "$_searchQuery"',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.grey,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SectionCard(
+      title: 'Kubernetes Hierarchy',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          for (int i = 0; i < filteredRoots.length; i++)
+            _ResourceNodeTile(
+              key: ValueKey<String>(
+                '${filteredRoots[i].uid}_$_expandGeneration',
+              ),
+              controller: widget.controller,
+              applicationName: widget.applicationName,
+              node: filteredRoots[i],
+              tree: tree,
+              depth: 0,
+              isInitiallyExpanded: _allExpanded,
+              ancestorUids: const <String>{},
+              isLastChild: i == filteredRoots.length - 1,
+              onResourceChanged: _refresh,
+              searchQuery: _searchQuery,
+            ),
+        ],
       ),
     );
   }
@@ -187,10 +235,7 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
             : null,
         filled: true,
         fillColor: AppColors.inputFill(theme),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 8,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         border: OutlineInputBorder(
           borderRadius: AppRadius.base,
           borderSide: BorderSide(color: outlineColor),
@@ -603,11 +648,7 @@ class _DonutChartPainter extends CustomPainter {
 // ---------------------------------------------------------------------------
 
 class _LegendItem extends StatelessWidget {
-  const _LegendItem({
-    required this.color,
-    required this.label,
-    this.icon,
-  });
+  const _LegendItem({required this.color, required this.label, this.icon});
 
   final Color color;
   final String label;
@@ -914,12 +955,7 @@ class _NodeConnectorPainter extends CustomPainter {
     }
   }
 
-  void _drawDashedLine(
-    Canvas canvas,
-    Offset start,
-    Offset end,
-    Paint paint,
-  ) {
+  void _drawDashedLine(Canvas canvas, Offset start, Offset end, Paint paint) {
     const double dashLength = 4.0;
     const double gapLength = 3.0;
     final double totalLength = (end - start).distance;

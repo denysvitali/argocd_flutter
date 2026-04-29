@@ -34,14 +34,13 @@ class _AppDiffScreenState extends State<AppDiffScreen> {
   @override
   void initState() {
     super.initState();
-    _future = widget.controller.fetchManagedResources(
-      widget.applicationName,
-    );
+    _future = widget.controller.fetchManagedResources(widget.applicationName);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final narrow = MediaQuery.sizeOf(context).width < 640;
 
     return Scaffold(
       appBar: AppBar(
@@ -49,63 +48,18 @@ class _AppDiffScreenState extends State<AppDiffScreen> {
           'Diff: ${widget.applicationName}',
           style: theme.textTheme.titleMedium,
         ),
-        actions: <Widget>[
-          IconButton(
-            tooltip: _viewMode == _DiffViewMode.unified
-                ? 'Side-by-side diff'
-                : 'Unified diff',
-            icon: Icon(
-              _viewMode == _DiffViewMode.unified
-                  ? Icons.view_week
-                  : Icons.subject,
-            ),
-            onPressed: () {
-              setState(() {
-                _viewMode = _viewMode == _DiffViewMode.unified
-                    ? _DiffViewMode.sideBySide
-                    : _DiffViewMode.unified;
-              });
-            },
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(narrow ? 92 : 60),
+          child: _DiffCommandBar(
+            viewMode: _viewMode,
+            ignoreWhitespace: _ignoreWhitespace,
+            hideManagedFields: _hideManagedFields,
+            onToggleMode: _toggleMode,
+            onToggleWhitespace: _toggleWhitespace,
+            onToggleManagedFields: _toggleManagedFields,
+            onRefresh: _refresh,
           ),
-          IconButton(
-            tooltip: _ignoreWhitespace
-                ? 'Compare whitespace'
-                : 'Ignore whitespace',
-            icon: Icon(
-              _ignoreWhitespace
-                  ? Icons.space_bar
-                  : Icons.format_line_spacing,
-            ),
-            onPressed: () {
-              setState(() {
-                _ignoreWhitespace = !_ignoreWhitespace;
-              });
-            },
-          ),
-          IconButton(
-            tooltip: _hideManagedFields
-                ? 'Show managed fields'
-                : 'Hide managed fields',
-            icon: Icon(
-              _hideManagedFields ? Icons.visibility_off : Icons.visibility,
-            ),
-            onPressed: () {
-              setState(() {
-                _hideManagedFields = !_hideManagedFields;
-              });
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              setState(() {
-                _future = widget.controller.fetchManagedResources(
-                  widget.applicationName,
-                );
-              });
-            },
-          ),
-        ],
+        ),
       ),
       body: FutureBuilder<List<ManagedResource>>(
         future: _future,
@@ -139,8 +93,7 @@ class _AppDiffScreenState extends State<AppDiffScreen> {
           }
 
           final resources = snapshot.requireData;
-          final diffResources =
-              resources.where((r) => r.hasDiff).toList();
+          final diffResources = resources.where((r) => r.hasDiff).toList();
 
           if (diffResources.isEmpty) {
             return const Center(
@@ -155,19 +108,154 @@ class _AppDiffScreenState extends State<AppDiffScreen> {
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(14),
-            itemCount: diffResources.length,
-            itemBuilder: (context, index) {
-              return _ResourceDiffCard(
-                resource: diffResources[index],
-                hideManagedFields: _hideManagedFields,
-                ignoreWhitespace: _ignoreWhitespace,
-                viewMode: _viewMode,
-              );
-            },
+          return Column(
+            children: <Widget>[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: theme.brightness == Brightness.dark ? 0.35 : 0.55,
+                ),
+                child: Text(
+                  '${diffResources.length} resources with drift',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(14),
+                  itemCount: diffResources.length,
+                  itemBuilder: (context, index) {
+                    return _ResourceDiffCard(
+                      resource: diffResources[index],
+                      hideManagedFields: _hideManagedFields,
+                      ignoreWhitespace: _ignoreWhitespace,
+                      viewMode: _viewMode,
+                    );
+                  },
+                ),
+              ),
+            ],
           );
         },
+      ),
+    );
+  }
+
+  void _toggleMode() {
+    setState(() {
+      _viewMode = _viewMode == _DiffViewMode.unified
+          ? _DiffViewMode.sideBySide
+          : _DiffViewMode.unified;
+    });
+  }
+
+  void _toggleWhitespace() {
+    setState(() {
+      _ignoreWhitespace = !_ignoreWhitespace;
+    });
+  }
+
+  void _toggleManagedFields() {
+    setState(() {
+      _hideManagedFields = !_hideManagedFields;
+    });
+  }
+
+  void _refresh() {
+    setState(() {
+      _future = widget.controller.fetchManagedResources(widget.applicationName);
+    });
+  }
+}
+
+class _DiffCommandBar extends StatelessWidget {
+  const _DiffCommandBar({
+    required this.viewMode,
+    required this.ignoreWhitespace,
+    required this.hideManagedFields,
+    required this.onToggleMode,
+    required this.onToggleWhitespace,
+    required this.onToggleManagedFields,
+    required this.onRefresh,
+  });
+
+  final _DiffViewMode viewMode;
+  final bool ignoreWhitespace;
+  final bool hideManagedFields;
+  final VoidCallback onToggleMode;
+  final VoidCallback onToggleWhitespace;
+  final VoidCallback onToggleManagedFields;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: <Widget>[
+          SegmentedButton<_DiffViewMode>(
+            segments: const <ButtonSegment<_DiffViewMode>>[
+              ButtonSegment<_DiffViewMode>(
+                value: _DiffViewMode.unified,
+                icon: Icon(Icons.subject),
+                label: Text('Unified'),
+              ),
+              ButtonSegment<_DiffViewMode>(
+                value: _DiffViewMode.sideBySide,
+                icon: Icon(Icons.view_week),
+                label: Text('Split'),
+              ),
+            ],
+            selected: <_DiffViewMode>{viewMode},
+            onSelectionChanged: (_) => onToggleMode(),
+            style: ButtonStyle(
+              visualDensity: VisualDensity.compact,
+              textStyle: WidgetStatePropertyAll(theme.textTheme.labelMedium),
+            ),
+          ),
+          Tooltip(
+            message: ignoreWhitespace
+                ? 'Compare whitespace'
+                : 'Ignore whitespace',
+            child: FilterChip(
+              avatar: const Icon(Icons.format_line_spacing, size: 16),
+              label: const Text('Whitespace'),
+              selected: ignoreWhitespace,
+              onSelected: (_) => onToggleWhitespace(),
+            ),
+          ),
+          Tooltip(
+            message: hideManagedFields
+                ? 'Show managed fields'
+                : 'Hide managed fields',
+            child: FilterChip(
+              avatar: Icon(
+                hideManagedFields ? Icons.visibility_off : Icons.visibility,
+                size: 16,
+              ),
+              label: const Text('Managed fields'),
+              selected: hideManagedFields,
+              onSelected: (_) => onToggleManagedFields(),
+            ),
+          ),
+          IconButton.filledTonal(
+            tooltip: 'Refresh',
+            onPressed: onRefresh,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
       ),
     );
   }
@@ -195,10 +283,7 @@ class _ResourceDiffCard extends StatelessWidget {
       resource.targetState!,
       hideManagedFields,
     );
-    final liveYaml = _formatManifest(
-      resource.liveState!,
-      hideManagedFields,
-    );
+    final liveYaml = _formatManifest(resource.liveState!, hideManagedFields);
     final targetLines = _trimTrailing(targetYaml.split('\n'));
     final liveLines = _trimTrailing(liveYaml.split('\n'));
     final diffLines = computeDiffLines(
@@ -516,8 +601,9 @@ class _SideBySideCell extends StatelessWidget {
         : switch (line!.kind) {
             DiffLineKind.added => AppColors.teal,
             DiffLineKind.removed => AppColors.coral,
-            DiffLineKind.unchanged =>
-              theme.colorScheme.onSurface.withValues(alpha: 0.65),
+            DiffLineKind.unchanged => theme.colorScheme.onSurface.withValues(
+              alpha: 0.65,
+            ),
           };
 
     return Container(
@@ -591,8 +677,7 @@ String _formatManifest(String jsonString, bool hideManagedFields) {
   try {
     final parsed = jsonDecode(jsonString);
     if (parsed is Map<String, dynamic>) {
-      final cleaned =
-          hideManagedFields ? _stripServerFields(parsed) : parsed;
+      final cleaned = hideManagedFields ? _stripServerFields(parsed) : parsed;
       return jsonToYaml(cleaned);
     }
   } catch (_) {
@@ -606,8 +691,8 @@ Map<String, dynamic> _stripServerFields(Map<String, dynamic> obj) {
   final metadata = result['metadata'];
   if (metadata is Map<String, dynamic> &&
       metadata.containsKey('managedFields')) {
-    result['metadata'] =
-        Map<String, dynamic>.of(metadata)..remove('managedFields');
+    result['metadata'] = Map<String, dynamic>.of(metadata)
+      ..remove('managedFields');
   }
   return result;
 }
