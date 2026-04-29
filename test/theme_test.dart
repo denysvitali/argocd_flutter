@@ -17,7 +17,7 @@ void main() {
 
     test('has correct scaffold background color', () {
       final theme = buildLightAppTheme();
-      expect(theme.scaffoldBackgroundColor, equals(AppColors.canvas));
+      expect(theme.scaffoldBackgroundColor, equals(AppColors.canvasInset));
     });
 
     test('uses the correct primary color (AppColors.cobalt)', () {
@@ -44,7 +44,7 @@ void main() {
 
     test('has correct scaffold background color', () {
       final theme = buildDarkAppTheme();
-      expect(theme.scaffoldBackgroundColor, equals(AppColors.darkBackground));
+      expect(theme.scaffoldBackgroundColor, equals(AppColors.darkCanvasInset));
     });
 
     test('uses the correct primary color (AppColors.cobalt)', () {

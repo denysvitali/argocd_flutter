@@ -2,7 +2,7 @@ import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:flutter/material.dart';
 
-const EdgeInsets kPagePadding = EdgeInsets.fromLTRB(16, 10, 16, 18);
+const EdgeInsets kPagePadding = EdgeInsets.fromLTRB(10, 8, 10, 12);
 
 class AppPageHeader extends StatelessWidget {
   const AppPageHeader({
@@ -27,14 +27,11 @@ class AppPageHeader extends StatelessWidget {
     return SafeArea(
       bottom: false,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
-          borderRadius: AppRadius.md,
+          borderRadius: AppRadius.base,
           border: Border.all(color: AppColors.outline(theme)),
-          boxShadow: AppElevation.subtle(
-            AppColors.surfaceShadow(theme, alpha: 0.06),
-          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,8 +40,8 @@ class AppPageHeader extends StatelessWidget {
               children: <Widget>[
                 if (leadingIcon != null) ...<Widget>[
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: 34,
+                    height: 34,
                     decoration: BoxDecoration(
                       color: theme.colorScheme.primary.withValues(alpha: 0.10),
                       borderRadius: AppRadius.base,
@@ -57,10 +54,10 @@ class AppPageHeader extends StatelessWidget {
                     child: Icon(
                       leadingIcon,
                       color: theme.colorScheme.primary,
-                      size: 22,
+                      size: 18,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                 ],
                 Expanded(
                   child: Column(
@@ -70,7 +67,7 @@ class AppPageHeader extends StatelessWidget {
                         title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.headlineSmall?.copyWith(
+                        style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w800,
                           color: theme.colorScheme.onSurface,
                         ),
@@ -89,15 +86,12 @@ class AppPageHeader extends StatelessWidget {
                   ),
                 ),
                 if (trailing != null) ...<Widget>[
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   trailing!,
                 ],
               ],
             ),
-            if (bottom != null) ...<Widget>[
-              const SizedBox(height: 12),
-              bottom!,
-            ],
+            if (bottom != null) ...<Widget>[const SizedBox(height: 8), bottom!],
           ],
         ),
       ),
@@ -485,38 +479,30 @@ class StatusChip extends StatelessWidget {
     return Semantics(
       label: 'Status: $label',
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
           color: color.withValues(
             alpha: theme.brightness == Brightness.dark ? 0.24 : 0.10,
           ),
-          borderRadius: AppRadius.pill,
+          borderRadius: AppRadius.sm,
           border: Border.all(
             color: color.withValues(
               alpha: theme.brightness == Brightness.dark ? 0.54 : 0.32,
             ),
           ),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: color.withValues(alpha: 0.08),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             if (icon != null) ...<Widget>[
-              Icon(icon, size: 13, color: color),
-              const SizedBox(width: 4),
+              Icon(icon, size: 11, color: color),
+              const SizedBox(width: 3),
             ],
             Text(
               label,
               style: theme.textTheme.labelSmall?.copyWith(
                 color: color,
                 fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
               ),
             ),
           ],
@@ -564,15 +550,12 @@ class SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final borderColor = AppColors.outline(theme);
-    final shadowColor = AppColors.surfaceShadow(theme, alpha: 0.08);
-
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: AppRadius.md,
+        borderRadius: AppRadius.base,
         border: Border.all(color: borderColor),
-        boxShadow: AppElevation.subtle(shadowColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -585,7 +568,7 @@ class SectionCard extends StatelessWidget {
                 letterSpacing: 0.1,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
           ],
           child,
         ],
@@ -613,29 +596,26 @@ class EmptyStateCard extends StatelessWidget {
     return Semantics(
       label: '$title. $subtitle',
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
-          borderRadius: AppRadius.md,
+          borderRadius: AppRadius.base,
           border: Border.all(color: AppColors.outline(theme)),
-          boxShadow: AppElevation.subtle(
-            AppColors.surfaceShadow(theme, alpha: 0.06),
-          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             if (icon != null) ...<Widget>[
               Container(
-                width: 42,
-                height: 42,
+                width: 34,
+                height: 34,
                 decoration: BoxDecoration(
                   color: AppColors.teal.withValues(alpha: 0.10),
-                  borderRadius: AppRadius.md,
+                  borderRadius: AppRadius.base,
                 ),
-                child: Icon(icon, size: 24, color: AppColors.teal),
+                child: Icon(icon, size: 20, color: AppColors.teal),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
             ],
             Text(
               title,
@@ -676,12 +656,12 @@ class SummaryTile extends StatelessWidget {
     return Semantics(
       label: '$value $label',
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: (valueColor ?? theme.colorScheme.primary).withValues(
             alpha: 0.07,
           ),
-          borderRadius: AppRadius.md,
+          borderRadius: AppRadius.base,
           border: Border.all(color: AppColors.outline(theme)),
         ),
         child: Column(

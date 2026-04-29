@@ -273,7 +273,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 8),
             _OverviewStrip(
               controller: widget.controller,
               totalApplications: allApplications.length,
@@ -281,7 +281,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               outOfSyncCount: outOfSyncCount,
               healthSegments: healthSegments,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             _CommandBar(
               searchController: _searchController,
               onSearchChanged: _onSearchChanged,
@@ -307,7 +307,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                 });
               },
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             _FilterChips(
               activeFilter: _activeFilter,
               counts: filterCounts,
@@ -317,7 +317,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                 });
               },
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             LayoutBuilder(
               builder: (BuildContext context, BoxConstraints constraints) {
                 final stackedControls = constraints.maxWidth < 700;
@@ -375,7 +375,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -386,7 +386,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                 );
               },
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 6),
             if (widget.controller.errorMessage != null)
               ErrorRetryWidget(
                 message: widget.controller.errorMessage!,
@@ -410,7 +410,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
             else
               ...applications.map(
                 (application) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.only(bottom: 5),
                   child: _ApplicationCard(
                     application: application,
                     onTap: () => widget.onOpenApplication(application.name),
@@ -467,7 +467,7 @@ class _FilterChips extends StatelessWidget {
       label: Text('$label ${counts[chip] ?? 0}'),
       selected: isSelected,
       onSelected: (_) => onSelected(chip),
-      selectedColor: chipColor.withValues(alpha: 0.12),
+      selectedColor: chipColor.withValues(alpha: 0.10),
       checkmarkColor: chipColor,
       labelStyle: TextStyle(
         color: isSelected ? chipColor : AppColors.grey,
@@ -579,7 +579,7 @@ class _SearchBar extends StatelessWidget {
           ),
           prefixIconConstraints: const BoxConstraints(
             minWidth: 48,
-            minHeight: 48,
+            minHeight: 38,
           ),
           suffixIcon: showClear
               ? IconButton(
@@ -590,8 +590,8 @@ class _SearchBar extends StatelessWidget {
               : null,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 8,
+            horizontal: 10,
+            vertical: 6,
           ),
         ),
       ),
@@ -656,11 +656,11 @@ class _CommandBar extends StatelessWidget {
           return Column(
             children: <Widget>[
               search,
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Row(
                 children: <Widget>[
                   Expanded(child: filters[0]),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   Expanded(child: filters[1]),
                 ],
               ),
@@ -671,9 +671,9 @@ class _CommandBar extends StatelessWidget {
         return Row(
           children: <Widget>[
             Expanded(flex: 3, child: search),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Expanded(child: filters[0]),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Expanded(child: filters[1]),
           ],
         );
@@ -703,8 +703,8 @@ class _ScopeDropdown extends StatelessWidget {
     final mutedColor = AppColors.mutedText(theme);
 
     return Container(
-      height: 48,
-      padding: const EdgeInsets.only(left: 10, right: 8),
+      height: 38,
+      padding: const EdgeInsets.only(left: 8, right: 6),
       decoration: BoxDecoration(
         color: AppColors.inputFill(theme),
         borderRadius: AppRadius.md,
@@ -793,14 +793,11 @@ class _OverviewStrip extends StatelessWidget {
     final chipBg = AppColors.headerChipBackground(theme);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: AppColors.headerSurface(theme),
-        borderRadius: AppRadius.md,
+        borderRadius: AppRadius.base,
         border: Border.all(color: AppColors.headerDivider(theme)),
-        boxShadow: AppElevation.subtle(
-          AppColors.surfaceShadow(theme, alpha: 0.12),
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -809,14 +806,14 @@ class _OverviewStrip extends StatelessWidget {
           Row(
             children: <Widget>[
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(
                   color: chipBg,
                   borderRadius: AppRadius.sm,
                 ),
                 child: Icon(Icons.apps_rounded, size: 16, color: fg),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Applications',
@@ -838,11 +835,11 @@ class _OverviewStrip extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           // Metric chips
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: 6,
+            runSpacing: 6,
             children: <Widget>[
               _MetricChip(
                 value: totalApplications,
@@ -871,7 +868,7 @@ class _OverviewStrip extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           // Health segment bar
           StatusSegmentBar(segments: healthSegments),
         ],
@@ -901,7 +898,7 @@ class _MetricChip extends StatelessWidget {
     return Semantics(
       label: '$value $label',
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: background,
           borderRadius: AppRadius.sm,
@@ -952,28 +949,25 @@ class _ApplicationCard extends StatelessWidget {
     final healthColor = AppColors.healthColor(application.healthStatus);
 
     return Material(
-      color: Colors.transparent,
+      color: theme.colorScheme.surface,
       borderRadius: AppRadius.base,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: AppRadius.md,
+        borderRadius: AppRadius.base,
         child: Container(
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             border: Border.all(color: AppColors.outline(theme)),
-            borderRadius: AppRadius.md,
-            boxShadow: AppElevation.light(
-              AppColors.surfaceShadow(theme, alpha: 0.06),
-            ),
+            borderRadius: AppRadius.base,
           ),
           child: ClipRRect(
-            borderRadius: AppRadius.md,
+            borderRadius: AppRadius.base,
             child: Container(
               decoration: BoxDecoration(
-                border: Border(left: BorderSide(color: healthColor, width: 5)),
+                border: Border(left: BorderSide(color: healthColor, width: 4)),
               ),
-              padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+              padding: const EdgeInsets.fromLTRB(9, 7, 9, 7),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
@@ -991,7 +985,7 @@ class _ApplicationCard extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 1),
                             Text(
                               application.project,
                               style: theme.textTheme.bodySmall?.copyWith(
@@ -1003,16 +997,17 @@ class _ApplicationCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
+                      const SizedBox(width: 6),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        alignment: WrapAlignment.end,
                         children: <Widget>[
                           StatusChip(
                             icon: healthStatusIcon(application.healthStatus),
                             label: application.healthStatus,
                             color: healthColor,
                           ),
-                          const SizedBox(height: 6),
                           StatusChip(
                             icon: syncStatusIcon(application.syncStatus),
                             label: application.syncStatus,
@@ -1022,7 +1017,7 @@ class _ApplicationCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   // Cluster + namespace metadata row
                   Row(
                     children: <Widget>[
@@ -1071,10 +1066,10 @@ class _ApplicationCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Wrap(
                     spacing: 6,
-                    runSpacing: 4,
+                    runSpacing: 2,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: <Widget>[
                       if (application.lastSyncedAt != null &&
@@ -1100,10 +1095,10 @@ class _ApplicationCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
+                    spacing: 4,
+                    runSpacing: 2,
                     children: <Widget>[
                       _ColoredFactBadge(
                         icon: Icons.route_outlined,

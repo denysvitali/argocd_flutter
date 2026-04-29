@@ -48,7 +48,7 @@ ThemeData buildLightAppTheme() {
   return ThemeData(
     useMaterial3: true,
     splashFactory: InkRipple.splashFactory,
-    scaffoldBackgroundColor: AppColors.canvas,
+    scaffoldBackgroundColor: AppColors.canvasInset,
     colorScheme: scheme,
     textTheme: lightBaseTextTheme.copyWith(
       headlineSmall: lightBaseTextTheme.headlineSmall?.copyWith(
@@ -84,7 +84,7 @@ ThemeData buildLightAppTheme() {
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
-      backgroundColor: AppColors.canvas,
+      backgroundColor: AppColors.canvasInset,
       foregroundColor: AppColors.inkDark,
       titleTextStyle: lightBaseTextTheme.titleLarge?.copyWith(
         color: AppColors.inkDark,
@@ -96,14 +96,14 @@ ThemeData buildLightAppTheme() {
       color: scheme.surface,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: AppRadius.md,
+        borderRadius: AppRadius.base,
         side: const BorderSide(color: Color(0xFFD7E0E6)),
       ),
     ),
     iconButtonTheme: IconButtonThemeData(
       style: IconButton.styleFrom(
         foregroundColor: AppColors.gray7,
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.base),
       ),
     ),
     chipTheme: ChipThemeData(
@@ -125,24 +125,25 @@ ThemeData buildLightAppTheme() {
       filled: true,
       fillColor: AppColors.white,
       isDense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       border: OutlineInputBorder(
-        borderRadius: AppRadius.md,
+        borderRadius: AppRadius.base,
         borderSide: BorderSide(color: scheme.outline),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: AppRadius.md,
+        borderRadius: AppRadius.base,
         borderSide: BorderSide(color: scheme.outline),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: AppRadius.md,
+        borderRadius: AppRadius.base,
         borderSide: const BorderSide(color: AppColors.teal, width: 1.4),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        minimumSize: const Size(44, 42),
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
+        minimumSize: const Size(36, 34),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.base),
         textStyle: const TextStyle(
           fontFamily: _bodyFontFamily,
           fontWeight: FontWeight.w800,
@@ -151,9 +152,10 @@ ThemeData buildLightAppTheme() {
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        minimumSize: const Size(44, 42),
+        minimumSize: const Size(36, 34),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         side: BorderSide(color: scheme.outline),
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.base),
         textStyle: const TextStyle(
           fontFamily: _bodyFontFamily,
           fontWeight: FontWeight.w800,
@@ -162,7 +164,7 @@ ThemeData buildLightAppTheme() {
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.base),
         textStyle: const TextStyle(
           fontFamily: _bodyFontFamily,
           fontWeight: FontWeight.w800,
@@ -170,7 +172,7 @@ ThemeData buildLightAppTheme() {
       ),
     ),
     listTileTheme: ListTileThemeData(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
       iconColor: AppColors.gray6,
       shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
       titleTextStyle: const TextStyle(
@@ -191,7 +193,7 @@ ThemeData buildLightAppTheme() {
       shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      height: 72,
+      height: 58,
       backgroundColor: AppColors.sidebarRail,
       surfaceTintColor: Colors.transparent,
       indicatorColor: AppColors.teal.withValues(alpha: 0.18),
@@ -207,7 +209,7 @@ ThemeData buildLightAppTheme() {
       iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
         final selected = states.contains(WidgetState.selected);
         return IconThemeData(
-          size: 24,
+          size: 21,
           color: selected ? AppColors.white : AppColors.textOnDarkMuted,
         );
       }),
@@ -215,10 +217,10 @@ ThemeData buildLightAppTheme() {
     navigationRailTheme: NavigationRailThemeData(
       backgroundColor: AppColors.sidebarRail,
       indicatorColor: AppColors.teal.withValues(alpha: 0.18),
-      selectedIconTheme: const IconThemeData(color: AppColors.white, size: 24),
+      selectedIconTheme: const IconThemeData(color: AppColors.white, size: 21),
       unselectedIconTheme: const IconThemeData(
         color: AppColors.textOnDarkMuted,
-        size: 22,
+        size: 20,
       ),
       selectedLabelTextStyle: const TextStyle(
         fontFamily: _bodyFontFamily,
@@ -266,7 +268,7 @@ ThemeData buildDarkAppTheme() {
   return ThemeData(
     useMaterial3: true,
     splashFactory: InkRipple.splashFactory,
-    scaffoldBackgroundColor: AppColors.darkBackground,
+    scaffoldBackgroundColor: AppColors.darkCanvasInset,
     colorScheme: scheme,
     textTheme: darkBaseTextTheme.copyWith(
       headlineSmall: darkBaseTextTheme.headlineSmall?.copyWith(
@@ -302,7 +304,7 @@ ThemeData buildDarkAppTheme() {
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
-      backgroundColor: AppColors.darkBackground,
+      backgroundColor: AppColors.darkCanvasInset,
       foregroundColor: AppColors.gray2,
       titleTextStyle: darkBaseTextTheme.titleLarge?.copyWith(
         color: AppColors.gray2,
@@ -314,14 +316,14 @@ ThemeData buildDarkAppTheme() {
       color: scheme.surface,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: AppRadius.md,
+        borderRadius: AppRadius.base,
         side: const BorderSide(color: AppColors.darkBorder),
       ),
     ),
     iconButtonTheme: IconButtonThemeData(
       style: IconButton.styleFrom(
         foregroundColor: AppColors.gray3,
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.base),
       ),
     ),
     chipTheme: ChipThemeData(
@@ -343,24 +345,25 @@ ThemeData buildDarkAppTheme() {
       filled: true,
       fillColor: AppColors.darkSurfaceElevated,
       isDense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       border: OutlineInputBorder(
-        borderRadius: AppRadius.md,
+        borderRadius: AppRadius.base,
         borderSide: BorderSide(color: scheme.outline),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: AppRadius.md,
+        borderRadius: AppRadius.base,
         borderSide: BorderSide(color: scheme.outline),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: AppRadius.md,
+        borderRadius: AppRadius.base,
         borderSide: const BorderSide(color: AppColors.teal, width: 1.4),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        minimumSize: const Size(44, 42),
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
+        minimumSize: const Size(36, 34),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.base),
         textStyle: const TextStyle(
           fontFamily: _bodyFontFamily,
           fontWeight: FontWeight.w800,
@@ -369,9 +372,10 @@ ThemeData buildDarkAppTheme() {
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        minimumSize: const Size(44, 42),
+        minimumSize: const Size(36, 34),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         side: BorderSide(color: scheme.outline),
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.base),
         textStyle: const TextStyle(
           fontFamily: _bodyFontFamily,
           fontWeight: FontWeight.w800,
@@ -380,7 +384,7 @@ ThemeData buildDarkAppTheme() {
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.base),
         textStyle: const TextStyle(
           fontFamily: _bodyFontFamily,
           fontWeight: FontWeight.w800,
@@ -388,7 +392,7 @@ ThemeData buildDarkAppTheme() {
       ),
     ),
     listTileTheme: ListTileThemeData(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
       iconColor: AppColors.gray5,
       shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
       titleTextStyle: const TextStyle(
@@ -409,7 +413,7 @@ ThemeData buildDarkAppTheme() {
       shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      height: 72,
+      height: 58,
       backgroundColor: AppColors.sidebarRail,
       surfaceTintColor: Colors.transparent,
       indicatorColor: AppColors.teal.withValues(alpha: 0.2),
@@ -425,7 +429,7 @@ ThemeData buildDarkAppTheme() {
       iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
         final selected = states.contains(WidgetState.selected);
         return IconThemeData(
-          size: 24,
+          size: 21,
           color: selected ? AppColors.white : AppColors.textOnDarkMuted,
         );
       }),
@@ -433,10 +437,10 @@ ThemeData buildDarkAppTheme() {
     navigationRailTheme: NavigationRailThemeData(
       backgroundColor: AppColors.sidebarRail,
       indicatorColor: AppColors.teal.withValues(alpha: 0.18),
-      selectedIconTheme: const IconThemeData(color: AppColors.white, size: 24),
+      selectedIconTheme: const IconThemeData(color: AppColors.white, size: 21),
       unselectedIconTheme: const IconThemeData(
         color: AppColors.textOnDarkMuted,
-        size: 22,
+        size: 20,
       ),
       selectedLabelTextStyle: const TextStyle(
         fontFamily: _bodyFontFamily,

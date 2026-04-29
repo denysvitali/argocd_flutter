@@ -116,12 +116,12 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         SizedBox(
-                          width: 320,
+                          width: 280,
                           child: ListView(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(8),
                             children: <Widget>[
                               _SummaryHeader(nodes: nodes),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 8),
                               _buildSearchBar(theme),
                             ],
                           ),
@@ -132,7 +132,7 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
                         ),
                         Expanded(
                           child: ListView(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(8),
                             children: <Widget>[hierarchy],
                           ),
                         ),
@@ -141,12 +141,12 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
                   }
 
                   return ListView(
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(8),
                     children: <Widget>[
                       _SummaryHeader(nodes: nodes),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       _buildSearchBar(theme),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       hierarchy,
                     ],
                   );
@@ -235,7 +235,7 @@ class _ResourceTreeScreenState extends State<ResourceTreeScreen> {
             : null,
         filled: true,
         fillColor: AppColors.inputFill(theme),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         border: OutlineInputBorder(
           borderRadius: AppRadius.base,
           borderSide: BorderSide(color: outlineColor),
@@ -846,7 +846,7 @@ class _ResourceNodeTileState extends State<_ResourceNodeTile> {
             children: <Widget>[
               if (widget.depth > 0)
                 SizedBox(
-                  width: 20,
+                  width: 14,
                   child: CustomPaint(
                     painter: _NodeConnectorPainter(
                       color: theme.dividerColor,
@@ -858,21 +858,21 @@ class _ResourceNodeTileState extends State<_ResourceNodeTile> {
                 GestureDetector(
                   onTap: _toggleExpanded,
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 6),
+                    padding: const EdgeInsets.only(top: 4),
                     child: AnimatedRotation(
                       turns: _expanded ? 0.25 : 0.0,
                       duration: const Duration(milliseconds: 250),
                       curve: Curves.easeOutCubic,
                       child: Icon(
                         Icons.chevron_right_rounded,
-                        size: 20,
+                        size: 18,
                         color: AppColors.grey,
                       ),
                     ),
                   ),
                 )
               else
-                const SizedBox(width: 20),
+                const SizedBox(width: 18),
               Expanded(
                 child: _NodeCard(
                   controller: widget.controller,
@@ -893,7 +893,7 @@ class _ResourceNodeTileState extends State<_ResourceNodeTile> {
             curve: Curves.easeOutCubic,
             alignment: Alignment.topLeft,
             child: Padding(
-              padding: EdgeInsets.only(left: widget.depth > 0 ? 20.0 : 0.0),
+              padding: EdgeInsets.only(left: widget.depth > 0 ? 14.0 : 0.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
@@ -1030,27 +1030,27 @@ class _NodeCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.symmetric(vertical: 3),
                   child: Container(
-                    width: 28,
-                    height: 28,
+                    width: 24,
+                    height: 24,
                     decoration: BoxDecoration(
                       color: kindColor.withValues(alpha: 0.12),
                       borderRadius: AppRadius.sm,
                     ),
                     child: Icon(
                       iconForResourceKind(node.kind),
-                      size: 18,
+                      size: 16,
                       color: kindColor,
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.symmetric(vertical: 3),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -1063,7 +1063,7 @@ class _NodeCard extends StatelessWidget {
                             letterSpacing: 0.5,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 1),
                         Text(
                           node.name,
                           style: theme.textTheme.bodyMedium?.copyWith(
@@ -1077,21 +1077,21 @@ class _NodeCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Padding(
-                  padding: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.only(right: 6),
                   child: Tooltip(
                     message: node.healthStatus,
                     child: Icon(
                       healthStatusIcon(node.healthStatus),
-                      size: 16,
+                      size: 15,
                       color: AppColors.healthColor(node.healthStatus),
                     ),
                   ),
                 ),
                 if (isPod)
                   Padding(
-                    padding: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.only(right: 6),
                     child: Center(
                       child: _SmallActionButton(
                         icon: Icons.article_outlined,

@@ -115,7 +115,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             controller: widget.controller,
             onRefresh: () => widget.controller.refreshApplications(),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           _HeroBanner(
             controller: widget.controller,
             totalApps: 0,
@@ -124,7 +124,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             degradedCount: 0,
             healthSegments: const [],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           _EmptyDashboard(),
           if (widget.controller.errorMessage != null)
             Padding(
@@ -145,7 +145,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           controller: widget.controller,
           onRefresh: () => widget.controller.refreshApplications(),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 8),
         _OperationalSummary(
           controller: widget.controller,
           totalApps: totalApps,
@@ -156,7 +156,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               .map((s) => StatusSegment(color: s.color, count: s.count))
               .toList(growable: false),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _ResponsiveDashboardPanels(
           totalApps: totalApps,
           healthSegments: healthSegments,
@@ -174,7 +174,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         if (widget.controller.errorMessage != null)
           Padding(
-            padding: const EdgeInsets.only(top: 16),
+            padding: const EdgeInsets.only(top: 8),
             child: ErrorRetryWidget(
               message: widget.controller.errorMessage!,
               onRetry: () => widget.controller.refreshApplications(),
@@ -182,10 +182,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         if (widget.controller.loadingApplications &&
             !widget.controller.hasLoadedApplications) ...<Widget>[
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           const Center(child: CircularProgressIndicator()),
         ],
-        const SizedBox(height: 80),
+        const SizedBox(height: 12),
       ],
     );
   }
@@ -212,7 +212,7 @@ class _DashboardHeader extends StatelessWidget {
               children: <Widget>[
                 Text(
                   'Dashboard',
-                  style: theme.textTheme.headlineSmall?.copyWith(
+                  style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: theme.colorScheme.onSurface,
                   ),
@@ -308,14 +308,11 @@ class _OperationalSummary extends StatelessWidget {
         : (healthyCount / totalApps * 100).round();
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: AppColors.headerSurface(theme),
-        borderRadius: AppRadius.md,
+        borderRadius: AppRadius.base,
         border: Border.all(color: AppColors.headerDivider(theme)),
-        boxShadow: AppElevation.subtle(
-          AppColors.surfaceShadow(theme, alpha: 0.12),
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -328,7 +325,7 @@ class _OperationalSummary extends StatelessWidget {
                   children: <Widget>[
                     Text(
                       '$healthyPercent% healthy',
-                      style: theme.textTheme.headlineSmall?.copyWith(
+                      style: theme.textTheme.titleLarge?.copyWith(
                         color: AppColors.headerForeground(theme),
                         fontWeight: FontWeight.w800,
                       ),
@@ -355,9 +352,9 @@ class _OperationalSummary extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           StatusSegmentBar(segments: healthSegments),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           LayoutBuilder(
             builder: (context, constraints) {
               final narrow = constraints.maxWidth < 560;
@@ -641,14 +638,11 @@ class _HeroBanner extends StatelessWidget {
     final session = controller.session;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: AppColors.headerSurface(theme),
-        borderRadius: AppRadius.md,
+        borderRadius: AppRadius.base,
         border: Border.all(color: AppColors.headerDivider(theme)),
-        boxShadow: AppElevation.subtle(
-          AppColors.surfaceShadow(theme, alpha: 0.14),
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -656,20 +650,20 @@ class _HeroBanner extends StatelessWidget {
           Row(
             children: <Widget>[
               Container(
-                width: 42,
-                height: 42,
+                width: 34,
+                height: 34,
                 decoration: BoxDecoration(
                   color: AppColors.headerChipBackground(theme, alpha: 0.12),
-                  borderRadius: AppRadius.md,
+                  borderRadius: AppRadius.base,
                   border: Border.all(color: AppColors.headerDivider(theme)),
                 ),
                 child: const Icon(
                   Icons.hub_rounded,
                   color: AppColors.orange,
-                  size: 22,
+                  size: 18,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -698,20 +692,20 @@ class _HeroBanner extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: AppColors.headerChipBackground(theme, alpha: 0.08),
-              borderRadius: AppRadius.md,
+              borderRadius: AppRadius.base,
               border: Border.all(color: AppColors.headerDivider(theme)),
             ),
             child: GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: 2,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
+              mainAxisSpacing: 6,
+              crossAxisSpacing: 6,
               childAspectRatio: 2.45,
               children: <Widget>[
                 _HeaderStatChip(label: 'Total apps', value: totalApps),
@@ -733,7 +727,7 @@ class _HeroBanner extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           StatusSegmentBar(segments: healthSegments),
         ],
       ),
