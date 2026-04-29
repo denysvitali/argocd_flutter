@@ -51,15 +51,31 @@ ThemeData buildLightAppTheme() {
     scaffoldBackgroundColor: AppColors.canvas,
     colorScheme: scheme,
     textTheme: lightBaseTextTheme.copyWith(
+      headlineSmall: lightBaseTextTheme.headlineSmall?.copyWith(
+        fontWeight: FontWeight.w800,
+        color: AppColors.inkDark,
+      ),
+      titleLarge: lightBaseTextTheme.titleLarge?.copyWith(
+        fontWeight: FontWeight.w800,
+        color: AppColors.inkDark,
+      ),
+      titleMedium: lightBaseTextTheme.titleMedium?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: AppColors.inkDark,
+      ),
       bodyMedium: const TextStyle(
         fontFamily: _bodyFontFamily,
         color: AppColors.ink,
-        fontSize: 16,
+        fontSize: 15,
       ),
       bodyLarge: const TextStyle(
         fontFamily: _bodyFontFamily,
         color: AppColors.ink,
-        fontSize: 18,
+        fontSize: 16,
+      ),
+      labelLarge: const TextStyle(
+        fontFamily: _bodyFontFamily,
+        fontWeight: FontWeight.w700,
       ),
     ),
     dividerColor: AppColors.gray4,
@@ -102,6 +118,8 @@ ThemeData buildLightAppTheme() {
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: AppColors.white,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       border: OutlineInputBorder(
         borderRadius: AppRadius.md,
         borderSide: BorderSide(color: scheme.outline),
@@ -114,6 +132,57 @@ ThemeData buildLightAppTheme() {
         borderRadius: AppRadius.md,
         borderSide: const BorderSide(color: AppColors.teal, width: 1.4),
       ),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(44, 42),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
+        textStyle: const TextStyle(
+          fontFamily: _bodyFontFamily,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(44, 42),
+        side: BorderSide(color: scheme.outline),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
+        textStyle: const TextStyle(
+          fontFamily: _bodyFontFamily,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
+        textStyle: const TextStyle(
+          fontFamily: _bodyFontFamily,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    ),
+    listTileTheme: ListTileThemeData(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      iconColor: AppColors.gray6,
+      shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
+      titleTextStyle: const TextStyle(
+        fontFamily: _bodyFontFamily,
+        color: AppColors.inkDark,
+        fontWeight: FontWeight.w800,
+        fontSize: 14,
+      ),
+      subtitleTextStyle: const TextStyle(
+        fontFamily: _bodyFontFamily,
+        color: AppColors.gray6,
+        fontWeight: FontWeight.w500,
+        fontSize: 13,
+      ),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
     ),
     navigationBarTheme: NavigationBarThemeData(
       height: 66,
@@ -194,15 +263,31 @@ ThemeData buildDarkAppTheme() {
     scaffoldBackgroundColor: AppColors.darkBackground,
     colorScheme: scheme,
     textTheme: darkBaseTextTheme.copyWith(
+      headlineSmall: darkBaseTextTheme.headlineSmall?.copyWith(
+        fontWeight: FontWeight.w800,
+        color: AppColors.gray2,
+      ),
+      titleLarge: darkBaseTextTheme.titleLarge?.copyWith(
+        fontWeight: FontWeight.w800,
+        color: AppColors.gray2,
+      ),
+      titleMedium: darkBaseTextTheme.titleMedium?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: AppColors.gray2,
+      ),
       bodyMedium: const TextStyle(
         fontFamily: _bodyFontFamily,
         color: AppColors.gray3,
-        fontSize: 16,
+        fontSize: 15,
       ),
       bodyLarge: const TextStyle(
         fontFamily: _bodyFontFamily,
         color: AppColors.gray3,
-        fontSize: 18,
+        fontSize: 16,
+      ),
+      labelLarge: const TextStyle(
+        fontFamily: _bodyFontFamily,
+        fontWeight: FontWeight.w700,
       ),
     ),
     dividerColor: AppColors.darkBorder,
@@ -245,6 +330,8 @@ ThemeData buildDarkAppTheme() {
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: AppColors.darkSurfaceElevated,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       border: OutlineInputBorder(
         borderRadius: AppRadius.md,
         borderSide: BorderSide(color: scheme.outline),
@@ -257,6 +344,57 @@ ThemeData buildDarkAppTheme() {
         borderRadius: AppRadius.md,
         borderSide: const BorderSide(color: AppColors.teal, width: 1.4),
       ),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(44, 42),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
+        textStyle: const TextStyle(
+          fontFamily: _bodyFontFamily,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(44, 42),
+        side: BorderSide(color: scheme.outline),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
+        textStyle: const TextStyle(
+          fontFamily: _bodyFontFamily,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
+        textStyle: const TextStyle(
+          fontFamily: _bodyFontFamily,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    ),
+    listTileTheme: ListTileThemeData(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      iconColor: AppColors.gray5,
+      shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
+      titleTextStyle: const TextStyle(
+        fontFamily: _bodyFontFamily,
+        color: AppColors.gray2,
+        fontWeight: FontWeight.w800,
+        fontSize: 14,
+      ),
+      subtitleTextStyle: const TextStyle(
+        fontFamily: _bodyFontFamily,
+        color: AppColors.gray5,
+        fontWeight: FontWeight.w500,
+        fontSize: 13,
+      ),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
     ),
     navigationBarTheme: NavigationBarThemeData(
       height: 66,
@@ -493,6 +631,7 @@ class _HomeShellState extends State<HomeShell> {
     ];
 
     return Scaffold(
+      extendBody: !railNav,
       body: railNav
           ? Row(
               children: <Widget>[
@@ -525,18 +664,15 @@ class _HomeShellState extends State<HomeShell> {
       ),
       bottomNavigationBar: railNav
           ? null
-          : NavigationBar(
+          : _FloatingBottomNav(
               selectedIndex: _index,
-              animationDuration: const Duration(milliseconds: 400),
-              labelBehavior: compactNav
-                  ? NavigationDestinationLabelBehavior.onlyShowSelected
-                  : NavigationDestinationLabelBehavior.alwaysShow,
+              compact: compactNav,
+              destinations: navDestinations,
               onDestinationSelected: (value) {
                 setState(() {
                   _index = value;
                 });
               },
-              destinations: navDestinations,
             ),
     );
   }
@@ -548,6 +684,51 @@ class _HomeShellState extends State<HomeShell> {
         controller: widget.controller,
         onOpenApplication: _openApplication,
         onOpenProject: _openProject,
+      ),
+    );
+  }
+}
+
+class _FloatingBottomNav extends StatelessWidget {
+  const _FloatingBottomNav({
+    required this.selectedIndex,
+    required this.compact,
+    required this.destinations,
+    required this.onDestinationSelected,
+  });
+
+  final int selectedIndex;
+  final bool compact;
+  final List<NavigationDestination> destinations;
+  final ValueChanged<int> onDestinationSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SafeArea(
+      minimum: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.headerDark,
+          borderRadius: AppRadius.md,
+          border: Border.all(color: AppColors.white.withValues(alpha: 0.08)),
+          boxShadow: AppElevation.subtle(
+            AppColors.surfaceShadow(theme, alpha: 0.20),
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: AppRadius.md,
+          child: NavigationBar(
+            selectedIndex: selectedIndex,
+            animationDuration: const Duration(milliseconds: 400),
+            labelBehavior: compact
+                ? NavigationDestinationLabelBehavior.onlyShowSelected
+                : NavigationDestinationLabelBehavior.alwaysShow,
+            onDestinationSelected: onDestinationSelected,
+            destinations: destinations,
+          ),
+        ),
       ),
     );
   }

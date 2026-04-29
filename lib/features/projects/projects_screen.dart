@@ -142,24 +142,32 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     };
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Projects'),
-        actions: <Widget>[
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed: widget.controller.busy
-                ? null
-                : () => widget.controller.refreshProjects(),
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
       body: RefreshIndicator(
         onRefresh: () => widget.controller.refreshProjects(),
         child: ListView(
           padding: kPagePadding,
           children: <Widget>[
-            LastUpdatedText(timestamp: widget.controller.lastRefreshedAt),
+            AppPageHeader(
+              title: 'Projects',
+              subtitle: widget.controller.session == null
+                  ? 'Access scopes and destinations'
+                  : widget.controller.session!.serverUrl,
+              leadingIcon: Icons.folder_special_rounded,
+              trailing: IconButton.filledTonal(
+                tooltip: 'Refresh',
+                onPressed: widget.controller.busy
+                    ? null
+                    : () => widget.controller.refreshProjects(),
+                icon: const Icon(Icons.refresh_rounded),
+              ),
+              bottom: Align(
+                alignment: Alignment.centerLeft,
+                child: LastUpdatedText(
+                  timestamp: widget.controller.lastRefreshedAt,
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
             _OverviewStrip(
               controller: widget.controller,
               totalProjects: allProjects.length,
@@ -172,7 +180,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                 (count, project) => count + project.sourceRepos.length,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             _SearchBar(
               controller: _searchController,
               onChanged: _onSearchChanged,
@@ -185,7 +193,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               },
               showClear: _query.isNotEmpty,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             _ProjectFilterChips(
               activeFilter: _activeFilter,
               counts: filterCounts,
@@ -195,7 +203,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                 });
               },
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             LayoutBuilder(
               builder: (BuildContext context, BoxConstraints constraints) {
                 final stackedControls = constraints.maxWidth < 700;
@@ -238,7 +246,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                               ),
                         ),
                       ),
-                      if (clearButton != null) clearButton,
+                      ?clearButton,
                       sortDropdown,
                     ],
                   );
@@ -259,10 +267,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                       spacing: 8,
                       runSpacing: 8,
                       crossAxisAlignment: WrapCrossAlignment.center,
-                      children: <Widget>[
-                        if (clearButton != null) clearButton,
-                        sortDropdown,
-                      ],
+                      children: <Widget>[?clearButton, sortDropdown],
                     ),
                   ],
                 );
@@ -324,38 +329,42 @@ class _SearchBar extends StatelessWidget {
     final outlineColor = AppColors.outline(theme);
     final mutedColor = AppColors.mutedText(theme);
 
-    return TextField(
-      controller: controller,
-      onChanged: onChanged,
-      decoration: InputDecoration(
-        hintText: 'Search project, description, repo, namespace, cluster',
-        hintStyle: theme.textTheme.bodyMedium?.copyWith(color: mutedColor),
-        prefixIcon: Icon(Icons.search, color: mutedColor),
-        suffixIcon: showClear
-            ? IconButton(
-                icon: const Icon(Icons.close, size: 18),
-                onPressed: onClear,
-                tooltip: 'Clear filter',
-                color: mutedColor,
-              )
-            : null,
-        filled: true,
-        fillColor: AppColors.inputFill(theme),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 10,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.inputFill(theme),
+        borderRadius: AppRadius.md,
+        border: Border.all(color: outlineColor),
+        boxShadow: AppElevation.light(
+          AppColors.surfaceShadow(theme, alpha: 0.04),
         ),
-        border: OutlineInputBorder(
-          borderRadius: AppRadius.base,
-          borderSide: BorderSide(color: outlineColor),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: AppRadius.base,
-          borderSide: BorderSide(color: outlineColor),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: AppRadius.base,
-          borderSide: const BorderSide(color: AppColors.teal, width: 1.5),
+      ),
+      child: TextField(
+        controller: controller,
+        onChanged: onChanged,
+        decoration: InputDecoration(
+          hintText: 'Search project, description, repo, namespace, cluster',
+          hintStyle: theme.textTheme.bodyMedium?.copyWith(color: mutedColor),
+          prefixIcon: Padding(
+            padding: const EdgeInsets.only(left: 16, right: 8),
+            child: Icon(Icons.search_rounded, color: mutedColor),
+          ),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 48,
+            minHeight: 48,
+          ),
+          suffixIcon: showClear
+              ? IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  onPressed: onClear,
+                  tooltip: 'Clear filter',
+                  color: mutedColor,
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
         ),
       ),
     );
@@ -470,10 +479,14 @@ class _OverviewStrip extends StatelessWidget {
     final session = controller.session;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.headerSurface(theme),
         borderRadius: AppRadius.md,
+        border: Border.all(color: AppColors.headerDivider(theme)),
+        boxShadow: AppElevation.subtle(
+          AppColors.surfaceShadow(theme, alpha: 0.12),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -498,18 +511,18 @@ class _OverviewStrip extends StatelessWidget {
                   session == null
                       ? 'Project boundaries'
                       : 'Projects · ${session.username}',
-                  style: theme.textTheme.bodyMedium?.copyWith(
+                  style: theme.textTheme.titleSmall?.copyWith(
                     color: AppColors.headerForeground(theme),
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w800,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Wrap(
-            spacing: 12,
+            spacing: 8,
             runSpacing: 8,
             children: <Widget>[
               _MetricChip(
@@ -562,123 +575,134 @@ class _ProjectCard extends StatelessWidget {
     final outlineColor = AppColors.outline(theme);
     final mutedColor = AppColors.mutedText(theme);
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: AppRadius.base,
-      splashColor: accent.withValues(alpha: 0.12),
-      highlightColor: accent.withValues(alpha: 0.06),
-      child: Ink(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: AppRadius.base,
-          border: Border.all(color: outlineColor),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Container(
-                    width: 26,
-                    height: 26,
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.12),
-                      borderRadius: AppRadius.base,
-                    ),
-                    child: Icon(
-                      Icons.account_tree_outlined,
-                      size: 15,
-                      color: accent,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _HighlightedText(
-                      text: project.name,
-                      query: searchQuery,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
+    return Material(
+      color: Colors.transparent,
+      borderRadius: AppRadius.md,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.md,
+        splashColor: accent.withValues(alpha: 0.12),
+        highlightColor: accent.withValues(alpha: 0.06),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: AppRadius.md,
+            border: Border.all(color: outlineColor),
+            boxShadow: AppElevation.light(
+              AppColors.surfaceShadow(theme, alpha: 0.06),
+            ),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border(left: BorderSide(color: accent, width: 5)),
+            ),
+            padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Container(
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.12),
+                        borderRadius: AppRadius.base,
+                      ),
+                      child: Icon(
+                        Icons.account_tree_outlined,
+                        size: 15,
+                        color: accent,
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _HighlightedText(
+                        text: project.name,
+                        query: searchQuery,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    Icon(Icons.chevron_right, color: mutedColor, size: 20),
+                  ],
+                ),
+                if (project.description.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 4),
+                  _HighlightedText(
+                    text: project.description,
+                    query: searchQuery,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                  Icon(Icons.chevron_right, color: mutedColor, size: 20),
                 ],
-              ),
-              if (project.description.isNotEmpty) ...<Widget>[
-                const SizedBox(height: 4),
-                _HighlightedText(
-                  text: project.description,
-                  query: searchQuery,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                const SizedBox(height: 6),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Icon(Icons.code_outlined, size: 14, color: mutedColor),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Repos: ${_projectRepoPreview(project)}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: mutedColor,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Icon(Icons.dns_outlined, size: 14, color: mutedColor),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Scope: ${_projectDestinationPreview(project)}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.grey,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: <Widget>[
+                    _CountBadge(
+                      icon: Icons.code_outlined,
+                      count: project.sourceRepos.length,
+                      label: 'repos',
+                      color: AppColors.teal,
+                    ),
+                    _CountBadge(
+                      icon: Icons.dns_outlined,
+                      count: project.destinations.length,
+                      label: 'destinations',
+                      color: AppColors.healthy,
+                    ),
+                    if (project.clusterResourceWhitelist.isNotEmpty)
+                      _CountBadge(
+                        icon: Icons.shield_outlined,
+                        count: project.clusterResourceWhitelist.length,
+                        label: 'rules',
+                        color: AppColors.degraded,
+                      ),
+                  ],
                 ),
               ],
-              const SizedBox(height: 6),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Icon(Icons.code_outlined, size: 14, color: mutedColor),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'Repos: ${_projectRepoPreview(project)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: mutedColor,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 2),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Icon(Icons.dns_outlined, size: 14, color: mutedColor),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'Scope: ${_projectDestinationPreview(project)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.grey,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: <Widget>[
-                  _CountBadge(
-                    icon: Icons.code_outlined,
-                    count: project.sourceRepos.length,
-                    label: 'repos',
-                    color: AppColors.teal,
-                  ),
-                  _CountBadge(
-                    icon: Icons.dns_outlined,
-                    count: project.destinations.length,
-                    label: 'destinations',
-                    color: AppColors.healthy,
-                  ),
-                  if (project.clusterResourceWhitelist.isNotEmpty)
-                    _CountBadge(
-                      icon: Icons.shield_outlined,
-                      count: project.clusterResourceWhitelist.length,
-                      label: 'rules',
-                      color: AppColors.degraded,
-                    ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ),

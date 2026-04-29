@@ -145,9 +145,7 @@ abstract final class AppColors {
   // ── Theme-aware helpers ────────────────────────────────────────────────
 
   static Color headerSurface(ThemeData theme) {
-    return theme.brightness == Brightness.dark
-        ? darkSurfaceElevated
-        : headerDark;
+    return theme.brightness == Brightness.dark ? darkSurfaceElevated : white;
   }
 
   static Color headerSurfaceAlt(ThemeData theme) {
@@ -159,22 +157,23 @@ abstract final class AppColors {
   static Color headerForeground(ThemeData theme) {
     return theme.brightness == Brightness.dark
         ? theme.colorScheme.onSurface
-        : white;
+        : inkDark;
   }
 
   static Color headerMutedForeground(ThemeData theme) {
-    return theme.brightness == Brightness.dark
-        ? textOnDarkMuted
-        : textOnDarkMuted;
+    return theme.brightness == Brightness.dark ? textOnDarkMuted : gray6;
   }
 
   static Color headerDivider(ThemeData theme) {
-    final alpha = theme.brightness == Brightness.dark ? 0.12 : 0.18;
-    return headerForeground(theme).withValues(alpha: alpha);
+    return theme.brightness == Brightness.dark
+        ? headerForeground(theme).withValues(alpha: 0.12)
+        : outline(theme);
   }
 
   static Color headerChipBackground(ThemeData theme, {double alpha = 0.15}) {
-    return headerForeground(theme).withValues(alpha: alpha);
+    return theme.brightness == Brightness.dark
+        ? headerForeground(theme).withValues(alpha: alpha)
+        : teal.withValues(alpha: alpha);
   }
 
   static Color outline(ThemeData theme) {

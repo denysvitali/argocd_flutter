@@ -96,78 +96,97 @@ class _SignInScreenState extends State<SignInScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
     final certificateStatus = widget.controller.certificateStatus;
     final errorMessage = widget.controller.errorMessage;
     final showError = errorMessage != null && errorMessage != _dismissedError;
-    final pageBgColor = isDark ? AppColors.darkBackground : AppColors.canvas;
-    // ArgoCD login uses a purple gradient background.
-    final heroColor = isDark
-        ? colorScheme.surfaceContainerHigh
-        : const Color(0xFF2E325A);
-    final heroTitleColor = isDark ? colorScheme.onSurface : AppColors.white;
-    final heroBodyColor = isDark
-        ? colorScheme.onSurfaceVariant
-        : AppColors.white.withValues(alpha: 0.8);
 
     return Scaffold(
       body: ColoredBox(
-        color: pageBgColor,
+        color: theme.scaffoldBackgroundColor,
         child: SafeArea(
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 840),
+              constraints: const BoxConstraints(maxWidth: 430),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(18, 22, 18, 18),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        borderRadius: AppRadius.md,
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: isDark
-                              ? <Color>[
-                                  heroColor,
-                                  Color.lerp(heroColor, AppColors.teal, 0.08)!,
-                                ]
-                              : <Color>[
-                                  const Color(0xFF7A8BCF),
-                                  const Color(0xFF2E325A),
-                                ],
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Icon(
-                            Icons.cloud_sync_outlined,
-                            size: 36,
-                            color: AppColors.orange,
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'Argo CD',
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              color: heroTitleColor,
-                              fontWeight: FontWeight.w700,
+                    Row(
+                      children: <Widget>[
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: AppColors.headerDark,
+                            borderRadius: AppRadius.md,
+                            boxShadow: AppElevation.light(
+                              AppColors.surfaceShadow(theme, alpha: 0.12),
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Sign in to manage your ArgoCD control plane.',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: heroBodyColor,
+                          child: const Icon(
+                            Icons.cloud_sync_outlined,
+                            color: AppColors.orange,
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                'Argo CD',
+                                style: theme.textTheme.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Deployment control plane',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.mutedText(theme),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 22),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.teal.withValues(alpha: 0.08),
+                        borderRadius: AppRadius.md,
+                        border: Border.all(
+                          color: AppColors.teal.withValues(alpha: 0.18),
+                        ),
+                      ),
+                      child: Row(
+                        children: <Widget>[
+                          const Icon(
+                            Icons.bolt_rounded,
+                            color: AppColors.orange,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Connect with a token-backed ArgoCD session.',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurface,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
                     AnimatedSize(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeInOut,
@@ -213,8 +232,16 @@ class _SignInScreenState extends State<SignInScreen> {
                           children: <Widget>[
                             Text(
                               'Connect to ArgoCD',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Use your ArgoCD server URL and credentials.',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.mutedText(theme),
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                             const SizedBox(height: 16),

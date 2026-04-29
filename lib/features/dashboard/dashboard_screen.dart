@@ -74,7 +74,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _ensureFresh(applications);
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Dashboard')),
           body: RefreshIndicator(
             onRefresh: () => widget.controller.refreshApplications(),
             child: _buildBody(
@@ -112,7 +111,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return ListView(
         padding: kPagePadding,
         children: <Widget>[
-          LastUpdatedText(timestamp: widget.controller.lastRefreshedAt),
+          _DashboardHeader(
+            controller: widget.controller,
+            onRefresh: () => widget.controller.refreshApplications(),
+          ),
+          const SizedBox(height: 14),
           _HeroBanner(
             controller: widget.controller,
             totalApps: 0,
@@ -138,7 +141,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return ListView(
       padding: kPagePadding,
       children: <Widget>[
-        LastUpdatedText(timestamp: widget.controller.lastRefreshedAt),
+        _DashboardHeader(
+          controller: widget.controller,
+          onRefresh: () => widget.controller.refreshApplications(),
+        ),
+        const SizedBox(height: 14),
         _HeroBanner(
           controller: widget.controller,
           totalApps: totalApps,
@@ -149,7 +156,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               .map((s) => StatusSegment(color: s.color, count: s.count))
               .toList(),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         _SectionHeader(title: 'Health Breakdown'),
         const SizedBox(height: 6),
         SectionCard(
@@ -159,7 +166,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             total: totalApps,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         _SectionHeader(title: 'Sync Status'),
         const SizedBox(height: 6),
         SectionCard(
@@ -175,7 +182,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             controller: widget.controller,
             onOpenApplication: widget.onOpenApplication,
           ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         _SectionHeader(title: 'Needs Attention'),
         const SizedBox(height: 6),
         SectionCard(
@@ -209,8 +216,62 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 10),
           const Center(child: CircularProgressIndicator()),
         ],
-        const SizedBox(height: 10),
+        const SizedBox(height: 80),
       ],
+    );
+  }
+}
+
+class _DashboardHeader extends StatelessWidget {
+  const _DashboardHeader({required this.controller, required this.onRefresh});
+
+  final AppController controller;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final session = controller.session;
+
+    return SafeArea(
+      bottom: false,
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'Dashboard',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  session == null
+                      ? 'No cluster connected'
+                      : '${session.username} / ${session.serverUrl}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.mutedText(theme),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          LastUpdatedText(timestamp: controller.lastRefreshedAt),
+          const SizedBox(width: 8),
+          IconButton.filledTonal(
+            tooltip: 'Refresh',
+            onPressed: controller.busy ? null : onRefresh,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -388,41 +449,29 @@ class _HeroBanner extends StatelessWidget {
               borderRadius: AppRadius.md,
               border: Border.all(color: AppColors.headerDivider(theme)),
             ),
-            child: Row(
+            child: GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 2.45,
               children: <Widget>[
-                Expanded(
-                  child: _HeaderStatChip(
-                    label: 'Total',
-                    value: totalApps,
-                    theme: theme,
-                  ),
+                _HeaderStatChip(label: 'Total apps', value: totalApps),
+                _HeaderStatChip(
+                  label: 'Healthy',
+                  value: healthyCount,
+                  valueColor: AppColors.healthy,
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _HeaderStatChip(
-                    label: 'Healthy',
-                    value: healthyCount,
-                    valueColor: AppColors.healthy,
-                    theme: theme,
-                  ),
+                _HeaderStatChip(
+                  label: 'Drifted',
+                  value: outOfSyncCount,
+                  valueColor: outOfSyncCount > 0 ? AppColors.outOfSync : null,
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _HeaderStatChip(
-                    label: 'Drifted',
-                    value: outOfSyncCount,
-                    valueColor: outOfSyncCount > 0 ? AppColors.outOfSync : null,
-                    theme: theme,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _HeaderStatChip(
-                    label: 'Degraded',
-                    value: degradedCount,
-                    valueColor: degradedCount > 0 ? AppColors.degraded : null,
-                    theme: theme,
-                  ),
+                _HeaderStatChip(
+                  label: 'Degraded',
+                  value: degradedCount,
+                  valueColor: degradedCount > 0 ? AppColors.degraded : null,
                 ),
               ],
             ),
@@ -439,42 +488,45 @@ class _HeaderStatChip extends StatelessWidget {
   const _HeaderStatChip({
     required this.label,
     required this.value,
-    required this.theme,
     this.valueColor,
   });
 
   final String label;
   final int value;
-  final ThemeData theme;
   final Color? valueColor;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Semantics(
       label: '$value $label',
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.headerChipBackground(theme, alpha: 0.10),
+          color: theme.colorScheme.surface,
           borderRadius: AppRadius.sm,
-          border: Border.all(color: AppColors.headerDivider(theme)),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Row(
           children: <Widget>[
             Text(
               '$value',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
                 color: valueColor ?? AppColors.headerForeground(theme),
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: AppColors.headerMutedForeground(theme),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: AppColors.headerMutedForeground(theme),
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],

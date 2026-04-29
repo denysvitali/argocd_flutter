@@ -202,35 +202,50 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
     };
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Applications'),
-        actions: <Widget>[
-          IconButton(
-            tooltip: _isGridView ? 'List view' : 'Grid view',
-            onPressed: () {
-              setState(() {
-                _isGridView = !_isGridView;
-              });
-            },
-            icon: Icon(
-              _isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
-            ),
-          ),
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed: widget.controller.busy
-                ? null
-                : () => widget.controller.refreshApplications(),
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
       body: RefreshIndicator(
         onRefresh: () => widget.controller.refreshApplications(),
         child: ListView(
           padding: kPagePadding,
           children: <Widget>[
-            LastUpdatedText(timestamp: widget.controller.lastRefreshedAt),
+            AppPageHeader(
+              title: 'Applications',
+              subtitle: widget.controller.session == null
+                  ? 'Deployments across clusters'
+                  : widget.controller.session!.serverUrl,
+              leadingIcon: Icons.apps_rounded,
+              trailing: Wrap(
+                spacing: 6,
+                children: <Widget>[
+                  IconButton.filledTonal(
+                    tooltip: _isGridView ? 'List view' : 'Grid view',
+                    onPressed: () {
+                      setState(() {
+                        _isGridView = !_isGridView;
+                      });
+                    },
+                    icon: Icon(
+                      _isGridView
+                          ? Icons.view_list_rounded
+                          : Icons.grid_view_rounded,
+                    ),
+                  ),
+                  IconButton.filledTonal(
+                    tooltip: 'Refresh',
+                    onPressed: widget.controller.busy
+                        ? null
+                        : () => widget.controller.refreshApplications(),
+                    icon: const Icon(Icons.refresh),
+                  ),
+                ],
+              ),
+              bottom: Align(
+                alignment: Alignment.centerLeft,
+                child: LastUpdatedText(
+                  timestamp: widget.controller.lastRefreshedAt,
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
             _OverviewStrip(
               controller: widget.controller,
               totalApplications: allApplications.length,
@@ -300,7 +315,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                               ),
                         ),
                       ),
-                      if (clearButton != null) clearButton,
+                      ?clearButton,
                       sortDropdown,
                     ],
                   );
@@ -321,10 +336,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                       spacing: 8,
                       runSpacing: 8,
                       crossAxisAlignment: WrapCrossAlignment.center,
-                      children: <Widget>[
-                        if (clearButton != null) clearButton,
-                        sortDropdown,
-                      ],
+                      children: <Widget>[?clearButton, sortDropdown],
                     ),
                   ],
                 );

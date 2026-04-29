@@ -3,6 +3,7 @@ import 'package:argocd_flutter/core/services/health_monitor.dart';
 import 'package:argocd_flutter/core/services/theme_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:argocd_flutter/ui/design_tokens.dart';
+import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -34,10 +35,17 @@ class SettingsScreen extends StatelessWidget {
             controller.lastServerUrl != session.serverUrl;
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Settings')),
           body: ListView(
-            padding: const EdgeInsets.all(12),
+            padding: kPagePadding,
             children: <Widget>[
+              AppPageHeader(
+                title: 'Settings',
+                subtitle: session == null
+                    ? 'Preferences and connection state'
+                    : 'Connected as ${session.username}',
+                leadingIcon: Icons.settings_rounded,
+              ),
+              const SizedBox(height: 14),
               _SectionCard(
                 title: 'Appearance',
                 icon: Icons.palette_outlined,
@@ -46,10 +54,10 @@ class SettingsScreen extends StatelessWidget {
                 ],
               ),
               if (monitor != null) ...<Widget>[
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 _NotificationsSection(monitor: monitor),
               ],
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               _SectionCard(
                 title: 'Connection',
                 icon: Icons.cloud_outlined,
@@ -117,7 +125,7 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               _SectionCard(
                 title: 'Certificates',
                 icon: Icons.verified_user_outlined,
@@ -139,7 +147,7 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               _SectionCard(
                 title: 'Actions',
                 icon: Icons.bolt_outlined,
@@ -174,7 +182,7 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               _SectionCard(
                 title: 'About',
                 icon: Icons.info_outline,
@@ -200,6 +208,7 @@ class SettingsScreen extends StatelessWidget {
                   const _VersionBadge(),
                 ],
               ),
+              const SizedBox(height: 80),
             ],
           ),
         );
@@ -325,38 +334,53 @@ class _ThemePicker extends StatelessWidget {
     final theme = Theme.of(context);
     final currentMode = themeController.themeMode;
 
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: _ThemeCard(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 420;
+        final cards = <Widget>[
+          _ThemeCard(
             icon: Icons.brightness_auto_outlined,
             label: 'System',
             selected: currentMode == ThemeMode.system,
             onTap: () => themeController.setThemeMode(ThemeMode.system),
             theme: theme,
           ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _ThemeCard(
+          _ThemeCard(
             icon: Icons.light_mode_outlined,
             label: 'Light',
             selected: currentMode == ThemeMode.light,
             onTap: () => themeController.setThemeMode(ThemeMode.light),
             theme: theme,
           ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _ThemeCard(
+          _ThemeCard(
             icon: Icons.dark_mode_outlined,
             label: 'Dark',
             selected: currentMode == ThemeMode.dark,
             onTap: () => themeController.setThemeMode(ThemeMode.dark),
             theme: theme,
           ),
-        ),
-      ],
+        ];
+
+        if (compact) {
+          return Column(
+            children: <Widget>[
+              for (var i = 0; i < cards.length; i++) ...<Widget>[
+                SizedBox(width: double.infinity, child: cards[i]),
+                if (i != cards.length - 1) const SizedBox(height: 8),
+              ],
+            ],
+          );
+        }
+
+        return Row(
+          children: <Widget>[
+            for (var i = 0; i < cards.length; i++) ...<Widget>[
+              Expanded(child: cards[i]),
+              if (i != cards.length - 1) const SizedBox(width: 8),
+            ],
+          ],
+        );
+      },
     );
   }
 }
@@ -390,19 +414,20 @@ class _ThemeCard extends StatelessWidget {
       curve: Curves.easeInOut,
       child: Material(
         color: backgroundColor,
-        borderRadius: AppRadius.base,
+        borderRadius: AppRadius.md,
         child: InkWell(
           onTap: onTap,
-          borderRadius: AppRadius.base,
+          borderRadius: AppRadius.md,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeInOut,
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
             decoration: BoxDecoration(
-              borderRadius: AppRadius.base,
+              borderRadius: AppRadius.md,
               border: Border.all(color: borderColor, width: selected ? 1.5 : 1),
             ),
-            child: Column(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 Stack(
                   alignment: Alignment.topRight,
@@ -438,7 +463,7 @@ class _ThemeCard extends StatelessWidget {
                       ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(width: 8),
                 Text(
                   label,
                   style: theme.textTheme.labelLarge?.copyWith(
@@ -473,18 +498,29 @@ class _SectionCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: AppRadius.base,
-        border: Border.all(color: theme.dividerColor),
+        borderRadius: AppRadius.md,
+        border: Border.all(color: AppColors.outline(theme)),
+        boxShadow: AppElevation.subtle(
+          AppColors.surfaceShadow(theme, alpha: 0.07),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             children: <Widget>[
-              Icon(icon, size: 20, color: theme.colorScheme.primary),
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.10),
+                  borderRadius: AppRadius.md,
+                ),
+                child: Icon(icon, size: 19, color: theme.colorScheme.primary),
+              ),
               const SizedBox(width: 10),
               Text(
                 title,
@@ -494,7 +530,7 @@ class _SectionCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           ...children,
         ],
       ),

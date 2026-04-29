@@ -4,6 +4,93 @@ import 'package:flutter/material.dart';
 
 const EdgeInsets kPagePadding = EdgeInsets.fromLTRB(16, 10, 16, 18);
 
+class AppPageHeader extends StatelessWidget {
+  const AppPageHeader({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    this.leadingIcon,
+    this.trailing,
+    this.bottom,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData? leadingIcon;
+  final Widget? trailing;
+  final Widget? bottom;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SafeArea(
+      bottom: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(2, 2, 2, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                if (leadingIcon != null) ...<Widget>[
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: AppColors.headerDark,
+                      borderRadius: AppRadius.md,
+                      boxShadow: AppElevation.light(
+                        AppColors.surfaceShadow(theme, alpha: 0.10),
+                      ),
+                    ),
+                    child: Icon(leadingIcon, color: AppColors.orange, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.mutedText(theme),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (trailing != null) ...<Widget>[
+                  const SizedBox(width: 10),
+                  trailing!,
+                ],
+              ],
+            ),
+            if (bottom != null) ...<Widget>[
+              const SizedBox(height: 12),
+              bottom!,
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Converts a decoded JSON value to a YAML-formatted string.
 String jsonToYaml(dynamic value, {int indent = 0}) {
   return _yamlLinesForValue(value, indent: indent).join('\n');
