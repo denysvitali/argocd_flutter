@@ -293,15 +293,47 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                 hasProjects: widget.controller.projects.isNotEmpty,
               )
             else
-              ...projects.map(
-                (project) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: _ProjectCard(
-                    project: project,
-                    onTap: () => widget.onOpenProject(project.name),
-                    searchQuery: normalizedQuery,
-                  ),
-                ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final useGrid = constraints.maxWidth >= 760;
+                  if (!useGrid) {
+                    return Column(
+                      children: projects
+                          .map(
+                            (project) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: _ProjectCard(
+                                project: project,
+                                onTap: () => widget.onOpenProject(project.name),
+                                searchQuery: normalizedQuery,
+                              ),
+                            ),
+                          )
+                          .toList(growable: false),
+                    );
+                  }
+
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: projects.length,
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 520,
+                          mainAxisExtent: 190,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                        ),
+                    itemBuilder: (context, index) {
+                      final project = projects[index];
+                      return _ProjectCard(
+                        project: project,
+                        onTap: () => widget.onOpenProject(project.name),
+                        searchQuery: normalizedQuery,
+                      );
+                    },
+                  );
+                },
               ),
           ],
         ),
@@ -590,33 +622,38 @@ class _ProjectCard extends StatelessWidget {
             borderRadius: AppRadius.md,
             border: Border.all(color: outlineColor),
             boxShadow: AppElevation.light(
-              AppColors.surfaceShadow(theme, alpha: 0.06),
+              AppColors.surfaceShadow(theme, alpha: 0.04),
             ),
           ),
           child: Container(
             decoration: BoxDecoration(
-              border: Border(left: BorderSide(color: accent, width: 5)),
+              border: Border(
+                top: BorderSide(
+                  color: accent.withValues(alpha: 0.75),
+                  width: 4,
+                ),
+              ),
             ),
-            padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+            padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Row(
                   children: <Widget>[
                     Container(
-                      width: 26,
-                      height: 26,
+                      width: 34,
+                      height: 34,
                       decoration: BoxDecoration(
                         color: accent.withValues(alpha: 0.12),
                         borderRadius: AppRadius.base,
                       ),
                       child: Icon(
                         Icons.account_tree_outlined,
-                        size: 15,
+                        size: 18,
                         color: accent,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: _HighlightedText(
                         text: project.name,
@@ -675,7 +712,7 @@ class _ProjectCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,

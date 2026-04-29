@@ -101,8 +101,20 @@ class _SignInScreenState extends State<SignInScreen> {
     final showError = errorMessage != null && errorMessage != _dismissedError;
 
     return Scaffold(
-      body: ColoredBox(
-        color: theme.scaffoldBackgroundColor,
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: <Color>[
+              AppColors.teal.withValues(alpha: 0.10),
+              theme.scaffoldBackgroundColor,
+              AppColors.orange.withValues(alpha: 0.08),
+            ],
+            stops: const <double>[0, 0.48, 1],
+          ),
+        ),
         child: SafeArea(
           child: Center(
             child: ConstrainedBox(
@@ -112,48 +124,60 @@ class _SignInScreenState extends State<SignInScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: AppColors.headerDark,
-                            borderRadius: AppRadius.md,
-                            boxShadow: AppElevation.light(
-                              AppColors.surfaceShadow(theme, alpha: 0.12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface.withValues(
+                          alpha: 0.88,
+                        ),
+                        borderRadius: AppRadius.md,
+                        border: Border.all(color: AppColors.outline(theme)),
+                      ),
+                      child: Row(
+                        children: <Widget>[
+                          Container(
+                            width: 54,
+                            height: 54,
+                            decoration: BoxDecoration(
+                              color: AppColors.orange.withValues(alpha: 0.14),
+                              borderRadius: AppRadius.base,
+                              border: Border.all(
+                                color: AppColors.orange.withValues(alpha: 0.28),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.cloud_sync_outlined,
+                              color: AppColors.orange,
+                              size: 28,
                             ),
                           ),
-                          child: const Icon(
-                            Icons.cloud_sync_outlined,
-                            color: AppColors.orange,
-                            size: 28,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(
-                                'Argo CD',
-                                style: theme.textTheme.headlineMedium?.copyWith(
-                                  fontWeight: FontWeight.w900,
-                                  color: theme.colorScheme.onSurface,
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Text(
+                                  'Argo CD',
+                                  style: theme.textTheme.headlineMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w900,
+                                        color: theme.colorScheme.onSurface,
+                                      ),
                                 ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Deployment control plane',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: AppColors.mutedText(theme),
-                                  fontWeight: FontWeight.w600,
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Deployment control plane',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.mutedText(theme),
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 22),
                     Container(

@@ -218,8 +218,12 @@ class _HeaderBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.headerSurfaceAlt(theme),
+        color: theme.colorScheme.surface,
         borderRadius: AppRadius.md,
+        border: Border.all(color: AppColors.outline(theme)),
+        boxShadow: AppElevation.subtle(
+          AppColors.surfaceShadow(theme, alpha: 0.06),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,12 +233,12 @@ class _HeaderBanner extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.headerChipBackground(theme, alpha: 0.12),
+                  color: AppColors.cobalt.withValues(alpha: 0.10),
                   borderRadius: AppRadius.sm,
                 ),
                 child: Icon(
                   Icons.account_tree_outlined,
-                  color: AppColors.headerForeground(theme),
+                  color: AppColors.cobalt,
                   size: 22,
                 ),
               ),
@@ -243,7 +247,7 @@ class _HeaderBanner extends StatelessWidget {
                 child: Text(
                   project.name,
                   style: theme.textTheme.headlineSmall?.copyWith(
-                    color: AppColors.headerForeground(theme),
+                    color: theme.colorScheme.onSurface,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -255,7 +259,7 @@ class _HeaderBanner extends StatelessWidget {
             Text(
               project.description,
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: AppColors.headerMutedForeground(theme),
+                color: AppColors.mutedText(theme),
               ),
             ),
           ],
@@ -362,32 +366,45 @@ class _OverviewTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: SummaryTile(
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 520;
+            final tiles = <Widget>[
+              SummaryTile(
                 label: 'Source Repos',
                 value: project.sourceRepos.length,
                 valueColor: AppColors.cobalt,
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: SummaryTile(
+              SummaryTile(
                 label: 'Destinations',
                 value: project.destinations.length,
                 valueColor: AppColors.teal,
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: SummaryTile(
+              SummaryTile(
                 label: 'Resources',
                 value: project.clusterResourceWhitelist.length,
                 valueColor: AppColors.coral,
               ),
-            ),
-          ],
+            ];
+            if (compact) {
+              return Column(
+                children: <Widget>[
+                  for (var i = 0; i < tiles.length; i++) ...<Widget>[
+                    SizedBox(width: double.infinity, child: tiles[i]),
+                    if (i != tiles.length - 1) const SizedBox(height: 8),
+                  ],
+                ],
+              );
+            }
+            return Row(
+              children: <Widget>[
+                for (var i = 0; i < tiles.length; i++) ...<Widget>[
+                  Expanded(child: tiles[i]),
+                  if (i != tiles.length - 1) const SizedBox(width: 8),
+                ],
+              ],
+            );
+          },
         ),
       ],
     );
@@ -682,8 +699,9 @@ class _PermissionsTab extends StatelessWidget {
                 children: resources
                     .map((resource) {
                       final kindColor = colorForResourceKind(resource.kind);
-                      final kindLabel =
-                          resource.kind.isEmpty ? '*' : resource.kind;
+                      final kindLabel = resource.kind.isEmpty
+                          ? '*'
+                          : resource.kind;
                       final semanticsLabel = resource.group.isNotEmpty
                           ? '$kindLabel (${resource.group})'
                           : kindLabel;
@@ -717,18 +735,16 @@ class _PermissionsTab extends StatelessWidget {
                                   children: <Widget>[
                                     Text(
                                       kindLabel,
-                                      style:
-                                          theme.textTheme.bodyMedium?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                     ),
                                     if (resource.group.isNotEmpty)
                                       Text(
                                         resource.group,
-                                        style:
-                                            theme.textTheme.bodySmall?.copyWith(
-                                          color: AppColors.grey,
-                                        ),
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(color: AppColors.grey),
                                       ),
                                   ],
                                 ),

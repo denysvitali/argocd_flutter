@@ -46,6 +46,14 @@ class SettingsScreen extends StatelessWidget {
                 leadingIcon: Icons.settings_rounded,
               ),
               const SizedBox(height: 14),
+              _SettingsStatusStrip(
+                connected: session != null,
+                serverUrl: session?.serverUrl ?? controller.lastServerUrl,
+                certificateStatus: certificateStatus?.supported == true
+                    ? 'Certificates enabled'
+                    : 'Certificate support unavailable',
+              ),
+              const SizedBox(height: 12),
               _SectionCard(
                 title: 'Appearance',
                 icon: Icons.palette_outlined,
@@ -321,6 +329,66 @@ class SettingsScreen extends StatelessWidget {
   String _errorText(Object error) {
     final raw = error.toString();
     return raw.startsWith('Exception: ') ? raw.substring(11) : raw;
+  }
+}
+
+class _SettingsStatusStrip extends StatelessWidget {
+  const _SettingsStatusStrip({
+    required this.connected,
+    required this.serverUrl,
+    required this.certificateStatus,
+  });
+
+  final bool connected;
+  final String serverUrl;
+  final String certificateStatus;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final statusColor = connected ? AppColors.healthy : AppColors.degraded;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: statusColor.withValues(alpha: 0.08),
+        borderRadius: AppRadius.md,
+        border: Border.all(color: statusColor.withValues(alpha: 0.20)),
+      ),
+      child: Row(
+        children: <Widget>[
+          _ConnectionDot(connected: connected),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  connected ? 'Session active' : 'No active session',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  serverUrl.isEmpty
+                      ? certificateStatus
+                      : 'Endpoint saved for this workspace',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.mutedText(theme),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(Icons.tune_rounded, color: statusColor),
+        ],
+      ),
+    );
   }
 }
 
