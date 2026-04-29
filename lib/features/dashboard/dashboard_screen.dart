@@ -146,7 +146,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onRefresh: () => widget.controller.refreshApplications(),
         ),
         const SizedBox(height: 14),
-        _HeroBanner(
+        _OperationalSummary(
           controller: widget.controller,
           totalApps: totalApps,
           healthyCount: healthyCount,
@@ -154,27 +154,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           degradedCount: degradedCount,
           healthSegments: _healthSegments
               .map((s) => StatusSegment(color: s.color, count: s.count))
-              .toList(),
+              .toList(growable: false),
         ),
         const SizedBox(height: 12),
-        _SectionHeader(title: 'Health Breakdown'),
-        const SizedBox(height: 6),
-        SectionCard(
-          title: null,
-          child: _CompactBreakdownSection(
-            segments: healthSegments,
-            total: totalApps,
-          ),
-        ),
-        const SizedBox(height: 12),
-        _SectionHeader(title: 'Sync Status'),
-        const SizedBox(height: 6),
-        SectionCard(
-          title: null,
-          child: _CompactBreakdownSection(
-            segments: syncSegments,
-            total: totalApps,
-          ),
+        _ResponsiveDashboardPanels(
+          totalApps: totalApps,
+          healthSegments: healthSegments,
+          syncSegments: syncSegments,
+          needsAttention: needsAttention,
+          recentlySynced: recentlySynced,
+          controller: widget.controller,
+          onOpenApplication: widget.onOpenApplication,
         ),
         if (widget.controller.healthMonitor != null)
           _IncidentFeedSection(
@@ -182,27 +172,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             controller: widget.controller,
             onOpenApplication: widget.onOpenApplication,
           ),
-        const SizedBox(height: 12),
-        _SectionHeader(title: 'Needs Attention'),
-        const SizedBox(height: 6),
-        SectionCard(
-          title: null,
-          child: _NeedsAttentionList(
-            applications: needsAttention,
-            controller: widget.controller,
-            onOpenApplication: widget.onOpenApplication,
-          ),
-        ),
-        const SizedBox(height: 10),
-        _SectionHeader(title: 'Recent Activity'),
-        const SizedBox(height: 6),
-        SectionCard(
-          title: null,
-          child: _RecentActivityTimeline(
-            applications: recentlySynced,
-            onOpenApplication: widget.onOpenApplication,
-          ),
-        ),
         if (widget.controller.errorMessage != null)
           Padding(
             padding: const EdgeInsets.only(top: 16),
@@ -309,6 +278,294 @@ class _SectionHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _OperationalSummary extends StatelessWidget {
+  const _OperationalSummary({
+    required this.controller,
+    required this.totalApps,
+    required this.healthyCount,
+    required this.outOfSyncCount,
+    required this.degradedCount,
+    required this.healthSegments,
+  });
+
+  final AppController controller;
+  final int totalApps;
+  final int healthyCount;
+  final int outOfSyncCount;
+  final int degradedCount;
+  final List<StatusSegment> healthSegments;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final session = controller.session;
+    final healthyPercent = totalApps == 0
+        ? 0
+        : (healthyCount / totalApps * 100).round();
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.headerSurface(theme),
+        borderRadius: AppRadius.md,
+        border: Border.all(color: AppColors.headerDivider(theme)),
+        boxShadow: AppElevation.subtle(
+          AppColors.surfaceShadow(theme, alpha: 0.12),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      '$healthyPercent% healthy',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: AppColors.headerForeground(theme),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      session == null
+                          ? 'No cluster connected'
+                          : '${session.username} @ ${session.serverUrl}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.headerMutedForeground(theme),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 136,
+                child: _HeaderStatChip(label: 'Total', value: totalApps),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          StatusSegmentBar(segments: healthSegments),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final narrow = constraints.maxWidth < 560;
+              final chips = <Widget>[
+                _SummarySignal(
+                  label: 'Healthy',
+                  value: healthyCount,
+                  color: AppColors.healthy,
+                ),
+                _SummarySignal(
+                  label: 'Drifted',
+                  value: outOfSyncCount,
+                  color: outOfSyncCount > 0
+                      ? AppColors.outOfSync
+                      : AppColors.grey,
+                ),
+                _SummarySignal(
+                  label: 'Degraded',
+                  value: degradedCount,
+                  color: degradedCount > 0
+                      ? AppColors.degraded
+                      : AppColors.grey,
+                ),
+              ];
+              if (narrow) {
+                return Wrap(spacing: 8, runSpacing: 8, children: chips);
+              }
+              return Row(
+                children: chips
+                    .map(
+                      (chip) => Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: chip,
+                        ),
+                      ),
+                    )
+                    .toList(growable: false),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummarySignal extends StatelessWidget {
+  const _SummarySignal({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final int value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      constraints: const BoxConstraints(minWidth: 128),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: AppRadius.sm,
+        border: Border.all(color: color.withValues(alpha: 0.20)),
+      ),
+      child: Row(
+        children: <Widget>[
+          Text(
+            '$value',
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: AppColors.headerMutedForeground(theme),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ResponsiveDashboardPanels extends StatelessWidget {
+  const _ResponsiveDashboardPanels({
+    required this.totalApps,
+    required this.healthSegments,
+    required this.syncSegments,
+    required this.needsAttention,
+    required this.recentlySynced,
+    required this.controller,
+    required this.onOpenApplication,
+  });
+
+  final int totalApps;
+  final List<_BreakdownSegment> healthSegments;
+  final List<_BreakdownSegment> syncSegments;
+  final List<ArgoApplication> needsAttention;
+  final List<ArgoApplication> recentlySynced;
+  final AppController controller;
+  final ValueChanged<String> onOpenApplication;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 860;
+        final panels = <Widget>[
+          _DashboardPanel(
+            title: 'Health Breakdown',
+            child: _CompactBreakdownSection(
+              segments: healthSegments,
+              total: totalApps,
+            ),
+          ),
+          _DashboardPanel(
+            title: 'Sync Status',
+            child: _CompactBreakdownSection(
+              segments: syncSegments,
+              total: totalApps,
+            ),
+          ),
+          _DashboardPanel(
+            title: 'Needs Attention',
+            child: _NeedsAttentionList(
+              applications: needsAttention,
+              controller: controller,
+              onOpenApplication: onOpenApplication,
+            ),
+          ),
+          _DashboardPanel(
+            title: 'Recent Activity',
+            child: _RecentActivityTimeline(
+              applications: recentlySynced,
+              onOpenApplication: onOpenApplication,
+            ),
+          ),
+        ];
+
+        if (!wide) {
+          return Column(
+            children: panels
+                .map(
+                  (panel) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: panel,
+                  ),
+                )
+                .toList(growable: false),
+          );
+        }
+
+        return Column(
+          children: <Widget>[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Expanded(child: panels[0]),
+                const SizedBox(width: 12),
+                Expanded(child: panels[1]),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Expanded(flex: 3, child: panels[2]),
+                const SizedBox(width: 12),
+                Expanded(flex: 2, child: panels[3]),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _DashboardPanel extends StatelessWidget {
+  const _DashboardPanel({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionCard(
+      title: null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _SectionHeader(title: title),
+          const SizedBox(height: 10),
+          child,
+        ],
+      ),
     );
   }
 }

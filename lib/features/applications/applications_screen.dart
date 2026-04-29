@@ -33,10 +33,15 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
   bool _isGridView = false;
   ApplicationSortField _sortField = ApplicationSortField.name;
   ApplicationFilterChip _activeFilter = ApplicationFilterChip.all;
+  String? _projectFilter;
+  String? _clusterFilter;
   Timer? _debounce;
 
   bool get _hasActiveControls =>
-      _query.trim().isNotEmpty || _activeFilter != ApplicationFilterChip.all;
+      _query.trim().isNotEmpty ||
+      _activeFilter != ApplicationFilterChip.all ||
+      _projectFilter != null ||
+      _clusterFilter != null;
 
   @override
   void dispose() {
@@ -177,23 +182,46 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               );
         })
         .toList(growable: false);
-    final filteredApplications = _applyFilter(searchedApplications);
+    final scopedApplications = searchedApplications
+        .where(
+          (application) =>
+              (_projectFilter == null ||
+                  application.project == _projectFilter) &&
+              (_clusterFilter == null ||
+                  _clusterShortName(application.cluster) == _clusterFilter),
+        )
+        .toList(growable: false);
+    final filteredApplications = _applyFilter(scopedApplications);
     final applications = _applySort(filteredApplications);
+    final projectOptions =
+        allApplications
+            .map((application) => application.project)
+            .where((project) => project.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+    final clusterOptions =
+        allApplications
+            .map((application) => _clusterShortName(application.cluster))
+            .where((cluster) => cluster.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
     final filterCounts = <ApplicationFilterChip, int>{
-      ApplicationFilterChip.all: searchedApplications.length,
-      ApplicationFilterChip.healthy: searchedApplications
+      ApplicationFilterChip.all: scopedApplications.length,
+      ApplicationFilterChip.healthy: scopedApplications
           .where((application) => application.isHealthy)
           .length,
-      ApplicationFilterChip.degraded: searchedApplications
+      ApplicationFilterChip.degraded: scopedApplications
           .where(
             (application) =>
                 application.healthStatus.toLowerCase() == 'degraded',
           )
           .length,
-      ApplicationFilterChip.outOfSync: searchedApplications
+      ApplicationFilterChip.outOfSync: scopedApplications
           .where((application) => application.isOutOfSync)
           .length,
-      ApplicationFilterChip.progressing: searchedApplications
+      ApplicationFilterChip.progressing: scopedApplications
           .where(
             (application) =>
                 application.healthStatus.toLowerCase() == 'progressing',
@@ -254,18 +282,32 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               healthSegments: healthSegments,
             ),
             const SizedBox(height: 12),
-            _SearchBar(
-              controller: _searchController,
-              onChanged: _onSearchChanged,
-              onClear: () {
+            _CommandBar(
+              searchController: _searchController,
+              onSearchChanged: _onSearchChanged,
+              onClearSearch: () {
                 _searchController.clear();
                 setState(() {
                   _query = '';
                 });
               },
               showClear: _query.isNotEmpty,
+              projectOptions: projectOptions,
+              projectValue: _projectFilter,
+              onProjectChanged: (value) {
+                setState(() {
+                  _projectFilter = value;
+                });
+              },
+              clusterOptions: clusterOptions,
+              clusterValue: _clusterFilter,
+              onClusterChanged: (value) {
+                setState(() {
+                  _clusterFilter = value;
+                });
+              },
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             _FilterChips(
               activeFilter: _activeFilter,
               counts: filterCounts,
@@ -288,6 +330,8 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                           setState(() {
                             _query = '';
                             _activeFilter = ApplicationFilterChip.all;
+                            _projectFilter = null;
+                            _clusterFilter = null;
                           });
                         },
                         child: const Text('Clear'),
@@ -549,6 +593,176 @@ class _SearchBar extends StatelessWidget {
             horizontal: 16,
             vertical: 8,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CommandBar extends StatelessWidget {
+  const _CommandBar({
+    required this.searchController,
+    required this.onSearchChanged,
+    required this.onClearSearch,
+    required this.showClear,
+    required this.projectOptions,
+    required this.projectValue,
+    required this.onProjectChanged,
+    required this.clusterOptions,
+    required this.clusterValue,
+    required this.onClusterChanged,
+  });
+
+  final TextEditingController searchController;
+  final ValueChanged<String> onSearchChanged;
+  final VoidCallback onClearSearch;
+  final bool showClear;
+  final List<String> projectOptions;
+  final String? projectValue;
+  final ValueChanged<String?> onProjectChanged;
+  final List<String> clusterOptions;
+  final String? clusterValue;
+  final ValueChanged<String?> onClusterChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final narrow = constraints.maxWidth < 760;
+        final search = _SearchBar(
+          controller: searchController,
+          onChanged: onSearchChanged,
+          onClear: onClearSearch,
+          showClear: showClear,
+        );
+        final filters = <Widget>[
+          _ScopeDropdown(
+            label: 'Project',
+            icon: Icons.folder_outlined,
+            value: projectValue,
+            options: projectOptions,
+            onChanged: onProjectChanged,
+          ),
+          _ScopeDropdown(
+            label: 'Cluster',
+            icon: Icons.dns_outlined,
+            value: clusterValue,
+            options: clusterOptions,
+            onChanged: onClusterChanged,
+          ),
+        ];
+
+        if (narrow) {
+          return Column(
+            children: <Widget>[
+              search,
+              const SizedBox(height: 8),
+              Row(
+                children: <Widget>[
+                  Expanded(child: filters[0]),
+                  const SizedBox(width: 8),
+                  Expanded(child: filters[1]),
+                ],
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          children: <Widget>[
+            Expanded(flex: 3, child: search),
+            const SizedBox(width: 8),
+            Expanded(child: filters[0]),
+            const SizedBox(width: 8),
+            Expanded(child: filters[1]),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ScopeDropdown extends StatelessWidget {
+  const _ScopeDropdown({
+    required this.label,
+    required this.icon,
+    required this.value,
+    required this.options,
+    required this.onChanged,
+  });
+
+  final String label;
+  final IconData icon;
+  final String? value;
+  final List<String> options;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final mutedColor = AppColors.mutedText(theme);
+
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.only(left: 10, right: 8),
+      decoration: BoxDecoration(
+        color: AppColors.inputFill(theme),
+        borderRadius: AppRadius.md,
+        border: Border.all(color: AppColors.outline(theme)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String?>(
+          value: value,
+          isExpanded: true,
+          icon: Icon(Icons.expand_more_rounded, color: mutedColor),
+          hint: Row(
+            children: <Widget>[
+              Icon(icon, size: 18, color: mutedColor),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: mutedColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          selectedItemBuilder: (context) {
+            return <String?>[null, ...options]
+                .map((option) {
+                  return Row(
+                    children: <Widget>[
+                      Icon(icon, size: 18, color: mutedColor),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          option ?? label,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurface,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                })
+                .toList(growable: false);
+          },
+          items: <DropdownMenuItem<String?>>[
+            DropdownMenuItem<String?>(child: Text('All $label')),
+            ...options.map(
+              (option) => DropdownMenuItem<String?>(
+                value: option,
+                child: Text(option, overflow: TextOverflow.ellipsis),
+              ),
+            ),
+          ],
+          onChanged: onChanged,
         ),
       ),
     );
