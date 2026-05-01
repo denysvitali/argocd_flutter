@@ -275,7 +275,6 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
             ),
             const SizedBox(height: 8),
             _OverviewStrip(
-              controller: widget.controller,
               totalApplications: allApplications.length,
               unhealthyCount: unhealthyCount,
               outOfSyncCount: outOfSyncCount,
@@ -777,14 +776,12 @@ class _ScopeDropdown extends StatelessWidget {
 
 class _OverviewStrip extends StatelessWidget {
   const _OverviewStrip({
-    required this.controller,
     required this.totalApplications,
     required this.unhealthyCount,
     required this.outOfSyncCount,
     required this.healthSegments,
   });
 
-  final AppController controller;
   final int totalApplications;
   final int unhealthyCount;
   final int outOfSyncCount;
@@ -794,7 +791,6 @@ class _OverviewStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final session = controller.session;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -805,46 +801,6 @@ class _OverviewStrip extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: scheme.primaryContainer,
-                  borderRadius: AppRadius.base,
-                ),
-                child: Icon(
-                  Icons.apps_rounded,
-                  size: 18,
-                  color: scheme.onPrimaryContainer,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Applications',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: scheme.onSurface,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              if (session != null)
-                Flexible(
-                  child: Text(
-                    session.serverUrl,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.end,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 14),
           Wrap(
             spacing: 8,
             runSpacing: 8,

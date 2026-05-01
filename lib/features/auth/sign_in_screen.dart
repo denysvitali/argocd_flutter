@@ -101,7 +101,8 @@ class _SignInScreenState extends State<SignInScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    const Center(
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4),
                       child: ArgoLockup(
                         logoSize: 64,
                         subtitle: 'Deployment control plane',

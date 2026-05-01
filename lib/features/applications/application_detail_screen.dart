@@ -562,40 +562,43 @@ class _ToolbarButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final Color fg;
     final Color bg;
 
     if (isDanger) {
-      fg = onPressed != null ? AppColors.degraded : theme.disabledColor;
-      bg = fg.withValues(alpha: 0.1);
+      fg = onPressed != null ? scheme.onErrorContainer : theme.disabledColor;
+      bg = onPressed != null
+          ? scheme.errorContainer
+          : scheme.surfaceContainerHigh;
     } else if (isPrimary) {
-      fg = onPressed != null ? AppColors.teal : theme.disabledColor;
-      bg = fg.withValues(alpha: 0.15);
+      fg = onPressed != null ? scheme.onPrimaryContainer : theme.disabledColor;
+      bg = onPressed != null
+          ? scheme.primaryContainer
+          : scheme.surfaceContainerHigh;
     } else {
-      fg = onPressed != null
-          ? AppColors.headerForeground(theme)
-          : theme.disabledColor;
-      bg = AppColors.headerChipBackground(theme, alpha: 0.08);
+      fg = onPressed != null ? scheme.onSurface : theme.disabledColor;
+      bg = scheme.surfaceContainerHigh;
     }
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: AppRadius.sm,
+        borderRadius: AppRadius.pill,
         onTap: onPressed,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-          decoration: BoxDecoration(color: bg, borderRadius: AppRadius.sm),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(color: bg, borderRadius: AppRadius.pill),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Icon(icon, size: 15, color: fg),
-              const SizedBox(width: 4),
+              Icon(icon, size: 16, color: fg),
+              const SizedBox(width: 6),
               Text(
                 label,
-                style: theme.textTheme.labelSmall?.copyWith(
+                style: theme.textTheme.labelMedium?.copyWith(
                   color: fg,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],

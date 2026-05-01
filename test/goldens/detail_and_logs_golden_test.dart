@@ -23,18 +23,12 @@ void main() {
   ) async {
     final controller = await createAuthenticatedController();
 
-    await tester.pumpWidgetBuilder(
-      SizedBox(
-        width: goldenPhoneSize.width,
-        height: goldenPhoneSize.height,
-        child: MaterialApp(
-          home: ApplicationDetailScreen(
-            controller: controller,
-            applicationName: 'payments-api',
-          ),
-        ),
+    await pumpGoldenScreen(
+      tester,
+      child: ApplicationDetailScreen(
+        controller: controller,
+        applicationName: 'payments-api',
       ),
-      surfaceSize: goldenPhoneSize,
     );
     await tester.pumpAndSettle();
 
@@ -80,6 +74,7 @@ class _LogViewerHost extends StatelessWidget {
       width: goldenPhoneSize.width,
       height: 620,
       child: MaterialApp(
+        debugShowCheckedModeBanner: false,
         themeMode: themeMode,
         theme: ThemeData(
           useMaterial3: true,

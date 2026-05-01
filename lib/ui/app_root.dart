@@ -539,6 +539,7 @@ class _HomeShellState extends State<HomeShell> {
         DashboardScreen(
           controller: widget.controller,
           onOpenApplication: _openApplication,
+          onShowSearch: _showQuickSearch,
         ),
         ApplicationsScreen(
           controller: widget.controller,
@@ -609,11 +610,13 @@ class _HomeShellState extends State<HomeShell> {
               ],
             )
           : _IndexedStackWithTickerMode(index: _index, children: _pages),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showQuickSearch,
-        icon: const Icon(Icons.search_rounded),
-        label: const Text('Search'),
-      ),
+      floatingActionButton: railNav
+          ? FloatingActionButton.extended(
+              onPressed: _showQuickSearch,
+              icon: const Icon(Icons.search_rounded),
+              label: const Text('Search'),
+            )
+          : null,
       bottomNavigationBar: railNav
           ? null
           : NavigationBar(

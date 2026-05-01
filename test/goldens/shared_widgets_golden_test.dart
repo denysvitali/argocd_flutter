@@ -80,6 +80,7 @@ void main() {
     await tester.pumpWidgetBuilder(
       builder.build(),
       wrapper: (Widget child) => MaterialApp(
+        debugShowCheckedModeBanner: false,
         theme: buildLightAppTheme(),
         home: Scaffold(body: SingleChildScrollView(child: child)),
       ),
@@ -159,6 +160,7 @@ void main() {
     await tester.pumpWidgetBuilder(
       builder.build(),
       wrapper: (Widget child) => MaterialApp(
+        debugShowCheckedModeBanner: false,
         themeMode: ThemeMode.dark,
         theme: buildLightAppTheme(),
         darkTheme: buildDarkAppTheme(),

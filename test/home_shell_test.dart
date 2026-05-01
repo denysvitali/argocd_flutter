@@ -85,12 +85,19 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tap the Projects tab
-      await tester.tap(find.byIcon(Icons.folder_outlined));
+      // Tap the Projects tab in the bottom NavigationBar.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.byIcon(Icons.folder_outlined),
+        ),
+      );
       await tester.pumpAndSettle();
 
-      // Projects screen overview strip heading (authenticated)
-      expect(find.text('Projects \u00b7 admin'), findsOneWidget);
+      // Projects page header is rendered on the now-visible Projects screen.
+      expect(find.text('Projects'), findsWidgets);
+      // The page header subtitle shows the connected ArgoCD server URL.
+      expect(find.text('https://argocd.example.com'), findsWidgets);
     });
 
     testWidgets('switching to Settings tab updates selected index', (

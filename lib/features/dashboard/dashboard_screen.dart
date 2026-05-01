@@ -15,10 +15,12 @@ class DashboardScreen extends StatefulWidget {
     super.key,
     required this.controller,
     required this.onOpenApplication,
+    this.onShowSearch,
   });
 
   final AppController controller;
   final ValueChanged<String> onOpenApplication;
+  final VoidCallback? onShowSearch;
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -114,6 +116,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _DashboardHeader(
             controller: widget.controller,
             onRefresh: () => widget.controller.refreshApplications(),
+            onShowSearch: widget.onShowSearch,
           ),
           const SizedBox(height: 8),
           _HeroBanner(
@@ -144,6 +147,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _DashboardHeader(
           controller: widget.controller,
           onRefresh: () => widget.controller.refreshApplications(),
+          onShowSearch: widget.onShowSearch,
         ),
         const SizedBox(height: 8),
         _OperationalSummary(
@@ -192,10 +196,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
 }
 
 class _DashboardHeader extends StatelessWidget {
-  const _DashboardHeader({required this.controller, required this.onRefresh});
+  const _DashboardHeader({
+    required this.controller,
+    required this.onRefresh,
+    this.onShowSearch,
+  });
 
   final AppController controller;
   final VoidCallback onRefresh;
+  final VoidCallback? onShowSearch;
 
   @override
   Widget build(BuildContext context) {
@@ -207,55 +216,69 @@ class _DashboardHeader extends StatelessWidget {
       bottom: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(2, 6, 2, 4),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: scheme.primaryContainer,
-                borderRadius: AppRadius.base,
-              ),
-              child: Icon(
-                Icons.analytics_rounded,
-                color: scheme.onPrimaryContainer,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    'Dashboard',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.3,
-                      color: scheme.onSurface,
-                    ),
+            Row(
+              children: <Widget>[
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: scheme.primaryContainer,
+                    borderRadius: AppRadius.base,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    session == null
-                        ? 'No cluster connected'
-                        : '${session.username} / ${session.serverUrl}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Icon(
+                    Icons.analytics_rounded,
+                    color: scheme.onPrimaryContainer,
+                    size: 22,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        'Dashboard',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                          color: scheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        session == null
+                            ? 'No cluster connected'
+                            : '${session.username} / ${session.serverUrl}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (onShowSearch != null)
+                  IconButton.filledTonal(
+                    tooltip: 'Search apps & projects',
+                    onPressed: onShowSearch,
+                    icon: const Icon(Icons.search_rounded),
+                  ),
+                const SizedBox(width: 4),
+                IconButton.filledTonal(
+                  tooltip: 'Refresh',
+                  onPressed: controller.busy ? null : onRefresh,
+                  icon: const Icon(Icons.refresh_rounded),
+                ),
+              ],
             ),
-            LastUpdatedText(timestamp: controller.lastRefreshedAt),
-            const SizedBox(width: 8),
-            IconButton.filledTonal(
-              tooltip: 'Refresh',
-              onPressed: controller.busy ? null : onRefresh,
-              icon: const Icon(Icons.refresh_rounded),
+            Padding(
+              padding: const EdgeInsets.only(left: 56, top: 4),
+              child: LastUpdatedText(timestamp: controller.lastRefreshedAt),
             ),
           ],
         ),
@@ -331,48 +354,49 @@ class _OperationalSummary extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
+          Text(
+            'Cluster health',
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: scheme.onPrimaryContainer.withValues(alpha: 0.85),
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4,
+            ),
+          ),
+          const SizedBox(height: 4),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: <Widget>[
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'Cluster health',
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: scheme.onPrimaryContainer.withValues(alpha: 0.85),
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.4,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$healthyPercent% healthy',
-                      style: theme.textTheme.displaySmall?.copyWith(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: RichText(
+                    text: TextSpan(
+                      style: theme.textTheme.displayMedium?.copyWith(
                         color: scheme.onSurface,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: -0.5,
+                        letterSpacing: -0.6,
                       ),
+                      children: <TextSpan>[
+                        TextSpan(text: '$healthyPercent'),
+                        TextSpan(
+                          text: '%',
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            color: scheme.onSurface.withValues(alpha: 0.6),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      session == null
-                          ? 'No cluster connected'
-                          : '${session.username} @ ${session.serverUrl}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: scheme.surface,
                   borderRadius: AppRadius.md,
@@ -399,6 +423,18 @@ class _OperationalSummary extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            session == null
+                ? 'No cluster connected'
+                : '${session.username} @ ${session.serverUrl}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const SizedBox(height: 16),
           ClipRRect(

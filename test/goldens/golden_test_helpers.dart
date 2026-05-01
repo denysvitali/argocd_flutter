@@ -56,6 +56,7 @@ Future<void> pumpGoldenScreen(
       width: size.width,
       height: size.height,
       child: MaterialApp(
+        debugShowCheckedModeBanner: false,
         themeMode: themeMode,
         theme: buildLightAppTheme(),
         darkTheme: buildDarkAppTheme(),

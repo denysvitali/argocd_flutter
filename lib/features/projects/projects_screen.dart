@@ -169,7 +169,6 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
             ),
             const SizedBox(height: 14),
             _OverviewStrip(
-              controller: widget.controller,
               totalProjects: allProjects.length,
               totalDestinations: allProjects.fold<int>(
                 0,
@@ -494,13 +493,11 @@ class _ProjectSortDropdown extends StatelessWidget {
 
 class _OverviewStrip extends StatelessWidget {
   const _OverviewStrip({
-    required this.controller,
     required this.totalProjects,
     required this.totalDestinations,
     required this.totalRepositories,
   });
 
-  final AppController controller;
   final int totalProjects;
   final int totalDestinations;
   final int totalRepositories;
@@ -508,71 +505,32 @@ class _OverviewStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final session = controller.session;
+    final scheme = theme.colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.headerSurface(theme),
+        color: scheme.surfaceContainerLow,
         borderRadius: AppRadius.md,
-        border: Border.all(color: AppColors.headerDivider(theme)),
-        boxShadow: AppElevation.subtle(
-          AppColors.surfaceShadow(theme, alpha: 0.12),
-        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppColors.headerChipBackground(theme),
-                  borderRadius: AppRadius.sm,
-                ),
-                child: Icon(
-                  Icons.account_tree_outlined,
-                  color: AppColors.headerForeground(theme),
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  session == null
-                      ? 'Project boundaries'
-                      : 'Projects · ${session.username}',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: AppColors.headerForeground(theme),
-                    fontWeight: FontWeight.w800,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
+          _MetricChip(
+            label: 'projects',
+            value: '$totalProjects',
+            icon: Icons.folder_special_outlined,
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: <Widget>[
-              _MetricChip(
-                label: 'projects',
-                value: '$totalProjects',
-                icon: Icons.folder_special_outlined,
-              ),
-              _MetricChip(
-                label: 'destinations',
-                value: '$totalDestinations',
-                icon: Icons.dns_outlined,
-              ),
-              _MetricChip(
-                label: 'repos',
-                value: '$totalRepositories',
-                icon: Icons.code_outlined,
-              ),
-            ],
+          _MetricChip(
+            label: 'destinations',
+            value: '$totalDestinations',
+            icon: Icons.dns_outlined,
+          ),
+          _MetricChip(
+            label: 'repos',
+            value: '$totalRepositories',
+            icon: Icons.code_outlined,
           ),
         ],
       ),

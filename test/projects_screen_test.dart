@@ -67,10 +67,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Overview strip is present (authenticated user 'ops')
-      expect(find.text('Projects \u00b7 ops'), findsOneWidget);
-      // Metric labels (appears in overview strip and count badges)
+      // Page header shows the screen title.
+      expect(find.text('Projects'), findsWidgets);
+      // Metric labels (overview strip & count badges).
       expect(find.text('repos'), findsWidgets);
+      expect(find.text('destinations'), findsWidgets);
     });
 
     testWidgets('search filters projects by name', (WidgetTester tester) async {
