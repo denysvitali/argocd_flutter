@@ -125,7 +125,7 @@ void main() {
       );
 
       final text = tester.widget<Text>(find.text('Bold Title'));
-      expect(text.style?.fontWeight, FontWeight.w700);
+      expect(text.style?.fontWeight, FontWeight.w800);
     });
 
     testWidgets('renders without title when title is null', (
@@ -189,7 +189,7 @@ void main() {
       );
 
       final text = tester.widget<Text>(find.text('Empty'));
-      expect(text.style?.fontWeight, FontWeight.w600);
+      expect(text.style?.fontWeight, FontWeight.w700);
     });
 
     testWidgets('has combined semantic label for accessibility', (

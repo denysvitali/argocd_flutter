@@ -2,7 +2,7 @@ import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:flutter/material.dart';
 
-const EdgeInsets kPagePadding = EdgeInsets.fromLTRB(10, 8, 10, 12);
+const EdgeInsets kPagePadding = EdgeInsets.fromLTRB(16, 12, 16, 16);
 
 class AppPageHeader extends StatelessWidget {
   const AppPageHeader({
@@ -23,16 +23,12 @@ class AppPageHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return SafeArea(
       bottom: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: AppRadius.base,
-          border: Border.all(color: AppColors.outline(theme)),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(2, 6, 2, 4),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
@@ -40,24 +36,19 @@ class AppPageHeader extends StatelessWidget {
               children: <Widget>[
                 if (leadingIcon != null) ...<Widget>[
                   Container(
-                    width: 34,
-                    height: 34,
+                    width: 44,
+                    height: 44,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.10),
+                      color: scheme.primaryContainer,
                       borderRadius: AppRadius.base,
-                      border: Border.all(
-                        color: theme.colorScheme.primary.withValues(
-                          alpha: 0.18,
-                        ),
-                      ),
                     ),
                     child: Icon(
                       leadingIcon,
-                      color: theme.colorScheme.primary,
-                      size: 18,
+                      color: scheme.onPrimaryContainer,
+                      size: 22,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                 ],
                 Expanded(
                   child: Column(
@@ -67,9 +58,10 @@ class AppPageHeader extends StatelessWidget {
                         title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleLarge?.copyWith(
+                        style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w800,
-                          color: theme.colorScheme.onSurface,
+                          color: scheme.onSurface,
+                          letterSpacing: -0.3,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -77,9 +69,9 @@ class AppPageHeader extends StatelessWidget {
                         subtitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.mutedText(theme),
-                          fontWeight: FontWeight.w600,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
@@ -91,7 +83,10 @@ class AppPageHeader extends StatelessWidget {
                 ],
               ],
             ),
-            if (bottom != null) ...<Widget>[const SizedBox(height: 8), bottom!],
+            if (bottom != null) ...<Widget>[
+              const SizedBox(height: 10),
+              bottom!,
+            ],
           ],
         ),
       ),
@@ -475,34 +470,29 @@ class StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Semantics(
       label: 'Status: $label',
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: color.withValues(
-            alpha: theme.brightness == Brightness.dark ? 0.24 : 0.10,
-          ),
-          borderRadius: AppRadius.sm,
-          border: Border.all(
-            color: color.withValues(
-              alpha: theme.brightness == Brightness.dark ? 0.54 : 0.32,
-            ),
-          ),
+          color: color.withValues(alpha: isDark ? 0.22 : 0.14),
+          borderRadius: AppRadius.pill,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             if (icon != null) ...<Widget>[
-              Icon(icon, size: 11, color: color),
-              const SizedBox(width: 3),
+              Icon(icon, size: 12, color: color),
+              const SizedBox(width: 4),
             ],
             Text(
               label,
               style: theme.textTheme.labelSmall?.copyWith(
                 color: color,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.2,
               ),
             ),
           ],
@@ -549,13 +539,12 @@ class SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final borderColor = AppColors.outline(theme);
+    final scheme = theme.colorScheme;
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: AppRadius.base,
-        border: Border.all(color: borderColor),
+        color: scheme.surfaceContainerLow,
+        borderRadius: AppRadius.md,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -564,11 +553,11 @@ class SectionCard extends StatelessWidget {
             Text(
               title!,
               style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.1,
+                fontWeight: FontWeight.w800,
+                color: scheme.onSurface,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
           ],
           child,
         ],
@@ -592,42 +581,42 @@ class EmptyStateCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return Semantics(
       label: '$title. $subtitle',
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: AppRadius.base,
-          border: Border.all(color: AppColors.outline(theme)),
+          color: scheme.surfaceContainerLow,
+          borderRadius: AppRadius.md,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             if (icon != null) ...<Widget>[
               Container(
-                width: 34,
-                height: 34,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: AppColors.teal.withValues(alpha: 0.10),
+                  color: scheme.primaryContainer,
                   borderRadius: AppRadius.base,
                 ),
-                child: Icon(icon, size: 20, color: AppColors.teal),
+                child: Icon(icon, size: 22, color: scheme.onPrimaryContainer),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
             ],
             Text(
               title,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.mutedText(theme),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -652,34 +641,33 @@ class SummaryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final accent = valueColor ?? scheme.primary;
 
     return Semantics(
       label: '$value $label',
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: (valueColor ?? theme.colorScheme.primary).withValues(
-            alpha: 0.07,
-          ),
+          color: accent.withValues(alpha: 0.10),
           borderRadius: AppRadius.base,
-          border: Border.all(color: AppColors.outline(theme)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Text(
               '$value',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: valueColor,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: accent,
               ),
             ),
             const SizedBox(height: 2),
             Text(
               label,
               textAlign: TextAlign.center,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: AppColors.grey,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.2,
               ),
@@ -700,24 +688,26 @@ class FactBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: AppRadius.sm,
-        border: Border.all(color: theme.colorScheme.outlineVariant),
+        color: scheme.surfaceContainerHigh,
+        borderRadius: AppRadius.pill,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          ExcludeSemantics(child: Icon(icon, size: 14)),
-          const SizedBox(width: 4),
+          ExcludeSemantics(
+            child: Icon(icon, size: 14, color: scheme.onSurfaceVariant),
+          ),
+          const SizedBox(width: 6),
           Flexible(
             child: Text(
               label,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+                color: scheme.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
               ),
               overflow: TextOverflow.ellipsis,

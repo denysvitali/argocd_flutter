@@ -460,26 +460,29 @@ class _FilterChips extends StatelessWidget {
     ApplicationFilterChip chip,
     String label,
   ) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final isSelected = activeFilter == chip;
     final chipColor = _chipColor(chip);
 
     return FilterChip(
-      label: Text('$label ${counts[chip] ?? 0}'),
+      label: Text('$label · ${counts[chip] ?? 0}'),
       selected: isSelected,
       onSelected: (_) => onSelected(chip),
-      selectedColor: chipColor.withValues(alpha: 0.10),
+      selectedColor: chipColor.withValues(alpha: 0.18),
+      backgroundColor: scheme.surfaceContainerHigh,
       checkmarkColor: chipColor,
+      showCheckmark: false,
       labelStyle: TextStyle(
-        color: isSelected ? chipColor : AppColors.grey,
-        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        fontFamily: 'DMSans',
+        color: isSelected ? chipColor : scheme.onSurfaceVariant,
+        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
       ),
       side: BorderSide(
-        color: isSelected
-            ? chipColor
-            : Theme.of(context).colorScheme.outlineVariant,
+        color: isSelected ? chipColor : scheme.outlineVariant,
       ),
-      shape: RoundedRectangleBorder(borderRadius: AppRadius.sm),
-      visualDensity: VisualDensity.compact,
+      shape: RoundedRectangleBorder(borderRadius: AppRadius.pill),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
     );
   }
 
@@ -555,43 +558,46 @@ class _SearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final outlineColor = AppColors.outline(theme);
-    final mutedColor = AppColors.mutedText(theme);
+    final scheme = theme.colorScheme;
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.inputFill(theme),
-        borderRadius: AppRadius.md,
-        border: Border.all(color: outlineColor),
-        boxShadow: AppElevation.light(
-          AppColors.surfaceShadow(theme, alpha: 0.04),
-        ),
+        color: scheme.surfaceContainerHigh,
+        borderRadius: AppRadius.xl,
       ),
       child: TextField(
         controller: controller,
         onChanged: onChanged,
+        textAlignVertical: TextAlignVertical.center,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: scheme.onSurface,
+          fontWeight: FontWeight.w600,
+        ),
         decoration: InputDecoration(
           hintText: 'Search name, project, namespace, repo, cluster, revision',
-          hintStyle: theme.textTheme.bodyMedium?.copyWith(color: mutedColor),
-          prefixIcon: Padding(
-            padding: const EdgeInsets.only(left: 16, right: 8),
-            child: Icon(Icons.search_rounded, color: mutedColor),
+          hintStyle: theme.textTheme.bodyMedium?.copyWith(
+            color: scheme.onSurfaceVariant,
           ),
+          prefixIcon: Icon(Icons.search_rounded, color: scheme.onSurfaceVariant),
           prefixIconConstraints: const BoxConstraints(
             minWidth: 48,
-            minHeight: 38,
+            minHeight: 48,
           ),
           suffixIcon: showClear
               ? IconButton(
+                  tooltip: 'Clear',
                   icon: const Icon(Icons.close_rounded, size: 20),
-                  color: mutedColor,
+                  color: scheme.onSurfaceVariant,
                   onPressed: onClear,
                 )
               : null,
+          filled: false,
           border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 6,
+            horizontal: 8,
+            vertical: 14,
           ),
         ),
       ),
@@ -700,15 +706,15 @@ class _ScopeDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final mutedColor = AppColors.mutedText(theme);
+    final scheme = theme.colorScheme;
+    final mutedColor = scheme.onSurfaceVariant;
 
     return Container(
-      height: 38,
-      padding: const EdgeInsets.only(left: 8, right: 6),
+      height: 48,
+      padding: const EdgeInsets.only(left: 14, right: 10),
       decoration: BoxDecoration(
-        color: AppColors.inputFill(theme),
-        borderRadius: AppRadius.md,
-        border: Border.all(color: AppColors.outline(theme)),
+        color: scheme.surfaceContainerHigh,
+        borderRadius: AppRadius.xl,
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String?>(
@@ -787,39 +793,40 @@ class _OverviewStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final session = controller.session;
-    final fg = AppColors.headerForeground(theme);
-    final muted = AppColors.headerMutedForeground(theme);
-    final chipBg = AppColors.headerChipBackground(theme);
 
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.headerSurface(theme),
-        borderRadius: AppRadius.base,
-        border: Border.all(color: AppColors.headerDivider(theme)),
+        color: scheme.surfaceContainerLow,
+        borderRadius: AppRadius.md,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          // Title row
           Row(
             children: <Widget>[
               Container(
-                padding: const EdgeInsets.all(5),
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
-                  color: chipBg,
-                  borderRadius: AppRadius.sm,
+                  color: scheme.primaryContainer,
+                  borderRadius: AppRadius.base,
                 ),
-                child: Icon(Icons.apps_rounded, size: 16, color: fg),
+                child: Icon(
+                  Icons.apps_rounded,
+                  size: 18,
+                  color: scheme.onPrimaryContainer,
+                ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'Applications',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: fg,
-                    fontWeight: FontWeight.w700,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
@@ -830,47 +837,44 @@ class _OverviewStrip extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.end,
-                    style: theme.textTheme.labelSmall?.copyWith(color: muted),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 8),
-          // Metric chips
+          const SizedBox(height: 14),
           Wrap(
-            spacing: 6,
-            runSpacing: 6,
+            spacing: 8,
+            runSpacing: 8,
             children: <Widget>[
               _MetricChip(
                 value: totalApplications,
                 label: 'Total',
-                background: chipBg,
-                fg: fg,
-                muted: muted,
+                color: scheme.primary,
               ),
               _MetricChip(
                 value: outOfSyncCount,
                 label: 'Drifted',
-                background: outOfSyncCount > 0
-                    ? AppColors.outOfSync.withValues(alpha: 0.22)
-                    : chipBg,
-                fg: outOfSyncCount > 0 ? AppColors.outOfSync : fg,
-                muted: muted,
+                color: outOfSyncCount > 0
+                    ? AppColors.outOfSync
+                    : scheme.onSurfaceVariant,
               ),
               _MetricChip(
                 value: unhealthyCount,
                 label: 'Unhealthy',
-                background: unhealthyCount > 0
-                    ? AppColors.degraded.withValues(alpha: 0.22)
-                    : chipBg,
-                fg: unhealthyCount > 0 ? AppColors.degraded : fg,
-                muted: muted,
+                color: unhealthyCount > 0
+                    ? AppColors.degraded
+                    : scheme.onSurfaceVariant,
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          // Health segment bar
-          StatusSegmentBar(segments: healthSegments),
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: AppRadius.pill,
+            child: StatusSegmentBar(segments: healthSegments, height: 10),
+          ),
         ],
       ),
     );
@@ -881,16 +885,12 @@ class _MetricChip extends StatelessWidget {
   const _MetricChip({
     required this.value,
     required this.label,
-    required this.background,
-    required this.fg,
-    required this.muted,
+    required this.color,
   });
 
   final int value;
   final String label;
-  final Color background;
-  final Color fg;
-  final Color muted;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -898,27 +898,28 @@ class _MetricChip extends StatelessWidget {
     return Semantics(
       label: '$value $label',
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: background,
-          borderRadius: AppRadius.sm,
+          color: color.withValues(alpha: 0.14),
+          borderRadius: AppRadius.pill,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Text(
               '$value',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: fg,
-                fontWeight: FontWeight.w700,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(width: 5),
+            const SizedBox(width: 6),
             Text(
               label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: muted,
-                fontWeight: FontWeight.w500,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
               ),
             ),
           ],
@@ -926,15 +927,6 @@ class _MetricChip extends StatelessWidget {
       ),
     );
   }
-}
-
-Color _factBadgeColor(IconData icon) {
-  if (icon == Icons.route_outlined) {
-    return AppColors.cobalt;
-  } else if (icon == Icons.commit_outlined) {
-    return AppColors.teal;
-  }
-  return AppColors.amber;
 }
 
 class _ApplicationCard extends StatelessWidget {
@@ -946,28 +938,28 @@ class _ApplicationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final healthColor = AppColors.healthColor(application.healthStatus);
 
     return Material(
-      color: theme.colorScheme.surface,
-      borderRadius: AppRadius.base,
+      color: scheme.surfaceContainerLow,
+      borderRadius: AppRadius.md,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: AppRadius.base,
-        child: Container(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            border: Border.all(color: AppColors.outline(theme)),
-            borderRadius: AppRadius.base,
-          ),
-          child: ClipRRect(
-            borderRadius: AppRadius.base,
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border(left: BorderSide(color: healthColor, width: 4)),
+        borderRadius: AppRadius.md,
+        child: Stack(
+          children: <Widget>[
+            Positioned(
+              top: 0,
+              bottom: 0,
+              left: 0,
+              child: IgnorePointer(
+                child: Container(width: 6, color: healthColor),
               ),
-              padding: const EdgeInsets.fromLTRB(9, 7, 9, 7),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 12, 14, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
@@ -980,16 +972,16 @@ class _ApplicationCard extends StatelessWidget {
                             Text(
                               application.name,
                               style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w800,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 1),
+                            const SizedBox(height: 2),
                             Text(
                               application.project,
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
+                                color: scheme.onSurfaceVariant,
                                 fontWeight: FontWeight.w600,
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -997,9 +989,9 @@ class _ApplicationCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 8),
                       Wrap(
-                        spacing: 4,
+                        spacing: 6,
                         runSpacing: 4,
                         alignment: WrapAlignment.end,
                         children: <Widget>[
@@ -1017,88 +1009,60 @@ class _ApplicationCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  // Cluster + namespace metadata row
+                  const SizedBox(height: 8),
                   Row(
                     children: <Widget>[
                       ExcludeSemantics(
                         child: Icon(
                           Icons.dns_outlined,
-                          size: 12,
-                          color: AppColors.mutedText(theme),
+                          size: 14,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
-                      const SizedBox(width: 3),
+                      const SizedBox(width: 4),
                       Flexible(
                         child: Text(
                           _clusterShortName(application.cluster),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: AppColors.mutedText(theme),
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
                         child: Text(
                           '\u2022',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: AppColors.greyLight,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: scheme.outline,
                           ),
                         ),
                       ),
                       ExcludeSemantics(
                         child: Icon(
                           Icons.view_in_ar_outlined,
-                          size: 12,
-                          color: AppColors.mutedText(theme),
+                          size: 14,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
-                      const SizedBox(width: 3),
+                      const SizedBox(width: 4),
                       Flexible(
                         child: Text(
                           application.namespace,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: AppColors.mutedText(theme),
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 10),
                   Wrap(
                     spacing: 6,
-                    runSpacing: 2,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: <Widget>[
-                      if (application.lastSyncedAt != null &&
-                          application.lastSyncedAt!.isNotEmpty)
-                        Text(
-                          'Synced ${_formatRelativeTime(application.lastSyncedAt!)}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.greyLight,
-                          ),
-                        ),
-                      Text(
-                        application.operationPhase,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.grey,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        _shortRevision(application.targetRevision),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 4,
-                    runSpacing: 2,
+                    runSpacing: 6,
                     children: <Widget>[
                       _ColoredFactBadge(
                         icon: Icons.route_outlined,
@@ -1108,12 +1072,19 @@ class _ApplicationCard extends StatelessWidget {
                         icon: Icons.link_rounded,
                         label: _repoLabel(application.repoUrl),
                       ),
+                      if (application.lastSyncedAt != null &&
+                          application.lastSyncedAt!.isNotEmpty)
+                        _ColoredFactBadge(
+                          icon: Icons.history_rounded,
+                          label:
+                              'Synced ${_formatRelativeTime(application.lastSyncedAt!)}',
+                        ),
                     ],
                   ),
                 ],
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -1302,27 +1273,31 @@ class _ColoredFactBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _factBadgeColor(icon);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: AppRadius.sm,
-        border: Border.all(color: color.withValues(alpha: 0.16)),
+        color: scheme.surfaceContainerHigh,
+        borderRadius: AppRadius.pill,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          ExcludeSemantics(child: Icon(icon, size: 14, color: color)),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
+          ExcludeSemantics(
+            child: Icon(icon, size: 14, color: scheme.onSurfaceVariant),
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -1361,21 +1336,29 @@ class _EmptyState extends StatelessWidget {
           'visible applications.';
     }
 
+    final scheme = theme.colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: AppRadius.base,
-        border: Border.all(color: theme.dividerColor),
+        color: scheme.surfaceContainerLow,
+        borderRadius: AppRadius.md,
       ),
       child: Column(
         children: <Widget>[
-          Icon(icon, size: 36, color: AppColors.greyLight),
-          const SizedBox(height: 8),
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHigh,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 32, color: scheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 14),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: theme.textTheme.titleSmall?.copyWith(
+            style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -1383,7 +1366,9 @@ class _EmptyState extends StatelessWidget {
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall?.copyWith(color: AppColors.grey),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),

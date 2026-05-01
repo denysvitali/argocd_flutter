@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:argocd_flutter/core/services/app_controller.dart';
-import 'package:argocd_flutter/ui/app_colors.dart';
+import 'package:argocd_flutter/ui/argo_logo.dart';
 import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:flutter/material.dart';
 
@@ -61,41 +61,18 @@ class _SignInScreenState extends State<SignInScreen> {
     required Widget prefixIcon,
     Widget? suffixIcon,
   }) {
-    final theme = Theme.of(context);
     return InputDecoration(
       labelText: labelText,
       hintText: hintText,
       prefixIcon: prefixIcon,
       suffixIcon: suffixIcon,
-      border: OutlineInputBorder(
-        borderRadius: AppRadius.md,
-        borderSide: BorderSide(color: theme.dividerColor),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: AppRadius.md,
-        borderSide: BorderSide(color: theme.dividerColor),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: AppRadius.md,
-        borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: AppRadius.md,
-        borderSide: BorderSide(color: theme.colorScheme.error),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: AppRadius.md,
-        borderSide: BorderSide(color: theme.colorScheme.error, width: 2),
-      ),
-      filled: true,
-      fillColor: theme.colorScheme.surface,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final scheme = theme.colorScheme;
     final certificateStatus = widget.controller.certificateStatus;
     final errorMessage = widget.controller.errorMessage;
     final showError = errorMessage != null && errorMessage != _dismissedError;
@@ -103,114 +80,62 @@ class _SignInScreenState extends State<SignInScreen> {
     return Scaffold(
       body: DecoratedBox(
         decoration: BoxDecoration(
-          color: theme.scaffoldBackgroundColor,
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: <Color>[
-              AppColors.teal.withValues(alpha: 0.10),
-              theme.scaffoldBackgroundColor,
-              AppColors.orange.withValues(alpha: 0.08),
+              scheme.primaryContainer.withValues(alpha: 0.45),
+              scheme.surface,
+              scheme.tertiaryContainer.withValues(alpha: 0.30),
             ],
-            stops: const <double>[0, 0.48, 1],
+            stops: const <double>[0, 0.5, 1],
           ),
         ),
         child: SafeArea(
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 430),
+              constraints: const BoxConstraints(maxWidth: 460),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(18, 22, 18, 18),
+                padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface.withValues(
-                          alpha: 0.88,
-                        ),
-                        borderRadius: AppRadius.md,
-                        border: Border.all(color: AppColors.outline(theme)),
-                      ),
-                      child: Row(
-                        children: <Widget>[
-                          Container(
-                            width: 54,
-                            height: 54,
-                            decoration: BoxDecoration(
-                              color: AppColors.orange.withValues(alpha: 0.14),
-                              borderRadius: AppRadius.base,
-                              border: Border.all(
-                                color: AppColors.orange.withValues(alpha: 0.28),
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.cloud_sync_outlined,
-                              color: AppColors.orange,
-                              size: 28,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                Text(
-                                  'Argo CD',
-                                  style: theme.textTheme.headlineMedium
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w900,
-                                        color: theme.colorScheme.onSurface,
-                                      ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Deployment control plane',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: AppColors.mutedText(theme),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                    const Center(
+                      child: ArgoLockup(
+                        logoSize: 64,
+                        subtitle: 'Deployment control plane',
                       ),
                     ),
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 28),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                       decoration: BoxDecoration(
-                        color: AppColors.teal.withValues(alpha: 0.08),
-                        borderRadius: AppRadius.md,
-                        border: Border.all(
-                          color: AppColors.teal.withValues(alpha: 0.18),
-                        ),
+                        color: scheme.secondaryContainer.withValues(alpha: 0.55),
+                        borderRadius: AppRadius.lg,
                       ),
                       child: Row(
                         children: <Widget>[
-                          const Icon(
+                          Icon(
                             Icons.bolt_rounded,
-                            color: AppColors.orange,
-                            size: 20,
+                            color: scheme.secondary,
+                            size: 22,
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               'Connect with a token-backed ArgoCD session.',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurface,
-                                fontWeight: FontWeight.w700,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: scheme.onSecondaryContainer,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     AnimatedSize(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeInOut,
@@ -231,23 +156,10 @@ class _SignInScreenState extends State<SignInScreen> {
                     ),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        borderRadius: AppRadius.md,
-                        border: Border.all(color: theme.dividerColor),
-                        boxShadow: <BoxShadow>[
-                          BoxShadow(
-                            color: AppColors.surfaceShadow(theme, alpha: 0.06),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                          BoxShadow(
-                            color: AppColors.surfaceShadow(theme, alpha: 0.03),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
+                        color: scheme.surfaceContainerLow,
+                        borderRadius: AppRadius.lg,
                       ),
                       child: Form(
                         key: _formKey,
@@ -260,15 +172,14 @@ class _SignInScreenState extends State<SignInScreen> {
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 4),
                             Text(
                               'Use your ArgoCD server URL and credentials.',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppColors.mutedText(theme),
-                                fontWeight: FontWeight.w600,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: scheme.onSurfaceVariant,
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 20),
                             TextFormField(
                               controller: _serverController,
                               decoration: _inputDecoration(
@@ -282,8 +193,8 @@ class _SignInScreenState extends State<SignInScreen> {
                                             'previous session and will be '
                                             'pre-filled on future sign-ins',
                                         child: Icon(
-                                          Icons.bookmark,
-                                          color: theme.colorScheme.primary,
+                                          Icons.bookmark_rounded,
+                                          color: scheme.primary,
                                         ),
                                       )
                                     : null,
@@ -293,7 +204,7 @@ class _SignInScreenState extends State<SignInScreen> {
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 14),
                             TextFormField(
                               controller: _usernameController,
                               decoration: _inputDecoration(
@@ -307,44 +218,31 @@ class _SignInScreenState extends State<SignInScreen> {
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 14),
                             TextFormField(
                               controller: _passwordController,
                               obscureText: _obscurePassword,
                               decoration: _inputDecoration(
                                 labelText: 'Password',
                                 prefixIcon: const Icon(Icons.lock_outline),
-                                suffixIcon: Tooltip(
-                                  message: _obscurePassword
+                                suffixIcon: IconButton(
+                                  tooltip: _obscurePassword
                                       ? 'Show password'
                                       : 'Hide password',
-                                  child: Material(
-                                    type: MaterialType.transparency,
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(20),
-                                      onTap: () {
-                                        setState(() {
-                                          _obscurePassword = !_obscurePassword;
-                                        });
-                                      },
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(12),
-                                        child: AnimatedSwitcher(
-                                          duration: const Duration(
-                                            milliseconds: 200,
-                                          ),
-                                          child: Icon(
-                                            _obscurePassword
-                                                ? Icons.visibility_outlined
-                                                : Icons.visibility_off_outlined,
-                                            key: ValueKey<bool>(
-                                              _obscurePassword,
-                                            ),
-                                            size: 20,
-                                            color: colorScheme.onSurfaceVariant,
-                                          ),
-                                        ),
-                                      ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _obscurePassword = !_obscurePassword;
+                                    });
+                                  },
+                                  icon: AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 200),
+                                    child: Icon(
+                                      _obscurePassword
+                                          ? Icons.visibility_outlined
+                                          : Icons.visibility_off_outlined,
+                                      key: ValueKey<bool>(_obscurePassword),
+                                      size: 20,
+                                      color: scheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ),
@@ -356,15 +254,13 @@ class _SignInScreenState extends State<SignInScreen> {
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 16),
-                            if (certificateStatus != null)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: _CertificateBanner(
-                                  message: certificateStatus.message,
-                                ),
+                            if (certificateStatus != null) ...<Widget>[
+                              const SizedBox(height: 16),
+                              _CertificateBanner(
+                                message: certificateStatus.message,
                               ),
-                            const SizedBox(height: 4),
+                            ],
+                            const SizedBox(height: 20),
                             Wrap(
                               spacing: 12,
                               runSpacing: 12,
@@ -383,17 +279,11 @@ class _SignInScreenState extends State<SignInScreen> {
                                             strokeWidth: 2,
                                           ),
                                         )
-                                      : const Icon(Icons.network_ping),
+                                      : const Icon(Icons.network_ping_rounded),
                                   label: Text(
                                     _testingConnection
                                         ? 'Testing...'
                                         : 'Test server',
-                                  ),
-                                  style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 12,
-                                    ),
                                   ),
                                 ),
                                 _SignInButton(
@@ -513,26 +403,16 @@ class _SignInButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeInOut,
-      child: FilledButton.icon(
-        onPressed: busy ? null : onPressed,
-        icon: busy ? const _ShimmerIcon() : const Icon(Icons.login),
-        label: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
-          child: Text(
-            busy ? 'Connecting...' : 'Sign In',
-            key: ValueKey<bool>(busy),
-          ),
-        ),
-        style: FilledButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-          textStyle: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+    return FilledButton.icon(
+      onPressed: busy ? null : onPressed,
+      icon: busy
+          ? const _ShimmerIcon()
+          : const Icon(Icons.arrow_forward_rounded),
+      label: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: Text(
+          busy ? 'Connecting...' : 'Sign in',
+          key: ValueKey<bool>(busy),
         ),
       ),
     );
@@ -691,33 +571,28 @@ class _CertificateBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final scheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.teal.withValues(alpha: 0.1)
-            : AppColors.tealLight,
-        borderRadius: AppRadius.md,
-        border: Border.all(
-          color: isDark
-              ? AppColors.teal.withValues(alpha: 0.25)
-              : AppColors.teal.withValues(alpha: 0.15),
-        ),
+        color: scheme.tertiaryContainer.withValues(alpha: 0.55),
+        borderRadius: AppRadius.base,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Icon(Icons.verified_user_outlined, color: AppColors.teal, size: 20),
+          Icon(
+            Icons.verified_user_outlined,
+            color: scheme.tertiary,
+            size: 20,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               message,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: isDark
-                    ? AppColors.textOnDarkMuted
-                    : theme.colorScheme.onSurfaceVariant,
+                color: scheme.onTertiaryContainer,
               ),
             ),
           ),

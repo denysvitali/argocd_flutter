@@ -6,13 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'test_helpers.dart';
 
 void main() {
-  group('HomeShell — compact navigation labels', () {
+  group('HomeShell — bottom navigation', () {
     testWidgets(
-      'shows only selected label on narrow screens (width < 600)',
+      'renders four destinations on narrow screens (width < 900)',
       (WidgetTester tester) async {
         final controller = await createAuthenticatedController();
 
-        // Set a narrow viewport so compactNav path is taken.
         tester.view.physicalSize = const Size(390, 844);
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
@@ -20,7 +19,7 @@ void main() {
 
         await tester.pumpWidget(
           MaterialApp(
-            theme: ThemeData(splashFactory: InkRipple.splashFactory),
+            theme: buildLightAppTheme(),
             home: HomeShell(
               controller: controller,
               themeController: ThemeController(),
@@ -29,23 +28,16 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // On a narrow screen the NavigationBar uses onlyShowSelected behaviour.
-        // Only the Dashboard label (selected) should be visible; others are
-        // hidden because labelBehavior == onlyShowSelected.
         final navBar = tester.widget<NavigationBar>(find.byType(NavigationBar));
-        expect(
-          navBar.labelBehavior,
-          NavigationDestinationLabelBehavior.onlyShowSelected,
-        );
+        expect(navBar.destinations.length, 4);
       },
     );
 
     testWidgets(
-      'always shows all labels on wide screens (width >= 600)',
+      'uses theme alwaysShow label behaviour for M3 navigation',
       (WidgetTester tester) async {
         final controller = await createAuthenticatedController();
 
-        // Set a wide viewport so the non-compact path is taken.
         tester.view.physicalSize = const Size(800, 1024);
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
@@ -53,7 +45,7 @@ void main() {
 
         await tester.pumpWidget(
           MaterialApp(
-            theme: ThemeData(splashFactory: InkRipple.splashFactory),
+            theme: buildLightAppTheme(),
             home: HomeShell(
               controller: controller,
               themeController: ThemeController(),
@@ -62,9 +54,9 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final navBar = tester.widget<NavigationBar>(find.byType(NavigationBar));
+        final BuildContext context = tester.element(find.byType(NavigationBar));
         expect(
-          navBar.labelBehavior,
+          Theme.of(context).navigationBarTheme.labelBehavior,
           NavigationDestinationLabelBehavior.alwaysShow,
         );
       },

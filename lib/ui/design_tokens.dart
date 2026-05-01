@@ -1,7 +1,8 @@
-// Design tokens for consistent spacing, border radius, opacity values,
-// elevation/shadows, and shared card decorations across the application.
+// Design tokens for spacing, border radius, opacity, elevation/shadows,
+// and shared card decorations.
 //
-// All values are compile-time constants and can be used in `const` contexts.
+// Radii follow Material 3's expressive shape scale
+// (extra-small=4 / small=8 / medium=12 / large=16 / extra-large=28).
 
 import 'package:flutter/painting.dart';
 
@@ -19,12 +20,26 @@ abstract final class AppSpacing {
 }
 
 abstract final class AppRadius {
-  static final BorderRadius xs = BorderRadius.circular(2);
-  static final BorderRadius sm = BorderRadius.circular(4);
-  static final BorderRadius base = BorderRadius.circular(6);
-  static final BorderRadius md = BorderRadius.circular(8);
-  static final BorderRadius lg = BorderRadius.circular(12);
-  static final BorderRadius pill = BorderRadius.circular(100);
+  /// 4dp — pills, chips, micro-tags.
+  static final BorderRadius xs = BorderRadius.circular(4);
+
+  /// 8dp — small chip groups, status badges.
+  static final BorderRadius sm = BorderRadius.circular(8);
+
+  /// 12dp — M3 medium shape. Default for most surface tiles, list rows, badges.
+  static final BorderRadius base = BorderRadius.circular(12);
+
+  /// 16dp — M3 large shape. Used by stock M3 Card & SearchBar.
+  static final BorderRadius md = BorderRadius.circular(16);
+
+  /// 20dp — feature cards, hero panels.
+  static final BorderRadius lg = BorderRadius.circular(20);
+
+  /// 28dp — M3 extra-large. FABs, sheets, dialogs.
+  static final BorderRadius xl = BorderRadius.circular(28);
+
+  /// Fully rounded.
+  static final BorderRadius pill = BorderRadius.circular(999);
 }
 
 abstract final class AppOpacity {
@@ -53,16 +68,13 @@ abstract final class AppIconSize {
   static const double huge = 48;
 }
 
-/// Consistent elevation/shadow tokens for cards and surfaces.
-///
-/// Use [AppCardDecoration.card] for standard surface cards (border only).
-/// Use [AppCardDecoration.elevated] for cards that need depth (border + shadow).
+/// Elevation / shadow tokens. M3 prefers tonal surface elevation over
+/// drop shadows, but a few floating chrome elements still need depth.
 abstract final class AppElevation {
-  /// No elevation -- border only, no shadows. Used for standard section cards.
+  /// No elevation -- tonal surface only. Default for most cards.
   static const List<BoxShadow> none = <BoxShadow>[];
 
-  /// Subtle elevation for cards that need gentle depth perception.
-  /// Multi-layer shadow for crisp, modern surface separation.
+  /// Subtle two-layer shadow for slightly raised surfaces.
   static List<BoxShadow> subtle(Color shadowColor) => <BoxShadow>[
     BoxShadow(
       color: shadowColor.withValues(alpha: 0.07),
@@ -76,7 +88,7 @@ abstract final class AppElevation {
     ),
   ];
 
-  /// Light elevation for attention items or interactive cards.
+  /// Light single-layer shadow for hover or focus highlights.
   static List<BoxShadow> light(Color shadowColor, {double alpha = 0.08}) =>
       <BoxShadow>[
         BoxShadow(
@@ -86,7 +98,7 @@ abstract final class AppElevation {
         ),
       ];
 
-  /// Strong shell elevation for floating navigation and global chrome.
+  /// Strong shadow for floating shell chrome (rail, drawer, sheet edges).
   static List<BoxShadow> shell(Color shadowColor) => <BoxShadow>[
     BoxShadow(
       color: shadowColor.withValues(alpha: 0.18),
@@ -103,33 +115,31 @@ abstract final class AppElevation {
 
 /// Shared card decoration factory for consistent styling across all screens.
 ///
-/// All cards use `borderRadius: AppRadius.base` (6px) and a standard border.
-/// Elevated variants add subtle two-layer shadows for depth.
+/// All cards default to `AppRadius.base` (12dp). Surface-tonal cards pass
+/// no border color; outlined variants pass an explicit color.
 abstract final class AppCardDecoration {
-  /// Standard surface card: solid background, border, no shadow.
-  /// Used for SectionCard, SummaryTile, EmptyStateCard, and most content cards.
+  /// Standard surface card: tonal surface, optional thin outline, no shadow.
   static BoxDecoration card({
     required Color backgroundColor,
-    required Color borderColor,
+    Color? borderColor,
   }) {
     return BoxDecoration(
       color: backgroundColor,
       borderRadius: AppRadius.base,
-      border: Border.all(color: borderColor),
+      border: borderColor == null ? null : Border.all(color: borderColor),
     );
   }
 
-  /// Elevated surface card: border plus subtle two-layer shadow.
-  /// Used for the sign-in form card and other cards that need depth.
+  /// Elevated surface card: tonal surface plus subtle two-layer shadow.
   static BoxDecoration elevated({
     required Color backgroundColor,
-    required Color borderColor,
     required Color shadowColor,
+    Color? borderColor,
   }) {
     return BoxDecoration(
       color: backgroundColor,
       borderRadius: AppRadius.base,
-      border: Border.all(color: borderColor),
+      border: borderColor == null ? null : Border.all(color: borderColor),
       boxShadow: AppElevation.subtle(shadowColor),
     );
   }

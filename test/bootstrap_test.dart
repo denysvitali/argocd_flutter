@@ -1,5 +1,6 @@
 import 'package:argocd_flutter/core/services/theme_controller.dart';
 import 'package:argocd_flutter/ui/app_root.dart';
+import 'package:argocd_flutter/ui/argo_logo.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -18,10 +19,10 @@ Future<void> _pumpBootstrap(WidgetTester tester) async {
 
 void main() {
   group('BootstrapScreen', () {
-    testWidgets('shows hub icon', (WidgetTester tester) async {
+    testWidgets('shows ArgoCD logo', (WidgetTester tester) async {
       await _pumpBootstrap(tester);
 
-      expect(find.byIcon(Icons.hub_rounded), findsOneWidget);
+      expect(find.byType(ArgoLogo), findsOneWidget);
     });
 
     testWidgets('shows ArgoCD Flutter title', (WidgetTester tester) async {
@@ -81,7 +82,7 @@ void main() {
       await _pumpBootstrap(tester);
 
       expect(find.text('Server URL'), findsNothing);
-      expect(find.text('Sign In'), findsNothing);
+      expect(find.text('Sign in'), findsNothing);
     });
 
     testWidgets('content is laid out in a centered column', (
@@ -89,9 +90,7 @@ void main() {
     ) async {
       await _pumpBootstrap(tester);
 
-      // Icon, title and progress indicator should all be present inside the
-      // widget tree.
-      expect(find.byIcon(Icons.hub_rounded), findsOneWidget);
+      expect(find.byType(ArgoLogo), findsOneWidget);
       expect(find.text('Argo CD'), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });

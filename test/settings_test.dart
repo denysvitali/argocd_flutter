@@ -9,6 +9,7 @@ import 'package:argocd_flutter/core/services/session_storage.dart';
 import 'package:argocd_flutter/core/services/theme_controller.dart';
 import 'package:argocd_flutter/features/auth/sign_in_screen.dart';
 import 'package:argocd_flutter/features/settings/settings_screen.dart';
+import 'package:argocd_flutter/ui/argo_logo.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -245,7 +246,7 @@ void main() {
       expect(find.text('Server URL'), findsOneWidget);
       expect(find.text('Username'), findsOneWidget);
       expect(find.text('Password'), findsOneWidget);
-      expect(find.text('Sign In'), findsOneWidget);
+      expect(find.text('Sign in'), findsOneWidget);
       expect(find.text('Test server'), findsOneWidget);
     });
 
@@ -260,13 +261,13 @@ void main() {
 
       // Scroll to the Sign In button and tap
       await tester.scrollUntilVisible(
-        find.text('Sign In'),
+        find.text('Sign in'),
         200,
         scrollable: find.byType(Scrollable).first,
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Sign In'));
+      await tester.tap(find.text('Sign in'));
       await tester.pumpAndSettle();
 
       expect(find.text('Enter the ArgoCD server URL.'), findsOneWidget);
@@ -290,13 +291,13 @@ void main() {
 
       // Scroll to Sign In button
       await tester.scrollUntilVisible(
-        find.text('Sign In'),
+        find.text('Sign in'),
         200,
         scrollable: find.byType(Scrollable).first,
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Sign In'));
+      await tester.tap(find.text('Sign in'));
       await tester.pumpAndSettle();
 
       expect(find.text('Enter a valid HTTP or HTTPS URL.'), findsOneWidget);
@@ -363,7 +364,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Argo CD'), findsOneWidget);
-      expect(find.byIcon(Icons.cloud_sync_outlined), findsOneWidget);
+      expect(find.byType(ArgoLogo), findsOneWidget);
     });
   });
 }

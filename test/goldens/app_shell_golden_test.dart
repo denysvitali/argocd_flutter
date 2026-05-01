@@ -37,16 +37,13 @@ void main() {
     await pumpGoldenApp(tester, themeMode: ThemeMode.light);
     await screenMatchesGolden(tester, 'dashboard_light');
 
-    await tester.tap(find.byIcon(Icons.dashboard_outlined));
-    await tester.pumpAndSettle();
+    await _tapShellTab(tester, Icons.dashboard_outlined);
     await screenMatchesGolden(tester, 'applications_light');
 
-    await tester.tap(find.byIcon(Icons.folder_outlined));
-    await tester.pumpAndSettle();
+    await _tapShellTab(tester, Icons.folder_outlined);
     await screenMatchesGolden(tester, 'projects_light');
 
-    await tester.tap(find.byIcon(Icons.settings_outlined));
-    await tester.pumpAndSettle();
+    await _tapShellTab(tester, Icons.settings_outlined);
     await screenMatchesGolden(tester, 'settings_light');
   });
 
@@ -56,16 +53,26 @@ void main() {
     await pumpGoldenApp(tester, themeMode: ThemeMode.dark);
     await screenMatchesGolden(tester, 'dashboard_dark');
 
-    await tester.tap(find.byIcon(Icons.dashboard_outlined));
-    await tester.pumpAndSettle();
+    await _tapShellTab(tester, Icons.dashboard_outlined);
     await screenMatchesGolden(tester, 'applications_dark');
 
-    await tester.tap(find.byIcon(Icons.folder_outlined));
-    await tester.pumpAndSettle();
+    await _tapShellTab(tester, Icons.folder_outlined);
     await screenMatchesGolden(tester, 'projects_dark');
 
-    await tester.tap(find.byIcon(Icons.settings_outlined));
-    await tester.pumpAndSettle();
+    await _tapShellTab(tester, Icons.settings_outlined);
     await screenMatchesGolden(tester, 'settings_dark');
   });
+}
+
+/// Taps a destination icon inside the bottom [NavigationBar], scoping the
+/// match so it doesn't collide with icons that screens use for content
+/// (e.g. the "Projects" filter dropdown also uses [Icons.folder_outlined]).
+Future<void> _tapShellTab(WidgetTester tester, IconData icon) async {
+  await tester.tap(
+    find.descendant(
+      of: find.byType(NavigationBar),
+      matching: find.byIcon(icon),
+    ),
+  );
+  await tester.pumpAndSettle();
 }

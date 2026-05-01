@@ -149,51 +149,45 @@ abstract final class AppColors {
   static const Color yamlPunctuation = Color(0xFF37474F);
 
   // ── Theme-aware helpers ────────────────────────────────────────────────
+  //
+  // Most helpers route through the active [ColorScheme] so the Material 3
+  // tonal palette (`surfaceContainer`, `outlineVariant`, etc.) stays in sync
+  // with the seed-generated theme.
 
   static Color headerSurface(ThemeData theme) {
-    return theme.brightness == Brightness.dark ? darkSurfaceElevated : white;
+    return theme.colorScheme.surfaceContainer;
   }
 
   static Color headerSurfaceAlt(ThemeData theme) {
-    return theme.brightness == Brightness.dark
-        ? headerDarkAlt
-        : const Color(0xFFEAF3F4);
+    return theme.colorScheme.surfaceContainerHigh;
   }
 
   static Color headerForeground(ThemeData theme) {
-    return theme.brightness == Brightness.dark
-        ? theme.colorScheme.onSurface
-        : inkDark;
+    return theme.colorScheme.onSurface;
   }
 
   static Color headerMutedForeground(ThemeData theme) {
-    return theme.brightness == Brightness.dark ? textOnDarkMuted : gray6;
+    return theme.colorScheme.onSurfaceVariant;
   }
 
   static Color headerDivider(ThemeData theme) {
-    return theme.brightness == Brightness.dark
-        ? headerForeground(theme).withValues(alpha: 0.12)
-        : outline(theme);
+    return theme.colorScheme.outlineVariant;
   }
 
   static Color headerChipBackground(ThemeData theme, {double alpha = 0.15}) {
-    return theme.brightness == Brightness.dark
-        ? headerForeground(theme).withValues(alpha: alpha)
-        : teal.withValues(alpha: alpha);
+    return theme.colorScheme.primary.withValues(alpha: alpha);
   }
 
   static Color outline(ThemeData theme) {
-    return theme.brightness == Brightness.dark
-        ? darkBorder
-        : const Color(0xFFD7E0E6);
+    return theme.colorScheme.outlineVariant;
   }
 
   static Color mutedText(ThemeData theme) {
-    return theme.brightness == Brightness.dark ? gray5 : gray6;
+    return theme.colorScheme.onSurfaceVariant;
   }
 
   static Color inputFill(ThemeData theme) {
-    return theme.brightness == Brightness.dark ? darkSurfaceElevated : white;
+    return theme.colorScheme.surfaceContainerHighest;
   }
 
   static Color surfaceShadow(ThemeData theme, {double alpha = 0.08}) {
@@ -204,7 +198,9 @@ abstract final class AppColors {
   }
 
   static Color skeleton(ThemeData theme, {double alpha = 0.08}) {
-    final base = theme.brightness == Brightness.dark ? gray4 : ink;
+    final base = theme.brightness == Brightness.dark
+        ? theme.colorScheme.onSurface
+        : theme.colorScheme.onSurface;
     return base.withValues(alpha: alpha);
   }
 

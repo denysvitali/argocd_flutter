@@ -15,14 +15,19 @@ void main() {
       expect(theme.useMaterial3, isTrue);
     });
 
-    test('has correct scaffold background color', () {
+    test('scaffold background uses M3 surface tone', () {
       final theme = buildLightAppTheme();
-      expect(theme.scaffoldBackgroundColor, equals(AppColors.canvasInset));
+      expect(theme.scaffoldBackgroundColor, equals(theme.colorScheme.surface));
     });
 
-    test('uses the correct primary color (AppColors.cobalt)', () {
+    test('uses the correct primary color (AppColors.teal)', () {
       final theme = buildLightAppTheme();
-      expect(theme.colorScheme.primary, equals(AppColors.cobalt));
+      expect(theme.colorScheme.primary, equals(AppColors.teal));
+    });
+
+    test('uses orange as the secondary brand colour', () {
+      final theme = buildLightAppTheme();
+      expect(theme.colorScheme.secondary, equals(AppColors.orange));
     });
 
     test('has light brightness', () {
@@ -42,14 +47,19 @@ void main() {
       expect(theme.useMaterial3, isTrue);
     });
 
-    test('has correct scaffold background color', () {
+    test('scaffold background uses M3 surface tone', () {
       final theme = buildDarkAppTheme();
-      expect(theme.scaffoldBackgroundColor, equals(AppColors.darkCanvasInset));
+      expect(theme.scaffoldBackgroundColor, equals(theme.colorScheme.surface));
     });
 
-    test('uses the correct primary color (AppColors.cobalt)', () {
+    test('uses the correct primary color (AppColors.teal)', () {
       final theme = buildDarkAppTheme();
-      expect(theme.colorScheme.primary, equals(AppColors.cobalt));
+      expect(theme.colorScheme.primary, equals(AppColors.teal));
+    });
+
+    test('uses orange as the secondary brand colour', () {
+      final theme = buildDarkAppTheme();
+      expect(theme.colorScheme.secondary, equals(AppColors.orange));
     });
 
     test('has dark brightness', () {

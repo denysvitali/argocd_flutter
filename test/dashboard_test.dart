@@ -47,7 +47,7 @@ void main() {
       expect(find.text('HEALTH BREAKDOWN'), findsOneWidget);
 
       // Hero banner metric chip values are visible
-      expect(find.text('Total'), findsOneWidget);
+      expect(find.text('Total apps'), findsOneWidget);
       expect(find.text('Drifted'), findsOneWidget);
 
       // Verify controller has the right counts
