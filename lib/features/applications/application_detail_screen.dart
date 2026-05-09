@@ -998,20 +998,127 @@ class _ResourcesTab extends StatelessWidget {
       );
     }
 
+    final groups = _groupByKind(resources);
+
     return ListView.builder(
       padding: const EdgeInsets.all(14),
-      itemCount: resources.length,
+      itemCount: groups.length,
       itemBuilder: (context, index) {
-        final resource = resources[index];
+        final group = groups[index];
         return Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: _ResourceCard(
+          padding: EdgeInsets.only(bottom: index == groups.length - 1 ? 0 : 18),
+          child: _ResourceGroup(
             controller: controller,
             applicationName: applicationName,
-            resource: resource,
+            kind: group.kind,
+            resources: group.resources,
           ),
         );
       },
+    );
+  }
+
+  static List<_ResourceGroupData> _groupByKind(List<ArgoResource> resources) {
+    final byKind = <String, List<ArgoResource>>{};
+    for (final resource in resources) {
+      byKind.putIfAbsent(resource.kind, () => <ArgoResource>[]).add(resource);
+    }
+    final entries = byKind.entries.toList()
+      ..sort(
+        (a, b) => a.key.toLowerCase().compareTo(b.key.toLowerCase()),
+      );
+    return <_ResourceGroupData>[
+      for (final entry in entries)
+        _ResourceGroupData(
+          kind: entry.key,
+          resources: List<ArgoResource>.of(entry.value)
+            ..sort(
+              (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+            ),
+        ),
+    ];
+  }
+}
+
+class _ResourceGroupData {
+  const _ResourceGroupData({required this.kind, required this.resources});
+
+  final String kind;
+  final List<ArgoResource> resources;
+}
+
+class _ResourceGroup extends StatelessWidget {
+  const _ResourceGroup({
+    required this.controller,
+    required this.applicationName,
+    required this.kind,
+    required this.resources,
+  });
+
+  final AppController controller;
+  final String applicationName;
+  final String kind;
+  final List<ArgoResource> resources;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final kindColor = colorForResourceKind(kind);
+    final kindIcon = iconForResourceKind(kind);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.only(left: 4, right: 4, bottom: 8, top: 2),
+          child: Row(
+            children: <Widget>[
+              Icon(kindIcon, color: kindColor, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  kind,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: scheme.onSurface,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: kindColor.withValues(alpha: 0.12),
+                  borderRadius: AppRadius.xs,
+                ),
+                child: Text(
+                  '${resources.length}',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: kindColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        for (var i = 0; i < resources.length; i++)
+          Padding(
+            padding: EdgeInsets.only(
+              bottom: i == resources.length - 1 ? 0 : 10,
+            ),
+            child: _ResourceCard(
+              controller: controller,
+              applicationName: applicationName,
+              resource: resources[i],
+            ),
+          ),
+      ],
     );
   }
 }
