@@ -10,6 +10,7 @@ import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
 
 enum _DiffViewMode { unified, sideBySide }
+enum _SourceSyntax { yaml, json, text }
 
 class AppDiffScreen extends StatefulWidget {
   const AppDiffScreen({
@@ -549,12 +550,21 @@ class _DiffLineWidget extends StatelessWidget {
               ),
             ),
           ),
-          Text(
-            line.text,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontFamily: 'monospace',
-              color: textColor,
-              height: 1.5,
+          RichText(
+            text: TextSpan(
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontFamily: 'monospace',
+                color: textColor,
+                height: 1.5,
+              ),
+              children: <TextSpan>[
+                ..._buildSourceLineSpans(
+                  line.text,
+                  _sourceSyntaxForDiffLine(line.text),
+                  fallbackColor: textColor,
+                  isDark: theme.brightness == Brightness.dark,
+                ),
+              ],
             ),
           ),
         ],
@@ -628,16 +638,25 @@ class _SideBySideCell extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Text(
-              line?.text ?? '',
+            child: RichText(
+              text: TextSpan(
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontFamily: 'monospace',
+                  color: textColor,
+                  fontWeight: isChanged ? FontWeight.w600 : null,
+                  height: 1.5,
+                ),
+                children: <TextSpan>[
+                  ..._buildSourceLineSpans(
+                    line?.text ?? '',
+                    _sourceSyntaxForDiffLine(line?.text ?? ''),
+                    fallbackColor: textColor,
+                    isDark: theme.brightness == Brightness.dark,
+                  ),
+                ],
+              ),
               overflow: TextOverflow.visible,
               softWrap: false,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontFamily: 'monospace',
-                color: textColor,
-                fontWeight: isChanged ? FontWeight.w600 : null,
-                height: 1.5,
-              ),
             ),
           ),
         ],
@@ -672,6 +691,133 @@ class _LineNumber extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+List<TextSpan> _buildSourceLineSpans(
+  String line,
+  _SourceSyntax syntax, {
+  required Color fallbackColor,
+  required bool isDark,
+}) {
+  return <TextSpan>[
+    for (final token in _tokenizeSourceLine(line, syntax))
+      TextSpan(
+        text: token.text,
+        style: TextStyle(
+          color: _sourceTokenColor(
+            token,
+            baseColor: fallbackColor,
+            isDark: isDark,
+          ),
+        ),
+      ),
+  ];
+}
+
+List<_SourceToken> _tokenizeSourceLine(String line, _SourceSyntax syntax) {
+  return switch (syntax) {
+    _SourceSyntax.yaml => tokenizeYamlLine(line)
+        .map((_token) => _SourceToken(_token.text, _token.type?.name))
+        .toList(growable: false),
+    _SourceSyntax.json => _tokenizeJsonLine(line),
+    _SourceSyntax.text => <_SourceToken>[_SourceToken(line, null)],
+  };
+}
+
+List<_SourceToken> _tokenizeJsonLine(String line) {
+  const tokenPattern =
+      r'"([^"\\]|\\.)*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}\[\]:,]';
+  final matcher = RegExp(tokenPattern).allMatches(line);
+  final tokens = <_SourceToken>[];
+  var cursor = 0;
+
+  for (final match in matcher) {
+    if (match.start > cursor) {
+      tokens.add(_SourceToken(line.substring(cursor, match.start), null));
+    }
+
+    final tokenText = match.group(0)!;
+    tokens.add(
+      _SourceToken(
+        tokenText,
+        _jsonTokenType(tokenText, line.substring(match.end).trimLeft()),
+      ),
+    );
+
+    cursor = match.end;
+  }
+
+  if (cursor < line.length) {
+    tokens.add(_SourceToken(line.substring(cursor), null));
+  }
+
+  return tokens;
+}
+
+String? _jsonTokenType(String tokenText, String restOfLine) {
+  if (tokenText == '{' ||
+      tokenText == '}' ||
+      tokenText == '[' ||
+      tokenText == ']' ||
+      tokenText == ':' ||
+      tokenText == ',') {
+    return 'jsonPunctuation';
+  }
+
+  if (tokenText == 'true' || tokenText == 'false' || tokenText == 'null') {
+    return 'jsonLiteral';
+  }
+
+  final numeric = num.tryParse(tokenText);
+  if (numeric != null) {
+    return 'jsonNumber';
+  }
+
+  if (tokenText.startsWith('"')) {
+    return restOfLine.startsWith(':') ? 'jsonKey' : 'jsonString';
+  }
+
+  return null;
+}
+
+Color _sourceTokenColor(
+  _SourceToken token, {
+  required Color baseColor,
+  required bool isDark,
+}) {
+  return switch (token.type) {
+    'key' => AppColors.yamlKey,
+    'stringValue' => AppColors.yamlString,
+    'numberValue' => AppColors.yamlNumber,
+    'boolNullValue' => AppColors.yamlNumber,
+    'listDash' => AppColors.yamlKey,
+    'comment' => AppColors.yamlComment,
+    'jsonKey' => AppColors.yamlString,
+    'jsonString' => AppColors.yamlString,
+    'jsonNumber' => AppColors.yamlNumber,
+    'jsonLiteral' => AppColors.yamlKey,
+    'jsonPunctuation' => AppColors.yamlPunctuation,
+    null => isDark ? baseColor : baseColor.withValues(alpha: 0.92),
+    _ => baseColor,
+  };
+}
+
+class _SourceToken {
+  const _SourceToken(this.text, this.type);
+
+  final String text;
+  final String? type;
+}
+
+_SourceSyntax _sourceSyntaxForDiffLine(String text) {
+  final trimmed = text.trimLeft();
+  if (trimmed.isEmpty) {
+    return _SourceSyntax.text;
+  }
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    return _SourceSyntax.json;
+  }
+  return _SourceSyntax.yaml;
+}
 
 String _formatManifest(String jsonString, bool hideManagedFields) {
   try {

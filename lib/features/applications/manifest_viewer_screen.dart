@@ -18,6 +18,7 @@ export 'package:argocd_flutter/ui/shared_widgets.dart'
         yamlTokenColor;
 
 enum _ManifestViewMode { yaml, json, diff }
+enum _SourceSyntax { yaml, json, text }
 
 enum _ManifestAction {
   wrap,
@@ -69,7 +70,6 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
 
   _ManifestViewMode _viewMode = _ManifestViewMode.yaml;
   _ManifestViewMode _lastNonDiffMode = _ManifestViewMode.yaml;
-  bool _didAutoSwitchToDiff = false;
   bool _showSearch = false;
   bool _wrapLines = false;
   bool _hideManagedFields = true;
@@ -407,18 +407,6 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                 final manifest = snapshot.requireData;
                 final document = _buildDocumentBundle(manifest);
 
-                // Auto-switch to diff view on first load when diff data exists.
-                if (!_didAutoSwitchToDiff && document.diff != null) {
-                  _didAutoSwitchToDiff = true;
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted) {
-                      setState(() {
-                        _viewMode = _ManifestViewMode.diff;
-                      });
-                    }
-                  });
-                }
-
                 final viewData = _activeViewData(document);
                 _activeMatches = viewData.matches;
                 _syncCurrentMatch(viewData.matches.length);
@@ -431,7 +419,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                     key: ValueKey<String>(_viewMode.name),
                     color: theme.colorScheme.surface,
                     child: switch (_viewMode) {
-                      _ManifestViewMode.json => _buildJsonView(viewData),
+                      _ManifestViewMode.json => _buildJsonView(document, viewData),
                       _ManifestViewMode.yaml => _buildYamlView(
                         document,
                         viewData,
@@ -548,7 +536,10 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     );
   }
 
-  Widget _buildJsonView(_ManifestViewData viewData) {
+  Widget _buildJsonView(
+    _ManifestDocumentBundle document,
+    _ManifestViewData viewData,
+  ) {
     return _buildScrollableSurface(
       lineCount: viewData.lines.length,
       matches: viewData.matches,
@@ -558,10 +549,13 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             for (var i = 0; i < viewData.lines.length; i++)
-              _buildPlainLine(
+              _buildCodeLine(
                 keyId: '${_viewMode.name}-$i',
                 lineNumber: i + 1,
                 line: viewData.lines[i],
+                syntax: document.sourceSyntax == _SourceSyntax.yaml
+                    ? _SourceSyntax.json
+                    : document.sourceSyntax,
                 isMatch: viewData.matches.contains(i),
                 isCurrentMatch:
                     viewData.matches.isNotEmpty &&
@@ -783,6 +777,50 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     );
   }
 
+  Widget _buildCodeLine({
+    required String keyId,
+    required int lineNumber,
+    required String line,
+    required _SourceSyntax syntax,
+    required bool isMatch,
+    required bool isCurrentMatch,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = theme.colorScheme.onSurface;
+
+    return _buildLineFrame(
+      keyId: keyId,
+      lineNumber: lineNumber,
+      isMatch: isMatch,
+      isCurrentMatch: isCurrentMatch,
+      child: RichText(
+        softWrap: _wrapLines,
+        text: TextSpan(
+          style: TextStyle(
+            fontFamily: 'monospace',
+            fontSize: 12,
+            color: baseColor,
+            height: 1.4,
+          ),
+          children: <TextSpan>[
+            for (final token in _tokenizeSourceLine(line, syntax))
+              TextSpan(
+                text: token.text,
+                style: TextStyle(
+                  color: _sourceTokenColor(
+                    token,
+                    baseColor: baseColor,
+                    isDark: isDark,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildYamlLine({
     required String keyId,
     required int lineNumber,
@@ -790,58 +828,13 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     required bool isMatch,
     required bool isCurrentMatch,
   }) {
-    final theme = Theme.of(context);
-    final tokens = tokenizeYamlLine(line);
-    return _buildLineFrame(
+    return _buildCodeLine(
       keyId: keyId,
       lineNumber: lineNumber,
+      line: line,
+      syntax: _SourceSyntax.yaml,
       isMatch: isMatch,
       isCurrentMatch: isCurrentMatch,
-      child: Wrap(
-        spacing: 0,
-        runSpacing: 0,
-        children: <Widget>[
-          for (final token in tokens)
-            Text(
-              token.text,
-              softWrap: _wrapLines,
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 12,
-                color: yamlTokenColor(token.type).withValues(
-                  alpha: theme.brightness == Brightness.dark ? 1 : 0.92,
-                ),
-                height: 1.4,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlainLine({
-    required String keyId,
-    required int lineNumber,
-    required String line,
-    required bool isMatch,
-    required bool isCurrentMatch,
-  }) {
-    final theme = Theme.of(context);
-    return _buildLineFrame(
-      keyId: keyId,
-      lineNumber: lineNumber,
-      isMatch: isMatch,
-      isCurrentMatch: isCurrentMatch,
-      child: Text(
-        line,
-        softWrap: _wrapLines,
-        style: TextStyle(
-          fontFamily: 'monospace',
-          fontSize: 12,
-          color: theme.colorScheme.onSurface,
-          height: 1.4,
-        ),
-      ),
     );
   }
 
@@ -859,22 +852,156 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       DiffLineKind.unchanged => theme.colorScheme.onSurface,
     };
 
+    final prefixText = '${line.prefix} ';
+    final bodySyntax = _SourceSyntax.yaml;
     return _buildLineFrame(
       keyId: keyId,
       lineNumber: lineNumber,
       isMatch: isMatch,
       isCurrentMatch: isCurrentMatch,
-      child: Text(
-        '${line.prefix} ${line.text}',
+      child: RichText(
         softWrap: _wrapLines,
-        style: TextStyle(
-          fontFamily: 'monospace',
-          fontSize: 12,
-          color: lineColor,
-          height: 1.4,
+        text: TextSpan(
+          style: TextStyle(
+            fontFamily: 'monospace',
+            fontSize: 12,
+            color: lineColor,
+            height: 1.4,
+          ),
+          children: <TextSpan>[
+            TextSpan(
+              text: prefixText,
+              style: TextStyle(
+                color: lineColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            ..._buildSourceLineSpans(
+              line.text,
+              bodySyntax,
+              fallbackColor: lineColor,
+              isDark: Theme.of(context).brightness == Brightness.dark,
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  List<_SourceToken> _tokenizeSourceLine(String line, _SourceSyntax syntax) {
+    return switch (syntax) {
+      _SourceSyntax.yaml => tokenizeYamlLine(line)
+          .map((_token) => _SourceToken(_token.text, _token.type?.name))
+          .toList(growable: false),
+      _SourceSyntax.json => _tokenizeJsonLine(line),
+      _SourceSyntax.text => <_SourceToken>[_SourceToken(line, null)],
+    };
+  }
+
+  List<TextSpan> _buildSourceLineSpans(
+    String line,
+    _SourceSyntax syntax, {
+    required Color fallbackColor,
+    required bool isDark,
+    Color? overrideColor,
+  }) {
+    return <TextSpan>[
+      for (final token in _tokenizeSourceLine(line, syntax))
+        TextSpan(
+          text: token.text,
+          style: TextStyle(
+            color: _sourceTokenColor(
+              token,
+              baseColor: fallbackColor,
+              isDark: isDark,
+              overrideColor: overrideColor,
+            ),
+          ),
+        ),
+    ];
+  }
+
+  Color _sourceTokenColor(
+    _SourceToken token, {
+    required Color baseColor,
+    required bool isDark,
+    Color? overrideColor,
+  }) {
+    if (overrideColor != null && token.type == null) {
+      return overrideColor;
+    }
+
+    return switch (token.type) {
+      'key' => AppColors.yamlKey,
+      'stringValue' => AppColors.yamlString,
+      'numberValue' => AppColors.yamlNumber,
+      'boolNullValue' => AppColors.yamlNumber,
+      'listDash' => AppColors.yamlKey,
+      'comment' => AppColors.yamlComment,
+      'jsonKey' => AppColors.yamlString,
+      'jsonString' => AppColors.yamlString,
+      'jsonNumber' => AppColors.yamlNumber,
+      'jsonLiteral' => AppColors.yamlKey,
+      'jsonPunctuation' => AppColors.yamlPunctuation,
+      null => overrideColor ?? (isDark ? baseColor : baseColor.withValues(alpha: 0.92)),
+      _ => overrideColor ?? baseColor,
+    };
+  }
+
+  List<_SourceToken> _tokenizeJsonLine(String line) {
+    const tokenPattern =
+        r'"([^"\\]|\\.)*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}\[\]:,]';
+    final matcher = RegExp(tokenPattern).allMatches(line);
+    final tokens = <_SourceToken>[];
+    var cursor = 0;
+
+    for (final match in matcher) {
+      if (match.start > cursor) {
+        tokens.add(_SourceToken(line.substring(cursor, match.start), null));
+      }
+
+      final tokenText = match.group(0)!;
+      tokens.add(
+        _SourceToken(
+          tokenText,
+          _jsonTokenType(tokenText, line.substring(match.end).trimLeft()),
+        ),
+      );
+
+      cursor = match.end;
+    }
+
+    if (cursor < line.length) {
+      tokens.add(_SourceToken(line.substring(cursor), null));
+    }
+
+    return tokens;
+  }
+
+  String? _jsonTokenType(String tokenText, String restOfLine) {
+    if (tokenText == '{' ||
+        tokenText == '}' ||
+        tokenText == '[' ||
+        tokenText == ']' ||
+        tokenText == ':' ||
+        tokenText == ',' ) {
+      return 'jsonPunctuation';
+    }
+
+    if (tokenText == 'true' || tokenText == 'false' || tokenText == 'null') {
+      return 'jsonLiteral';
+    }
+
+    final numeric = num.tryParse(tokenText);
+    if (numeric != null) {
+      return 'jsonNumber';
+    }
+
+    if (tokenText.startsWith('"')) {
+      return restOfLine.startsWith(':') ? 'jsonKey' : 'jsonString';
+    }
+
+    return null;
   }
 
   Widget _buildLineFrame({
@@ -933,6 +1060,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
         yamlLines: payload.split('\n'),
         yamlSections: const <_YamlSection>[],
         jsonLines: payload.split('\n'),
+        sourceSyntax: _SourceSyntax.text,
         diff: null,
       );
     }
@@ -957,6 +1085,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
         yamlLines: manifestPayload.split('\n'),
         yamlSections: const <_YamlSection>[],
         jsonLines: manifestPayload.split('\n'),
+        sourceSyntax: _SourceSyntax.text,
         diff: diffSource == null ? null : _extractDiffDocument(diffSource),
       );
     }
@@ -974,10 +1103,14 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
 
     if (manifestDecoded is! Map<String, dynamic>) {
       final diffSource = responseMap;
+      final syntax = manifestDecoded is List
+          ? _SourceSyntax.yaml
+          : _SourceSyntax.json;
       return _ManifestDocumentBundle(
         yamlLines: jsonLines,
         yamlSections: const <_YamlSection>[],
         jsonLines: jsonLines,
+        sourceSyntax: syntax,
         diff: diffSource == null ? null : _extractDiffDocument(diffSource),
       );
     }
@@ -995,6 +1128,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       yamlLines: yamlLines,
       yamlSections: sections,
       jsonLines: jsonLines,
+      sourceSyntax: _SourceSyntax.yaml,
       diff: _extractDiffDocument(diffSource),
     );
   }
@@ -1517,12 +1651,14 @@ class _ManifestDocumentBundle {
     required this.yamlLines,
     required List<_YamlSection> yamlSections,
     required this.jsonLines,
+    required this.sourceSyntax,
     required this.diff,
   }) : sections = yamlSections;
 
   final List<String> yamlLines;
   final List<_YamlSection> sections;
   final List<String> jsonLines;
+  final _SourceSyntax sourceSyntax;
   final _DiffDocument? diff;
 }
 
@@ -1569,6 +1705,13 @@ class _YamlSection {
         if (visibleDocumentLines.contains(i)) i,
     ];
   }
+}
+
+class _SourceToken {
+  const _SourceToken(this.text, this.type);
+
+  final String text;
+  final String? type;
 }
 
 class _DiffDocument {
