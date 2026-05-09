@@ -8,7 +8,7 @@ Flutter mobile/web client for ArgoCD. Connects to ArgoCD server REST APIs to man
 
 ## Setup
 
-Uses [devenv](https://devenv.sh) (Nix-based) for reproducible dev environment. No `.envrc` or Makefile — all commands go through `devenv shell`. The local Flutter version comes from the pinned nixpkgs snapshot and may differ from CI's pinned `3.38.7`.
+Uses [devenv](https://devenv.sh) (Nix-based) for reproducible dev environment. No `.envrc` or Makefile — all commands go through `devenv shell`. **Flutter is not pinned** — `devenv.nix` declares `pkgs.flutter`, so the version tracks whatever nixpkgs the local devenv lockfile and the CI runner's `nix profile install nixpkgs#devenv` happen to resolve. Versions can drift between local and CI, and between CI runs weeks apart.
 
 ```bash
 devenv shell                  # Enter the dev shell (required for all commands below)
@@ -42,7 +42,7 @@ Single `AppController` (ChangeNotifier) holds all app state — auth stage (`boo
 Key behaviors:
 - `_runBusyAction()` is a mutex — prevents concurrent mutations. A second action while busy throws immediately (not queued).
 - Single `_errorMessage` field shared across all domains — whichever operation fails last overwrites it.
-- `_lastRefreshedAt` is also shared — updated by either applications or projects fetch.
+- `_lastRefreshedAt` is also shared — updated by either applications or projects fetch. Stamped via `appClock()` from `core/utils/time_format.dart` (not raw `DateTime.now()`) so tests can freeze "now".
 - After mutations (`syncApplication`, `rollbackApplication`, `deleteApplication`), applications are re-fetched immediately (optimistic-refresh, not optimistic-update).
 - Detail/tree/logs/manifest data is fetched on-demand and returned to the caller — not stored in controller state.
 
@@ -152,7 +152,7 @@ Material 3 with two bundled font families (not Google Fonts CDN): Space Grotesk 
 
 - **No mocking framework**. All fakes are hand-written.
 - `test/test_helpers.dart` provides: seed data (`seedApp`, `degradedApp`, `seedProject`, `testSession`), `FakeArgoCdApi` (mutable data, side-effect tracking), `MemorySessionStorage`, `createTestController()` / `createAuthenticatedController()` factory helpers.
-- `flutter_test_config.dart` loads bundled fonts globally via `golden_toolkit` before every test.
+- `flutter_test_config.dart` lives at the **project root** (not under `test/`), but Flutter still picks it up because the lookup walks parents of each test file. It loads bundled fonts via `golden_toolkit` and pins `appClock` to `2026-04-10T10:00:00Z` so all relative-time rendering ("Synced 1 month ago", "Updated just now") is deterministic against the seeded `2026-03-10` timestamps. New code that needs "now" for display purposes should call `appClock()` rather than `DateTime.now()`, otherwise goldens will drift as wall-clock time advances. Anything using raw `DateTime.now()` today (e.g. `HealthMonitor.processApplications`, the dashboard incident card) is only safe in goldens because it isn't rendered with the current seed data.
 - Golden tests tagged `@Tags(['golden'])` in `test/goldens/`, reference PNGs in `test/goldens/goldens/`.
 
 ### Patterns to Follow
@@ -186,7 +186,7 @@ GitHub Actions (`.github/workflows/ci.yml`):
 4. **build-release** — on main/tags; decodes keystore from `KEYSTORE_BASE64` secret, creates GitHub Release
 5. **build-web** + **deploy-web** — on main; deploys to GitHub Pages
 
-Flutter `3.41.2`, Java 21 (Temurin). `DART_VM_OPTIONS: --max-gen-heap-size=4096` (4 GB heap cap). Concurrency group cancels in-progress runs on the same ref. The `analyze` and `test` jobs run independently (no `needs:` dependency between them).
+Java 21 (Temurin). Flutter version is **not pinned** — see Setup. `DART_VM_OPTIONS: --max-gen-heap-size=4096` (4 GB heap cap). Concurrency group cancels in-progress runs on the same ref. The `analyze` and `test` jobs run independently (no `needs:` dependency between them).
 
 ## Dependencies
 
