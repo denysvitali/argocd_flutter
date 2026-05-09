@@ -1,3 +1,8 @@
+/// Clock used to evaluate "now" inside [formatRelativeTime] and other
+/// time-relative helpers. Tests override this so golden snapshots that
+/// render relative times stay deterministic regardless of wall-clock drift.
+DateTime Function() appClock = () => DateTime.now().toUtc();
+
 /// Formats a UTC ISO-8601 timestamp as a human-readable relative time string.
 String formatRelativeTime(String timestamp) {
   final parsed = DateTime.tryParse(timestamp);
@@ -5,7 +10,7 @@ String formatRelativeTime(String timestamp) {
     return timestamp;
   }
 
-  final now = DateTime.now().toUtc();
+  final now = appClock();
   final diff = now.difference(parsed);
 
   if (diff.isNegative) {

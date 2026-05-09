@@ -2,6 +2,7 @@ import 'package:argocd_flutter/core/models/app_session.dart';
 import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/models/argo_project.dart';
 import 'package:argocd_flutter/core/models/argo_resource_node.dart';
+import 'package:argocd_flutter/core/utils/time_format.dart';
 import 'package:flutter/foundation.dart';
 
 import 'argocd_api.dart';
@@ -409,7 +410,7 @@ class AppController extends ChangeNotifier {
     try {
       _applications = await _api.fetchApplications(session);
       _hasLoadedApplications = true;
-      _lastRefreshedAt = DateTime.now();
+      _lastRefreshedAt = appClock();
       _errorMessage = null;
       _healthMonitor?.processApplications(_applications);
     } on ArgoCdException catch (error) {
@@ -431,7 +432,7 @@ class AppController extends ChangeNotifier {
     try {
       _projects = await _api.fetchProjects(session);
       _hasLoadedProjects = true;
-      _lastRefreshedAt = DateTime.now();
+      _lastRefreshedAt = appClock();
       _errorMessage = null;
     } on ArgoCdException catch (error) {
       _errorMessage = error.message;
