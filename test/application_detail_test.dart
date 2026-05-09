@@ -245,6 +245,123 @@ void main() {
     expect(find.text('Progressing'), findsOneWidget);
   });
 
+  testWidgets('resource groups expose counts and allow expand/collapse', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 1920);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    api = _FakeArgoCdApi(
+      applications: const <ArgoApplication>[
+        ArgoApplication(
+          name: 'batch-app',
+          project: 'platform',
+          namespace: 'payments',
+          cluster: 'https://kubernetes.default.svc',
+          repoUrl: 'https://github.com/example/platform',
+          path: 'apps/batch-app',
+          targetRevision: 'main',
+          syncStatus: 'Synced',
+          healthStatus: 'Healthy',
+          operationPhase: 'Succeeded',
+          operationMessage: null,
+          lastSyncedAt: '2026-03-10T10:00:00Z',
+          resources: <ArgoResource>[
+            ArgoResource(
+              kind: 'Deployment',
+              name: 'deploy-0',
+              namespace: 'payments',
+              group: 'apps',
+              version: 'v1',
+              status: 'Synced',
+              health: 'Healthy',
+              healthMessage: '',
+            ),
+            ArgoResource(
+              kind: 'Deployment',
+              name: 'deploy-1',
+              namespace: 'payments',
+              group: 'apps',
+              version: 'v1',
+              status: 'Synced',
+              health: 'Healthy',
+              healthMessage: '',
+            ),
+            ArgoResource(
+              kind: 'Deployment',
+              name: 'deploy-2',
+              namespace: 'payments',
+              group: 'apps',
+              version: 'v1',
+              status: 'Synced',
+              health: 'Healthy',
+              healthMessage: '',
+            ),
+            ArgoResource(
+              kind: 'Service',
+              name: 'svc-main',
+              namespace: 'payments',
+              group: '',
+              version: 'v1',
+              status: 'Synced',
+              health: 'Healthy',
+              healthMessage: '',
+            ),
+          ],
+          history: <ArgoHistoryEntry>[
+            ArgoHistoryEntry(
+              id: 1,
+              revision: 'abc123',
+              deployedAt: '2026-03-10T10:00:00Z',
+            ),
+          ],
+        ),
+      ],
+    );
+
+    final storage = _MemorySessionStorage()
+      ..seedSession(
+        const AppSession(
+          serverUrl: 'https://argocd.example.com',
+          username: 'ops',
+          token: 'token',
+        ),
+      );
+    controller = AppController(
+      storage: storage,
+      api: api,
+      certificateProvider: const CertificateProvider(),
+    );
+    await controller.initialize();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
+        home: ApplicationDetailScreen(
+          controller: controller,
+          applicationName: 'batch-app',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Resources'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Deployment (3 resources)'), findsOneWidget);
+    expect(find.text('deploy-0'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('resource-group-Deployment')));
+    await tester.pumpAndSettle();
+    expect(find.text('deploy-0'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('resource-group-Deployment')));
+    await tester.pumpAndSettle();
+    expect(find.text('deploy-0'), findsNothing);
+  });
+
   testWidgets('shows operation error banner when last sync failed', (
     WidgetTester tester,
   ) async {

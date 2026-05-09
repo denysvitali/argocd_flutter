@@ -1008,6 +1008,7 @@ class _ResourcesTab extends StatelessWidget {
         return Padding(
           padding: EdgeInsets.only(bottom: index == groups.length - 1 ? 0 : 18),
           child: _ResourceGroup(
+            key: ValueKey<String>('resource-group-${group.kind}'),
             controller: controller,
             applicationName: applicationName,
             kind: group.kind,
@@ -1047,8 +1048,11 @@ class _ResourceGroupData {
   final List<ArgoResource> resources;
 }
 
-class _ResourceGroup extends StatelessWidget {
+const int _kCollapsedGroupThreshold = 2;
+
+class _ResourceGroup extends StatefulWidget {
   const _ResourceGroup({
+    super.key,
     required this.controller,
     required this.applicationName,
     required this.kind,
@@ -1061,63 +1065,106 @@ class _ResourceGroup extends StatelessWidget {
   final List<ArgoResource> resources;
 
   @override
+  State<_ResourceGroup> createState() => _ResourceGroupState();
+}
+
+class _ResourceGroupState extends State<_ResourceGroup> {
+  late bool _expanded;
+
+  @override
+  void initState() {
+    super.initState();
+    _expanded = widget.resources.length <= _kCollapsedGroupThreshold;
+  }
+
+  @override
+  void didUpdateWidget(covariant _ResourceGroup oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.resources.length != oldWidget.resources.length) {
+      _expanded = widget.resources.length <= _kCollapsedGroupThreshold;
+    }
+  }
+
+  void _toggleExpanded() {
+    setState(() {
+      _expanded = !_expanded;
+    });
+  }
+
+  String _labelForCount(int count) {
+    return '$count ${count == 1 ? 'resource' : 'resources'}';
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final kindColor = colorForResourceKind(kind);
-    final kindIcon = iconForResourceKind(kind);
+    final kindColor = colorForResourceKind(widget.kind);
+    final kindIcon = iconForResourceKind(widget.kind);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.only(left: 4, right: 4, bottom: 8, top: 2),
-          child: Row(
-            children: <Widget>[
-              Icon(kindIcon, color: kindColor, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  kind,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: scheme.onSurface,
-                  ),
-                ),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: AppRadius.md,
+            onTap: _toggleExpanded,
+            child: Padding(
+              padding: const EdgeInsets.only(
+                left: 4,
+                right: 4,
+                bottom: 8,
+                top: 2,
               ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 2,
-                ),
-                decoration: BoxDecoration(
-                  color: kindColor.withValues(alpha: 0.12),
-                  borderRadius: AppRadius.xs,
-                ),
-                child: Text(
-                  '${resources.length}',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: kindColor,
-                    fontWeight: FontWeight.w700,
+              child: Row(
+                children: <Widget>[
+                  Icon(kindIcon, color: kindColor, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${widget.kind} (${_labelForCount(widget.resources.length)})',
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: scheme.onSurface,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    _expanded ? Icons.expand_less : Icons.expand_more,
+                    size: 20,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
-        for (var i = 0; i < resources.length; i++)
-          Padding(
-            padding: EdgeInsets.only(
-              bottom: i == resources.length - 1 ? 0 : 10,
-            ),
-            child: _ResourceCard(
-              controller: controller,
-              applicationName: applicationName,
-              resource: resources[i],
-            ),
-          ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 180),
+          alignment: Alignment.topCenter,
+          curve: Curves.easeInOut,
+          child: _expanded
+              ? Column(
+                  children: <Widget>[
+                    for (var i = 0; i < widget.resources.length; i++)
+                      Padding(
+                        padding: EdgeInsets.only(
+                          bottom:
+                              i == widget.resources.length - 1 ? 0 : 10,
+                        ),
+                        child: _ResourceCard(
+                          controller: widget.controller,
+                          applicationName: widget.applicationName,
+                          resource: widget.resources[i],
+                        ),
+                      ),
+                  ],
+                )
+              : const SizedBox.shrink(),
+        ),
       ],
     );
   }
