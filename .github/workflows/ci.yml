@@ -43,7 +43,9 @@ jobs:
         uses: cachix/install-nix-action@v30
 
       - name: Install devenv
-        run: nix profile install nixpkgs#devenv
+        # Pinned to the release matching devenv.lock; newer CLIs fail to
+        # evaluate the locked modules (dotenv.resolved has no value).
+        run: nix profile install --accept-flake-config github:cachix/devenv/v2.0.4
 
       - name: Cache pub dependencies
         uses: actions/cache@v4
@@ -70,7 +72,9 @@ jobs:
         uses: cachix/install-nix-action@v30
 
       - name: Install devenv
-        run: nix profile install nixpkgs#devenv
+        # Pinned to the release matching devenv.lock; newer CLIs fail to
+        # evaluate the locked modules (dotenv.resolved has no value).
+        run: nix profile install --accept-flake-config github:cachix/devenv/v2.0.4
 
       - name: Cache pub dependencies
         uses: actions/cache@v4
@@ -137,7 +141,9 @@ jobs:
         uses: cachix/install-nix-action@v30
 
       - name: Install devenv
-        run: nix profile install nixpkgs#devenv
+        # Pinned to the release matching devenv.lock; newer CLIs fail to
+        # evaluate the locked modules (dotenv.resolved has no value).
+        run: nix profile install --accept-flake-config github:cachix/devenv/v2.0.4
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -208,7 +214,9 @@ jobs:
         uses: cachix/install-nix-action@v30
 
       - name: Install devenv
-        run: nix profile install nixpkgs#devenv
+        # Pinned to the release matching devenv.lock; newer CLIs fail to
+        # evaluate the locked modules (dotenv.resolved has no value).
+        run: nix profile install --accept-flake-config github:cachix/devenv/v2.0.4
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -298,7 +306,9 @@ jobs:
         uses: cachix/install-nix-action@v30
 
       - name: Install devenv
-        run: nix profile install nixpkgs#devenv
+        # Pinned to the release matching devenv.lock; newer CLIs fail to
+        # evaluate the locked modules (dotenv.resolved has no value).
+        run: nix profile install --accept-flake-config github:cachix/devenv/v2.0.4
 
       - name: Cache pub dependencies
         uses: actions/cache@v4

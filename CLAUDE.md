@@ -8,7 +8,7 @@ Flutter mobile/web client for ArgoCD. Connects to ArgoCD server REST APIs to man
 
 ## Setup
 
-Uses [devenv](https://devenv.sh) (Nix-based) for reproducible dev environment. No `.envrc` or Makefile — all commands go through `devenv shell`. **Flutter is not pinned** — `devenv.nix` declares `pkgs.flutter`, so the version tracks whatever nixpkgs the local devenv lockfile and the CI runner's `nix profile install nixpkgs#devenv` happen to resolve. Versions can drift between local and CI, and between CI runs weeks apart.
+Uses [devenv](https://devenv.sh) (Nix-based) for reproducible dev environment. No `.envrc` or Makefile — all commands go through `devenv shell`. **Flutter is not pinned** — `devenv.nix` declares `pkgs.flutter`, so the version tracks whatever nixpkgs the local devenv lockfile and the CI runner's `nix profile install github:cachix/devenv/v2.0.4` (CLI pinned to match devenv.lock; unpinned CLIs broke CI in 2026-11) happen to resolve. Versions can drift between local and CI, and between CI runs weeks apart.
 
 ```bash
 devenv shell                  # Enter the dev shell (required for all commands below)
