@@ -40,3 +40,19 @@ String formatRelativeTime(String timestamp) {
   final years = diff.inDays ~/ 365;
   return '$years ${years == 1 ? 'year' : 'years'} ago';
 }
+
+/// Formats an ISO-8601 timestamp as `<relative> · YYYY-MM-DD HH:mm UTC`.
+/// Falls back to the raw input when it cannot be parsed.
+String formatTimestampWithRelative(String timestamp) {
+  final parsed = DateTime.tryParse(timestamp);
+  if (parsed == null) {
+    return timestamp;
+  }
+  final utc = parsed.toUtc();
+  String two(int value) => value.toString().padLeft(2, '0');
+  final absolute =
+      '${utc.year}-${two(utc.month)}-${two(utc.day)} '
+      '${two(utc.hour)}:${two(utc.minute)} UTC';
+  final relative = formatRelativeTime(timestamp);
+  return relative == timestamp ? absolute : '$relative · $absolute';
+}

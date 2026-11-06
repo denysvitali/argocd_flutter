@@ -781,7 +781,12 @@ class StatusSegmentBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(height / 2),
         child: SizedBox(
           height: height,
-          child: Row(children: children),
+          // Stretch is required: childless ColoredBoxes otherwise collapse to
+          // zero height under the Row's loose cross-axis constraints.
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: children,
+          ),
         ),
       ),
     );

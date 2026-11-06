@@ -59,6 +59,26 @@ void main() {
   }
 
   group('ApplicationsScreen', () {
+    testWidgets('lists apps needing attention first by default', (
+      WidgetTester tester,
+    ) async {
+      await pumpApplicationsScreen(tester, applications: _sampleApplications);
+
+      expect(find.text('Needs attention first'), findsOneWidget);
+      final degradedY = tester.getTopLeft(find.text('frontend-app')).dy;
+      final healthyY = tester.getTopLeft(find.text('payments-api')).dy;
+      expect(degradedY, lessThan(healthyY));
+    });
+
+    testWidgets('shows failed operation message inline on the card', (
+      WidgetTester tester,
+    ) async {
+      await pumpApplicationsScreen(tester, applications: _sampleApplications);
+
+      expect(find.text('one or more objects failed to apply'), findsOneWidget);
+      expect(find.text('in-cluster'), findsWidgets);
+    });
+
     testWidgets('renders applications in list view', (
       WidgetTester tester,
     ) async {

@@ -10,6 +10,7 @@ import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
 
 enum _DiffViewMode { unified, sideBySide }
+
 enum _SourceSyntax { yaml, json, text }
 
 class AppDiffScreen extends StatefulWidget {
@@ -550,8 +551,8 @@ class _DiffLineWidget extends StatelessWidget {
               ),
             ),
           ),
-          RichText(
-            text: TextSpan(
+          Text.rich(
+            TextSpan(
               style: theme.textTheme.bodySmall?.copyWith(
                 fontFamily: 'monospace',
                 color: textColor,
@@ -638,8 +639,8 @@ class _SideBySideCell extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: RichText(
-              text: TextSpan(
+            child: Text.rich(
+              TextSpan(
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontFamily: 'monospace',
                   color: textColor,
@@ -715,9 +716,10 @@ List<TextSpan> _buildSourceLineSpans(
 
 List<_SourceToken> _tokenizeSourceLine(String line, _SourceSyntax syntax) {
   return switch (syntax) {
-    _SourceSyntax.yaml => tokenizeYamlLine(line)
-        .map((_token) => _SourceToken(_token.text, _token.type?.name))
-        .toList(growable: false),
+    _SourceSyntax.yaml =>
+      tokenizeYamlLine(line)
+          .map((_token) => _SourceToken(_token.text, _token.type?.name))
+          .toList(growable: false),
     _SourceSyntax.json => _tokenizeJsonLine(line),
     _SourceSyntax.text => <_SourceToken>[_SourceToken(line, null)],
   };

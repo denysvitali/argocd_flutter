@@ -881,7 +881,7 @@ class _DestinationSection extends StatelessWidget {
           if (application.lastSyncedAt != null)
             _LabeledText(
               label: 'Last reconciled',
-              value: application.lastSyncedAt!,
+              value: formatTimestampWithRelative(application.lastSyncedAt!),
             ),
         ],
       ),
@@ -1025,9 +1025,7 @@ class _ResourcesTab extends StatelessWidget {
       byKind.putIfAbsent(resource.kind, () => <ArgoResource>[]).add(resource);
     }
     final entries = byKind.entries.toList()
-      ..sort(
-        (a, b) => a.key.toLowerCase().compareTo(b.key.toLowerCase()),
-      );
+      ..sort((a, b) => a.key.toLowerCase().compareTo(b.key.toLowerCase()));
     return <_ResourceGroupData>[
       for (final entry in entries)
         _ResourceGroupData(
@@ -1152,8 +1150,7 @@ class _ResourceGroupState extends State<_ResourceGroup> {
                     for (var i = 0; i < widget.resources.length; i++)
                       Padding(
                         padding: EdgeInsets.only(
-                          bottom:
-                              i == widget.resources.length - 1 ? 0 : 10,
+                          bottom: i == widget.resources.length - 1 ? 0 : 10,
                         ),
                         child: _ResourceCard(
                           controller: widget.controller,

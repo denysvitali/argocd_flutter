@@ -251,7 +251,7 @@ class _DashboardHeader extends StatelessWidget {
                       Text(
                         session == null
                             ? 'No cluster connected'
-                            : '${session.username} / ${session.serverUrl}',
+                            : '${session.username} @ ${session.serverUrl}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodyMedium?.copyWith(
@@ -333,7 +333,6 @@ class _OperationalSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final session = controller.session;
     final healthyPercent = totalApps == 0
         ? 0
         : (healthyCount / totalApps * 100).round();
@@ -424,27 +423,14 @@ class _OperationalSummary extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            session == null
-                ? 'No cluster connected'
-                : '${session.username} @ ${session.serverUrl}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           ClipRRect(
             borderRadius: AppRadius.pill,
             child: StatusSegmentBar(segments: healthSegments, height: 10),
           ),
           const SizedBox(height: 14),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final narrow = constraints.maxWidth < 560;
+          Builder(
+            builder: (context) {
               final chips = <Widget>[
                 _SummarySignal(
                   label: 'Healthy',
@@ -466,20 +452,13 @@ class _OperationalSummary extends StatelessWidget {
                       : scheme.onSurfaceVariant,
                 ),
               ];
-              if (narrow) {
-                return Wrap(spacing: 10, runSpacing: 10, children: chips);
-              }
               return Row(
-                children: chips
-                    .map(
-                      (chip) => Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 10),
-                          child: chip,
-                        ),
-                      ),
-                    )
-                    .toList(growable: false),
+                children: <Widget>[
+                  for (var i = 0; i < chips.length; i++) ...<Widget>[
+                    if (i > 0) const SizedBox(width: 8),
+                    Expanded(child: chips[i]),
+                  ],
+                ],
               );
             },
           ),
@@ -505,30 +484,30 @@ class _SummarySignal extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return Container(
-      constraints: const BoxConstraints(minWidth: 128),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.14),
         borderRadius: AppRadius.base,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
             '$value',
             style: theme.textTheme.headlineSmall?.copyWith(
               color: color,
               fontWeight: FontWeight.w800,
+              height: 1.1,
             ),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              label,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: scheme.onSurface,
-                fontWeight: FontWeight.w700,
-              ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: scheme.onSurface,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -561,7 +540,16 @@ class _ResponsiveDashboardPanels extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= 860;
+        // Order matters on phones: actionable items first, stats after.
         final panels = <Widget>[
+          _DashboardPanel(
+            title: 'Needs Attention',
+            child: _NeedsAttentionList(
+              applications: needsAttention,
+              controller: controller,
+              onOpenApplication: onOpenApplication,
+            ),
+          ),
           _DashboardPanel(
             title: 'Health Breakdown',
             child: _CompactBreakdownSection(
@@ -574,14 +562,6 @@ class _ResponsiveDashboardPanels extends StatelessWidget {
             child: _CompactBreakdownSection(
               segments: syncSegments,
               total: totalApps,
-            ),
-          ),
-          _DashboardPanel(
-            title: 'Needs Attention',
-            child: _NeedsAttentionList(
-              applications: needsAttention,
-              controller: controller,
-              onOpenApplication: onOpenApplication,
             ),
           ),
           _DashboardPanel(
@@ -611,18 +591,18 @@ class _ResponsiveDashboardPanels extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Expanded(child: panels[0]),
+                Expanded(flex: 3, child: panels[0]),
                 const SizedBox(width: 12),
-                Expanded(child: panels[1]),
+                Expanded(flex: 2, child: panels[3]),
               ],
             ),
             const SizedBox(height: 12),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Expanded(flex: 3, child: panels[2]),
+                Expanded(child: panels[1]),
                 const SizedBox(width: 12),
-                Expanded(flex: 2, child: panels[3]),
+                Expanded(child: panels[2]),
               ],
             ),
           ],
@@ -760,11 +740,7 @@ class _HeroBanner extends StatelessWidget {
                   color: scheme.surface,
                   borderRadius: AppRadius.base,
                 ),
-                child: Icon(
-                  Icons.hub_rounded,
-                  color: scheme.primary,
-                  size: 22,
-                ),
+                child: Icon(Icons.hub_rounded, color: scheme.primary, size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -782,7 +758,7 @@ class _HeroBanner extends StatelessWidget {
                     Text(
                       session == null
                           ? 'Connect to ArgoCD to monitor your deployments.'
-                          : '${session.username} @ ${session.serverUrl}',
+                          : 'Waiting for applications to appear.',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium?.copyWith(
@@ -1042,21 +1018,39 @@ class _NeedsAttentionList extends StatelessWidget {
             ),
           ),
         ],
+        // One shared gesture hint instead of repeating it on every row.
+        if (visibleApplications.any((a) => a.isOutOfSync)) ...<Widget>[
+          const SizedBox(height: 6),
+          Row(
+            children: <Widget>[
+              const Icon(
+                Icons.swipe_right_alt_rounded,
+                size: 16,
+                color: AppColors.grey,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Swipe a drifted app right to sync · tap for details',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.grey,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
 }
 
 class _AttentionItem extends StatelessWidget {
-  const _AttentionItem({
-    required this.application,
-    required this.onTap,
-    this.hint,
-  });
+  const _AttentionItem({required this.application, required this.onTap});
 
   final ArgoApplication application;
   final VoidCallback onTap;
-  final String? hint;
 
   Color _severityColor() {
     final health = _normalized(application.healthStatus);
@@ -1145,16 +1139,6 @@ class _AttentionItem extends StatelessWidget {
                     color: AppColors.grey,
                   ),
                 ),
-                if (hint != null) ...<Widget>[
-                  const SizedBox(height: 2),
-                  Text(
-                    hint!,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: AppColors.greyLight,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
@@ -1178,13 +1162,6 @@ class _SwipeableAttentionItem extends StatelessWidget {
   final ArgoApplication application;
   final AppController controller;
   final VoidCallback onTap;
-
-  String get _swipeHint {
-    if (application.isOutOfSync) {
-      return 'Swipe right to sync';
-    }
-    return 'Tap to view details';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1245,11 +1222,7 @@ class _SwipeableAttentionItem extends StatelessWidget {
           ],
         ),
       ),
-      child: _AttentionItem(
-        application: application,
-        onTap: onTap,
-        hint: _swipeHint,
-      ),
+      child: _AttentionItem(application: application, onTap: onTap),
     );
   }
 }

@@ -18,6 +18,7 @@ export 'package:argocd_flutter/ui/shared_widgets.dart'
         yamlTokenColor;
 
 enum _ManifestViewMode { yaml, json, diff }
+
 enum _SourceSyntax { yaml, json, text }
 
 enum _ManifestAction {
@@ -419,7 +420,10 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                     key: ValueKey<String>(_viewMode.name),
                     color: theme.colorScheme.surface,
                     child: switch (_viewMode) {
-                      _ManifestViewMode.json => _buildJsonView(document, viewData),
+                      _ManifestViewMode.json => _buildJsonView(
+                        document,
+                        viewData,
+                      ),
                       _ManifestViewMode.yaml => _buildYamlView(
                         document,
                         viewData,
@@ -794,9 +798,9 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       lineNumber: lineNumber,
       isMatch: isMatch,
       isCurrentMatch: isCurrentMatch,
-      child: RichText(
+      child: Text.rich(
         softWrap: _wrapLines,
-        text: TextSpan(
+        TextSpan(
           style: TextStyle(
             fontFamily: 'monospace',
             fontSize: 12,
@@ -859,9 +863,9 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       lineNumber: lineNumber,
       isMatch: isMatch,
       isCurrentMatch: isCurrentMatch,
-      child: RichText(
+      child: Text.rich(
         softWrap: _wrapLines,
-        text: TextSpan(
+        TextSpan(
           style: TextStyle(
             fontFamily: 'monospace',
             fontSize: 12,
@@ -871,10 +875,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
           children: <TextSpan>[
             TextSpan(
               text: prefixText,
-              style: TextStyle(
-                color: lineColor,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: lineColor, fontWeight: FontWeight.bold),
             ),
             ..._buildSourceLineSpans(
               line.text,
@@ -890,9 +891,10 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
 
   List<_SourceToken> _tokenizeSourceLine(String line, _SourceSyntax syntax) {
     return switch (syntax) {
-      _SourceSyntax.yaml => tokenizeYamlLine(line)
-          .map((_token) => _SourceToken(_token.text, _token.type?.name))
-          .toList(growable: false),
+      _SourceSyntax.yaml =>
+        tokenizeYamlLine(line)
+            .map((_token) => _SourceToken(_token.text, _token.type?.name))
+            .toList(growable: false),
       _SourceSyntax.json => _tokenizeJsonLine(line),
       _SourceSyntax.text => <_SourceToken>[_SourceToken(line, null)],
     };
@@ -943,7 +945,9 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       'jsonNumber' => AppColors.yamlNumber,
       'jsonLiteral' => AppColors.yamlKey,
       'jsonPunctuation' => AppColors.yamlPunctuation,
-      null => overrideColor ?? (isDark ? baseColor : baseColor.withValues(alpha: 0.92)),
+      null =>
+        overrideColor ??
+            (isDark ? baseColor : baseColor.withValues(alpha: 0.92)),
       _ => overrideColor ?? baseColor,
     };
   }
@@ -984,7 +988,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
         tokenText == '[' ||
         tokenText == ']' ||
         tokenText == ':' ||
-        tokenText == ',' ) {
+        tokenText == ',') {
       return 'jsonPunctuation';
     }
 

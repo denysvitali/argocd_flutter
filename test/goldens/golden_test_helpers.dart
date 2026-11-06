@@ -14,6 +14,7 @@ Future<void> pumpGoldenApp(
   FakeArgoCdApi? api,
   MemorySessionStorage? storage,
   ThemeMode themeMode = ThemeMode.light,
+  Size size = goldenPhoneSize,
 }) async {
   SharedPreferences.setMockInitialValues(<String, Object>{
     'argocd.theme_mode': switch (themeMode) {
@@ -33,14 +34,14 @@ Future<void> pumpGoldenApp(
 
   await tester.pumpWidgetBuilder(
     SizedBox(
-      width: goldenPhoneSize.width,
-      height: goldenPhoneSize.height,
+      width: size.width,
+      height: size.height,
       child: ArgoCdApp(
         controller: controller,
         themeController: themeController,
       ),
     ),
-    surfaceSize: goldenPhoneSize,
+    surfaceSize: size,
   );
   await tester.pumpAndSettle();
 }

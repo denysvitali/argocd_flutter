@@ -109,6 +109,7 @@ class SettingsScreen extends StatelessWidget {
                     runSpacing: 8,
                     children: <Widget>[
                       OutlinedButton.icon(
+                        style: _compactButtonStyle,
                         onPressed: controller.busy
                             ? null
                             : () => _showServerDialog(context),
@@ -116,6 +117,7 @@ class SettingsScreen extends StatelessWidget {
                         label: const Text('Edit server'),
                       ),
                       OutlinedButton.icon(
+                        style: _compactButtonStyle,
                         onPressed: controller.busy
                             ? null
                             : () => _testConnection(context),
@@ -123,6 +125,7 @@ class SettingsScreen extends StatelessWidget {
                         label: const Text('Test connection'),
                       ),
                       OutlinedButton.icon(
+                        style: _compactButtonStyle,
                         onPressed: controller.busy
                             ? null
                             : () => controller.refreshProjects(),
@@ -392,6 +395,11 @@ class _SettingsStatusStrip extends StatelessWidget {
   }
 }
 
+final ButtonStyle _compactButtonStyle = OutlinedButton.styleFrom(
+  visualDensity: VisualDensity.compact,
+  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+);
+
 class _ThemePicker extends StatelessWidget {
   const _ThemePicker({required this.themeController});
 
@@ -402,9 +410,8 @@ class _ThemePicker extends StatelessWidget {
     final theme = Theme.of(context);
     final currentMode = themeController.themeMode;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 420;
+    return Builder(
+      builder: (context) {
         final cards = <Widget>[
           _ThemeCard(
             icon: Icons.brightness_auto_outlined,
@@ -428,17 +435,6 @@ class _ThemePicker extends StatelessWidget {
             theme: theme,
           ),
         ];
-
-        if (compact) {
-          return Column(
-            children: <Widget>[
-              for (var i = 0; i < cards.length; i++) ...<Widget>[
-                SizedBox(width: double.infinity, child: cards[i]),
-                if (i != cards.length - 1) const SizedBox(height: 8),
-              ],
-            ],
-          );
-        }
 
         return Row(
           children: <Widget>[
@@ -489,15 +485,16 @@ class _ThemeCard extends StatelessWidget {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeInOut,
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
             decoration: BoxDecoration(
               borderRadius: AppRadius.md,
               border: Border.all(color: borderColor, width: selected ? 1.5 : 1),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 Stack(
+                  clipBehavior: Clip.none,
                   alignment: Alignment.topRight,
                   children: <Widget>[
                     AnimatedSwitcher(
@@ -513,8 +510,8 @@ class _ThemeCard extends StatelessWidget {
                     ),
                     if (selected)
                       Positioned(
-                        top: -2,
-                        right: -2,
+                        top: -4,
+                        right: -6,
                         child: Container(
                           width: 16,
                           height: 16,
@@ -531,9 +528,11 @@ class _ThemeCard extends StatelessWidget {
                       ),
                   ],
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(height: 6),
                 Text(
                   label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelLarge?.copyWith(
                     color: selected
                         ? theme.colorScheme.primary

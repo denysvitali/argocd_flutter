@@ -367,4 +367,32 @@ void main() {
       expect(find.byIcon(Icons.cloud), findsOneWidget);
     });
   });
+
+  group('StatusSegmentBar', () {
+    testWidgets('segments fill the bar height', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        wrapInApp(
+          const SizedBox(
+            width: 200,
+            child: StatusSegmentBar(
+              height: 10,
+              segments: <StatusSegment>[
+                StatusSegment(color: Colors.green, count: 3),
+                StatusSegment(color: Colors.red, count: 1),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final boxes = find.descendant(
+        of: find.byType(StatusSegmentBar),
+        matching: find.byType(ColoredBox),
+      );
+      expect(boxes, findsNWidgets(3));
+      for (final element in boxes.evaluate()) {
+        expect(element.size!.height, 10);
+      }
+    });
+  });
 }

@@ -31,7 +31,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
   bool _isGridView = false;
-  ApplicationSortField _sortField = ApplicationSortField.name;
+  ApplicationSortField _sortField = ApplicationSortField.health;
   ApplicationFilterChip _activeFilter = ApplicationFilterChip.all;
   String? _projectFilter;
   String? _clusterFilter;
@@ -86,8 +86,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
         ApplicationSortField.name => a.name.toLowerCase().compareTo(
           b.name.toLowerCase(),
         ),
-        ApplicationSortField.health =>
-          _healthSortOrder(a.healthStatus) - _healthSortOrder(b.healthStatus),
+        ApplicationSortField.health => _compareByAttention(a, b),
         ApplicationSortField.lastSynced => (b.lastSyncedAt ?? '').compareTo(
           a.lastSyncedAt ?? '',
         ),
@@ -97,6 +96,19 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
       };
     });
     return sorted;
+  }
+
+  /// Problems first: worst health, then drifted before synced, then name.
+  static int _compareByAttention(ArgoApplication a, ArgoApplication b) {
+    final health =
+        _healthSortOrder(a.healthStatus) - _healthSortOrder(b.healthStatus);
+    if (health != 0) {
+      return health;
+    }
+    if (a.isOutOfSync != b.isOutOfSync) {
+      return a.isOutOfSync ? -1 : 1;
+    }
+    return a.name.toLowerCase().compareTo(b.name.toLowerCase());
   }
 
   static int _healthSortOrder(String status) {
@@ -319,7 +331,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
             const SizedBox(height: 6),
             LayoutBuilder(
               builder: (BuildContext context, BoxConstraints constraints) {
-                final stackedControls = constraints.maxWidth < 700;
+                final stackedControls = constraints.maxWidth < 320;
                 final summaryText =
                     '${applications.length} of ${allApplications.length} applications';
                 final clearButton = _hasActiveControls
@@ -477,9 +489,7 @@ class _FilterChips extends StatelessWidget {
         color: isSelected ? chipColor : scheme.onSurfaceVariant,
         fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
       ),
-      side: BorderSide(
-        color: isSelected ? chipColor : scheme.outlineVariant,
-      ),
+      side: BorderSide(color: isSelected ? chipColor : scheme.outlineVariant),
       shape: RoundedRectangleBorder(borderRadius: AppRadius.pill),
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
     );
@@ -515,12 +525,12 @@ class _SortDropdown extends StatelessWidget {
         ),
         items: const <DropdownMenuItem<ApplicationSortField>>[
           DropdownMenuItem(
-            value: ApplicationSortField.name,
-            child: Text('Sort by name'),
+            value: ApplicationSortField.health,
+            child: Text('Needs attention first'),
           ),
           DropdownMenuItem(
-            value: ApplicationSortField.health,
-            child: Text('Sort by health'),
+            value: ApplicationSortField.name,
+            child: Text('Sort by name'),
           ),
           DropdownMenuItem(
             value: ApplicationSortField.lastSynced,
@@ -577,7 +587,10 @@ class _SearchBar extends StatelessWidget {
           hintStyle: theme.textTheme.bodyMedium?.copyWith(
             color: scheme.onSurfaceVariant,
           ),
-          prefixIcon: Icon(Icons.search_rounded, color: scheme.onSurfaceVariant),
+          prefixIcon: Icon(
+            Icons.search_rounded,
+            color: scheme.onSurfaceVariant,
+          ),
           prefixIconConstraints: const BoxConstraints(
             minWidth: 48,
             minHeight: 48,
@@ -966,77 +979,61 @@ class _ApplicationCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    children: <Widget>[
-                      ExcludeSemantics(
-                        child: Icon(
-                          Icons.dns_outlined,
-                          size: 14,
-                          color: scheme.onSurfaceVariant,
-                        ),
+                  _CardMetaRow(
+                    children: <_MetaItem>[
+                      _MetaItem(
+                        Icons.dns_outlined,
+                        _clusterShortName(application.cluster),
                       ),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          _clusterShortName(application.cluster),
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(
-                          '\u2022',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: scheme.outline,
-                          ),
-                        ),
-                      ),
-                      ExcludeSemantics(
-                        child: Icon(
-                          Icons.view_in_ar_outlined,
-                          size: 14,
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          application.namespace,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      _MetaItem(
+                        Icons.view_in_ar_outlined,
+                        application.namespace,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: <Widget>[
-                      _ColoredFactBadge(
-                        icon: Icons.route_outlined,
-                        label: _pathLabel(application.path),
-                      ),
-                      _ColoredFactBadge(
-                        icon: Icons.link_rounded,
-                        label: _repoLabel(application.repoUrl),
+                  const SizedBox(height: 4),
+                  _CardMetaRow(
+                    children: <_MetaItem>[
+                      _MetaItem(
+                        Icons.route_outlined,
+                        _pathLabel(application.path),
                       ),
                       if (application.lastSyncedAt != null &&
                           application.lastSyncedAt!.isNotEmpty)
-                        _ColoredFactBadge(
-                          icon: Icons.history_rounded,
-                          label:
-                              'Synced ${_formatRelativeTime(application.lastSyncedAt!)}',
+                        _MetaItem(
+                          Icons.history_rounded,
+                          _formatRelativeTime(application.lastSyncedAt!),
+                          flexible: false,
                         ),
                     ],
                   ),
+                  if (application.hasOperationError) ...<Widget>[
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        const ExcludeSemantics(
+                          child: Icon(
+                            Icons.error_outline_rounded,
+                            size: 14,
+                            color: AppColors.degraded,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            application.operationMessage!,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.degraded,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1180,14 +1177,6 @@ String _formatRelativeTime(String isoTimestamp) {
   return formatTimeAgo(dateTime);
 }
 
-String _repoLabel(String repoUrl) {
-  final uri = Uri.tryParse(repoUrl);
-  if (uri != null && uri.host.isNotEmpty) {
-    return '${uri.host}${uri.path}';
-  }
-  return repoUrl;
-}
-
 String _repoHost(String repoUrl) {
   final uri = Uri.tryParse(repoUrl);
   if (uri != null && uri.host.isNotEmpty) {
@@ -1200,7 +1189,7 @@ String _clusterShortName(String cluster) {
   // Show just the hostname portion if the cluster is a URL.
   final uri = Uri.tryParse(cluster);
   if (uri != null && uri.host.isNotEmpty) {
-    return uri.host;
+    return uri.host == 'kubernetes.default.svc' ? 'in-cluster' : uri.host;
   }
   // Already a short name or an in-cluster reference.
   return cluster.isEmpty ? 'in-cluster' : cluster;
@@ -1221,43 +1210,59 @@ String _shortRevision(String revision) {
   return revision.length <= 10 ? revision : revision.substring(0, 10);
 }
 
-class _ColoredFactBadge extends StatelessWidget {
-  const _ColoredFactBadge({required this.icon, required this.label});
+class _MetaItem {
+  const _MetaItem(this.icon, this.label, {this.flexible = true});
 
   final IconData icon;
   final String label;
+  final bool flexible;
+}
+
+/// Single line of icon + label pairs separated by bullets, used to keep
+/// application cards compact.
+class _CardMetaRow extends StatelessWidget {
+  const _CardMetaRow({required this.children});
+
+  final List<_MetaItem> children;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final style = theme.textTheme.labelMedium?.copyWith(
+      color: scheme.onSurfaceVariant,
+      fontWeight: FontWeight.w600,
+    );
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHigh,
-        borderRadius: AppRadius.pill,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          ExcludeSemantics(
-            child: Icon(icon, size: 14, color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(width: 6),
-          Flexible(
+    final widgets = <Widget>[];
+    for (var i = 0; i < children.length; i++) {
+      final item = children[i];
+      if (i > 0) {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
-              overflow: TextOverflow.ellipsis,
+              '\u2022',
+              style: style?.copyWith(color: scheme.outline),
             ),
           ),
-        ],
-      ),
-    );
+        );
+      }
+      widgets.add(
+        ExcludeSemantics(
+          child: Icon(item.icon, size: 14, color: scheme.onSurfaceVariant),
+        ),
+      );
+      widgets.add(const SizedBox(width: 4));
+      final text = Text(
+        item.label,
+        style: style,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
+      widgets.add(item.flexible ? Flexible(child: text) : text);
+    }
+    return Row(children: widgets);
   }
 }
 
