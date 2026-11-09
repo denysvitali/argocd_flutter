@@ -418,8 +418,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Error banner is shown
-    expect(find.text('Last sync operation failed'), findsOneWidget);
+    // The failed sync is listed as the reason the app is degraded
+    expect(find.text('WHY IT’S DEGRADED'), findsOneWidget);
+    expect(find.text('Last sync failed'), findsOneWidget);
     expect(
       find.textContaining('one or more objects failed to apply'),
       findsOneWidget,

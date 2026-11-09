@@ -27,10 +27,7 @@ void main() {
           },
         },
         'status': {
-          'sync': {
-            'status': 'Synced',
-            'reconciledAt': '2026-03-10T12:00:00Z',
-          },
+          'sync': {'status': 'Synced', 'reconciledAt': '2026-03-10T12:00:00Z'},
           'health': {'status': 'Healthy'},
           'operationState': {'phase': 'Succeeded'},
           'resources': [
@@ -111,7 +108,10 @@ void main() {
       expect(app.syncStatus, 'Unknown');
       expect(app.healthStatus, 'Unknown');
       expect(app.operationPhase, 'Idle');
-      expect(app.lastSyncedAt, isEmpty);
+      expect(app.lastSyncedAt, isNull);
+      expect(app.reconciledAt, isNull);
+      expect(app.healthMessage, isNull);
+      expect(app.conditions, isEmpty);
       expect(app.resources, isEmpty);
       expect(app.history, isEmpty);
     });
@@ -123,6 +123,54 @@ void main() {
       expect(app.project, 'default');
       expect(app.resources, isEmpty);
       expect(app.history, isEmpty);
+    });
+
+    test('parses diagnostics: conditions, health message, timestamps', () {
+      final app = ArgoApplication.fromJson(<String, dynamic>{
+        'metadata': {'name': 'app-of-apps'},
+        'status': {
+          'reconciledAt': '2026-03-10T12:30:00Z',
+          'sync': {'status': 'Synced'},
+          'health': {
+            'status': 'Degraded',
+            'message': 'child apps are unhealthy',
+          },
+          'operationState': {
+            'phase': 'Succeeded',
+            'finishedAt': '2026-03-10T11:00:00Z',
+          },
+          'conditions': [
+            {
+              'type': 'ComparisonError',
+              'message': 'failed to load manifests',
+              'lastTransitionTime': '2026-03-10T12:00:00Z',
+            },
+          ],
+          'resources': [
+            {'kind': 'Namespace', 'name': 'payments', 'status': 'Synced'},
+            {
+              'kind': 'Application',
+              'group': 'argoproj.io',
+              'name': 'payments',
+              'status': 'Synced',
+              'health': {'status': 'Degraded'},
+            },
+          ],
+          'history': [
+            {'id': 1, 'revision': 'abc', 'deployedAt': '2026-03-09T10:00:00Z'},
+          ],
+        },
+      });
+
+      expect(app.lastSyncedAt, '2026-03-10T11:00:00Z');
+      expect(app.reconciledAt, '2026-03-10T12:30:00Z');
+      expect(app.healthMessage, 'child apps are unhealthy');
+      expect(app.conditions.single.type, 'ComparisonError');
+      expect(app.conditions.single.isError, isTrue);
+      expect(app.conditions.single.message, 'failed to load manifests');
+      expect(app.resources[0].hasHealth, isFalse);
+      expect(app.resources[1].hasHealth, isTrue);
+      expect(app.resources[1].isApplication, isTrue);
     });
 
     test('uses sources array when source is absent', () {
@@ -252,16 +300,17 @@ void main() {
       expect(project.sourceRepos[0], 'https://github.com/org/repo-a.git');
       expect(project.sourceRepos[1], 'https://github.com/org/repo-b.git');
       expect(project.destinations, hasLength(2));
-      expect(project.destinations[0].server,
-          'https://kubernetes.default.svc');
+      expect(project.destinations[0].server, 'https://kubernetes.default.svc');
       expect(project.destinations[0].namespace, 'production');
       expect(project.destinations[0].name, 'in-cluster');
       expect(project.destinations[1].name, 'remote');
       expect(project.clusterResourceWhitelist, hasLength(2));
       expect(project.clusterResourceWhitelist[0].group, '*');
       expect(project.clusterResourceWhitelist[0].kind, 'Namespace');
-      expect(project.clusterResourceWhitelist[1].group,
-          'rbac.authorization.k8s.io');
+      expect(
+        project.clusterResourceWhitelist[1].group,
+        'rbac.authorization.k8s.io',
+      );
     });
 
     test('handles empty lists', () {
@@ -321,10 +370,7 @@ void main() {
         'parentRefs': [
           {'uid': 'uid-app-root-001'},
         ],
-        'health': {
-          'status': 'Healthy',
-          'message': 'Deployment is available',
-        },
+        'health': {'status': 'Healthy', 'message': 'Deployment is available'},
         'createdAt': '2026-03-10T08:30:00Z',
       };
 
@@ -343,10 +389,7 @@ void main() {
     });
 
     test('handles missing optional fields', () {
-      final json = <String, dynamic>{
-        'kind': 'ConfigMap',
-        'name': 'app-config',
-      };
+      final json = <String, dynamic>{'kind': 'ConfigMap', 'name': 'app-config'};
 
       final node = ArgoResourceNode.fromJson(json);
 
@@ -468,14 +511,8 @@ void main() {
         'metadata': <String, dynamic>{'name': 12345},
         'spec': <String, dynamic>{
           'project': 42,
-          'source': <String, dynamic>{
-            'repoURL': 99,
-            'path': 0,
-          },
-          'destination': <String, dynamic>{
-            'server': 100,
-            'namespace': 200,
-          },
+          'source': <String, dynamic>{'repoURL': 99, 'path': 0},
+          'destination': <String, dynamic>{'server': 100, 'namespace': 200},
         },
         'status': <String, dynamic>{},
       };
@@ -537,9 +574,7 @@ void main() {
       final json = <String, dynamic>{
         'metadata': <String, dynamic>{'name': 'test'},
         'spec': <String, dynamic>{},
-        'status': <String, dynamic>{
-          'operationState': <String, dynamic>{},
-        },
+        'status': <String, dynamic>{'operationState': <String, dynamic>{}},
       };
 
       final app = ArgoApplication.fromJson(json);
@@ -558,10 +593,7 @@ void main() {
             'path': '',
             'targetRevision': '',
           },
-          'destination': <String, dynamic>{
-            'server': '',
-            'namespace': '',
-          },
+          'destination': <String, dynamic>{'server': '', 'namespace': ''},
         },
         'status': <String, dynamic>{
           'sync': <String, dynamic>{'status': ''},
@@ -701,9 +733,7 @@ void main() {
     test('parses empty destinations list', () {
       final json = <String, dynamic>{
         'metadata': <String, dynamic>{'name': 'no-dest'},
-        'spec': <String, dynamic>{
-          'destinations': <dynamic>[],
-        },
+        'spec': <String, dynamic>{'destinations': <dynamic>[]},
       };
 
       final project = ArgoProject.fromJson(json);
@@ -715,9 +745,7 @@ void main() {
       final json = <String, dynamic>{
         'metadata': <String, dynamic>{'name': 'missing-dest-fields'},
         'spec': <String, dynamic>{
-          'destinations': <dynamic>[
-            <String, dynamic>{},
-          ],
+          'destinations': <dynamic>[<String, dynamic>{}],
         },
       };
 
@@ -826,7 +854,9 @@ void main() {
         token: 'token-abc-123',
       );
 
-      final updated = session.copyWith(serverUrl: 'https://argocd-v2.example.com');
+      final updated = session.copyWith(
+        serverUrl: 'https://argocd-v2.example.com',
+      );
 
       expect(updated.serverUrl, 'https://argocd-v2.example.com');
       expect(updated.username, 'admin');

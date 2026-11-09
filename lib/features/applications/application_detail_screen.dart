@@ -1,5 +1,6 @@
 import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
+import 'package:argocd_flutter/core/utils/app_diagnosis.dart';
 import 'package:argocd_flutter/core/utils/time_format.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:argocd_flutter/ui/design_tokens.dart';
@@ -777,9 +778,17 @@ class _OverviewTab extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= 860;
+        final issues = diagnoseApplication(
+          application,
+          knownApplications: controller.applications,
+        );
         final primary = <Widget>[
-          if (application.hasOperationError) ...<Widget>[
-            _OperationErrorCard(application: application),
+          if (issues.isNotEmpty) ...<Widget>[
+            _IssuesSection(
+              controller: controller,
+              application: application,
+              issues: issues,
+            ),
             const SizedBox(height: _kSectionGap),
           ],
           _StatusSection(application: application),
@@ -828,49 +837,198 @@ class _OverviewTab extends StatelessWidget {
   }
 }
 
-class _OperationErrorCard extends StatelessWidget {
-  const _OperationErrorCard({required this.application});
+/// "Why it's Degraded": every reason the app isn't healthy and synced, most
+/// severe first, each one tappable to the resource (or child app) at fault.
+class _IssuesSection extends StatefulWidget {
+  const _IssuesSection({
+    required this.controller,
+    required this.application,
+    required this.issues,
+  });
 
+  final AppController controller;
   final ArgoApplication application;
+  final List<AppIssue> issues;
+
+  @override
+  State<_IssuesSection> createState() => _IssuesSectionState();
+}
+
+class _IssuesSectionState extends State<_IssuesSection> {
+  static const int _collapsedCount = 5;
+
+  bool _showAll = false;
+
+  String get _header {
+    final application = widget.application;
+    if (!application.isHealthy) {
+      return 'Why it’s ${application.healthStatus}';
+    }
+    if (application.isOutOfSync) {
+      return 'Why it’s ${application.syncStatus}';
+    }
+    return 'Issues';
+  }
+
+  void _open(BuildContext context, ArgoResource resource) {
+    final controller = widget.controller;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => resource.isApplication
+            ? ApplicationDetailScreen(
+                controller: controller,
+                applicationName: resource.name,
+              )
+            : ManifestViewerScreen(
+                controller: controller,
+                applicationName: widget.application.name,
+                namespace: resource.namespace,
+                resourceName: resource.name,
+                kind: resource.kind,
+                group: resource.group,
+                version: resource.version,
+              ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final issues = widget.issues;
+    final collapsible = issues.length > _collapsedCount + 1;
+    final visible = collapsible && !_showAll
+        ? issues.take(_collapsedCount)
+        : issues;
+
+    return GroupedList(
+      header: _header,
+      dividerIndent: 34,
+      children: <Widget>[
+        for (final issue in visible)
+          _IssueRow(
+            issue: issue,
+            onTap: issue.resource == null
+                ? null
+                : () => _open(context, issue.resource!),
+          ),
+        if (collapsible)
+          InkWell(
+            onTap: () => setState(() => _showAll = !_showAll),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(34, 13, 16, 13),
+              child: Text(
+                _showAll ? 'Show fewer' : 'Show all ${issues.length} issues',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _IssueRow extends StatelessWidget {
+  const _IssueRow({required this.issue, this.onTap});
+
+  final AppIssue issue;
+  final VoidCallback? onTap;
+
+  Color get _color {
+    if (issue.resource != null) {
+      return issue.status == 'OutOfSync'
+          ? AppColors.syncColor(issue.status)
+          : AppColors.healthColor(issue.status);
+    }
+    return switch (issue.severity) {
+      IssueSeverity.error => AppColors.degraded,
+      IssueSeverity.warning => AppColors.warning,
+      IssueSeverity.progressing => AppColors.healthColor('Progressing'),
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final errorForeground = AppColors.statusForeground(
-      theme,
-      AppColors.degraded,
+    final color = _color;
+    final resource = issue.resource;
+    final detailStyle = theme.textTheme.bodySmall?.copyWith(
+      color: scheme.onSurfaceVariant,
     );
 
-    return SectionCard(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          ExcludeSemantics(
-            child: Icon(Icons.error_rounded, size: 20, color: errorForeground),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'Last sync operation failed',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: errorForeground,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                SelectableText(
-                  application.operationMessage!,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16, 11, onTap == null ? 16 : 10, 11),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.only(top: 7),
+              child: StatusDot(color: color),
             ),
-          ),
-        ],
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    issue.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyLarge,
+                  ),
+                  // Resource rows say what state the resource is in; for
+                  // app-level issues the title already says it.
+                  if (resource != null) ...<Widget>[
+                    const SizedBox(height: 2),
+                    Text.rich(
+                      TextSpan(
+                        children: <InlineSpan>[
+                          TextSpan(
+                            text: issue.status,
+                            style: TextStyle(
+                              color: AppColors.statusForeground(theme, color),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          TextSpan(text: ' · ${resource.kind}'),
+                        ],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: detailStyle,
+                    ),
+                  ],
+                  if (issue.detail != null) ...<Widget>[
+                    const SizedBox(height: 4),
+                    // Resource messages are summaries; open the row for more.
+                    // App-level messages (sync errors) are shown in full.
+                    if (resource != null)
+                      Text(
+                        issue.detail!,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: detailStyle,
+                      )
+                    else
+                      SelectableText(issue.detail!, style: detailStyle),
+                  ],
+                ],
+              ),
+            ),
+            if (onTap != null) ...<Widget>[
+              const SizedBox(width: 6),
+              const Padding(
+                padding: EdgeInsets.only(top: 2),
+                child: DisclosureChevron(),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -996,13 +1154,18 @@ class _ResourceHealthSummary extends StatelessWidget {
 
     final healthCounts = <String, int>{};
     final kindCounts = <String, int>{};
+    var untracked = 0;
     for (final resource in resources) {
+      kindCounts[resource.kind] = (kindCounts[resource.kind] ?? 0) + 1;
+      if (!resource.hasHealth) {
+        untracked++;
+        continue;
+      }
       final known = _healthOrder.firstWhere(
         (h) => h.toLowerCase() == resource.health.toLowerCase(),
         orElse: () => 'Unknown',
       );
       healthCounts[known] = (healthCounts[known] ?? 0) + 1;
-      kindCounts[resource.kind] = (kindCounts[resource.kind] ?? 0) + 1;
     }
     final buckets = <MapEntry<String, int>>[
       for (final health in <String>[..._healthOrder, 'Unknown'])
@@ -1020,41 +1183,52 @@ class _ResourceHealthSummary extends StatelessWidget {
             '$count ${count == 1 ? 'resource' : 'resources'}',
             style: theme.textTheme.titleMedium,
           ),
-          const SizedBox(height: 10),
-          StatusSegmentBar(
-            segments: <StatusSegment>[
-              for (final bucket in buckets)
-                StatusSegment(
-                  color: AppColors.healthColor(bucket.key),
-                  count: bucket.value,
-                ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 14,
-            runSpacing: 4,
-            children: <Widget>[
-              for (final bucket in buckets)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    StatusDot(
-                      color: AppColors.healthColor(bucket.key),
-                      size: 7,
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      '${bucket.value} ${bucket.key}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontFeatures: AppFonts.tabularFigures,
+          if (buckets.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 10),
+            StatusSegmentBar(
+              segments: <StatusSegment>[
+                for (final bucket in buckets)
+                  StatusSegment(
+                    color: AppColors.healthColor(bucket.key),
+                    count: bucket.value,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 14,
+              runSpacing: 4,
+              children: <Widget>[
+                for (final bucket in buckets)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      StatusDot(
+                        color: AppColors.healthColor(bucket.key),
+                        size: 7,
                       ),
-                    ),
-                  ],
-                ),
-            ],
-          ),
+                      const SizedBox(width: 5),
+                      Text(
+                        '${bucket.value} ${bucket.key}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontFeatures: AppFonts.tabularFigures,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ],
+          if (untracked > 0) ...<Widget>[
+            const SizedBox(height: 4),
+            Text(
+              '$untracked without a health check',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
           const SizedBox(height: 6),
           Text(
             kindCounts.entries
@@ -1100,10 +1274,10 @@ class _DestinationSection extends StatelessWidget {
       children: <Widget>[
         _FactRow(label: 'Cluster', value: application.cluster),
         _FactRow(label: 'Namespace', value: application.namespace),
-        if (application.lastSyncedAt != null)
+        if (application.reconciledAt != null)
           _FactRow(
             label: 'Last reconciled',
-            value: formatTimestampWithRelative(application.lastSyncedAt!),
+            value: formatTimestampWithRelative(application.reconciledAt!),
           ),
       ],
     );
@@ -1427,19 +1601,24 @@ class _ResourceRow extends StatelessWidget {
                   const SizedBox(height: 3),
                   Row(
                     children: <Widget>[
-                      StatusDot(color: healthColor, size: 7),
-                      const SizedBox(width: 6),
-                      Text(
-                        resource.health,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.statusForeground(theme, healthColor),
-                          fontWeight: FontWeight.w500,
+                      if (resource.hasHealth) ...<Widget>[
+                        StatusDot(color: healthColor, size: 7),
+                        const SizedBox(width: 6),
+                        Text(
+                          resource.health,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.statusForeground(
+                              theme,
+                              healthColor,
+                            ),
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
+                      ],
                       if (meta.isNotEmpty)
                         Flexible(
                           child: Text(
-                            ' · $meta',
+                            resource.hasHealth ? ' · $meta' : meta,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.bodySmall?.copyWith(

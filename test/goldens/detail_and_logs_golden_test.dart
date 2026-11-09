@@ -35,6 +35,29 @@ void main() {
     await screenMatchesGolden(tester, 'application_detail_light');
   });
 
+  for (final themeMode in <ThemeMode>[ThemeMode.light, ThemeMode.dark]) {
+    final suffix = themeMode == ThemeMode.light ? 'light' : 'dark';
+    testGoldens('app-of-apps detail explains why it is degraded ($suffix)', (
+      WidgetTester tester,
+    ) async {
+      final controller = await createAuthenticatedController(
+        api: FakeArgoCdApi(applications: _appOfAppsFleet()),
+      );
+
+      await pumpGoldenScreen(
+        tester,
+        themeMode: themeMode,
+        child: ApplicationDetailScreen(
+          controller: controller,
+          applicationName: 'app-of-apps',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await screenMatchesGolden(tester, 'app_of_apps_detail_$suffix');
+    });
+  }
+
   testGoldens('log viewer matches light and dark themes', (
     WidgetTester tester,
   ) async {
@@ -214,4 +237,112 @@ class _LogViewerApi implements ArgoCdApi {
 
   @override
   Future<void> verifyServer(String serverUrl) async {}
+}
+
+ArgoApplication _fleetApp(
+  String name, {
+  String health = 'Healthy',
+  List<ArgoResource> resources = const <ArgoResource>[],
+}) {
+  return ArgoApplication(
+    name: name,
+    project: 'bootstrap',
+    namespace: name == 'app-of-apps' ? 'argocd' : name,
+    cluster: 'https://kubernetes.default.svc',
+    repoUrl: 'https://github.com/example/gitops',
+    path: 'apps/$name',
+    targetRevision: 'main',
+    syncStatus: 'Synced',
+    healthStatus: health,
+    operationPhase: 'Succeeded',
+    operationMessage: null,
+    lastSyncedAt: '2026-04-10T08:00:00Z',
+    resources: resources,
+    history: const <ArgoHistoryEntry>[],
+  );
+}
+
+ArgoResource _fleetRes(
+  String kind,
+  String name, {
+  String health = 'Healthy',
+  String message = '',
+  String group = '',
+  bool hasHealth = true,
+}) {
+  return ArgoResource(
+    kind: kind,
+    name: name,
+    namespace: kind == 'Namespace' ? '' : 'argocd',
+    group: group,
+    version: 'v1',
+    status: 'Synced',
+    health: hasHealth ? health : 'Unknown',
+    healthMessage: message,
+    hasHealth: hasHealth,
+  );
+}
+
+/// The app-of-apps from a real bug report: Degraded + Synced, where the
+/// reason lives in the degraded child Applications.
+List<ArgoApplication> _appOfAppsFleet() {
+  ArgoResource child(String name, [String health = 'Healthy']) =>
+      _fleetRes('Application', name, health: health, group: 'argoproj.io');
+
+  return <ArgoApplication>[
+    _fleetApp(
+      'app-of-apps',
+      health: 'Degraded',
+      resources: <ArgoResource>[
+        child('cert-manager'),
+        child('external-secrets', 'Degraded'),
+        child('grafana', 'Progressing'),
+        child('ingress-nginx'),
+        child('loki', 'Degraded'),
+        child('postgres', 'Degraded'),
+        for (final ns in <String>['grafana', 'loki', 'postgres', 'monitoring'])
+          _fleetRes('Namespace', ns, hasHealth: false),
+        _fleetRes('AppProject', 'platform', hasHealth: false),
+      ],
+    ),
+    _fleetApp(
+      'external-secrets',
+      health: 'Degraded',
+      resources: <ArgoResource>[
+        _fleetRes(
+          'ClusterSecretStore',
+          'vault',
+          health: 'Degraded',
+          message: 'unable to validate store: permission denied',
+          group: 'external-secrets.io',
+        ),
+      ],
+    ),
+    _fleetApp(
+      'loki',
+      health: 'Degraded',
+      resources: <ArgoResource>[
+        _fleetRes(
+          'StatefulSet',
+          'loki',
+          health: 'Degraded',
+          message: 'Pod loki-0 is in CrashLoopBackOff',
+          group: 'apps',
+        ),
+      ],
+    ),
+    _fleetApp(
+      'postgres',
+      health: 'Degraded',
+      resources: <ArgoResource>[
+        _fleetRes(
+          'PersistentVolumeClaim',
+          'data-postgres-0',
+          health: 'Degraded',
+          message: 'PVC is not bound',
+        ),
+        _fleetRes('Deployment', 'pgbouncer', health: 'Degraded', group: 'apps'),
+      ],
+    ),
+  ];
 }

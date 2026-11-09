@@ -16,6 +16,9 @@ class ArgoApplication {
     required this.lastSyncedAt,
     required this.resources,
     required this.history,
+    this.healthMessage,
+    this.reconciledAt,
+    this.conditions = const <ArgoCondition>[],
   });
 
   factory ArgoApplication.fromJson(Map<String, dynamic> json) {
@@ -27,6 +30,9 @@ class ArgoApplication {
     final sync = parseMap(status['sync']);
     final health = parseMap(status['health']);
     final operationState = parseMap(status['operationState']);
+    final history = parseList(status['history'])
+        .map((dynamic item) => ArgoHistoryEntry.fromJson(parseMap(item)))
+        .toList(growable: false);
 
     return ArgoApplication(
       name: parseString(metadata['name'], fallback: 'Unknown'),
@@ -46,12 +52,23 @@ class ArgoApplication {
         fallback: status['operationState'] == null ? 'Idle' : 'Unknown',
       ),
       operationMessage: parseString(operationState['message']),
-      lastSyncedAt: parseString(sync['reconciledAt']),
+      // When the last sync finished; falls back to the newest deployment.
+      lastSyncedAt: _nonEmpty(
+        parseString(
+          operationState['finishedAt'],
+          fallback: history.isEmpty || history.last.deployedAt == '-'
+              ? ''
+              : history.last.deployedAt,
+        ),
+      ),
       resources: parseList(status['resources'])
           .map((dynamic item) => ArgoResource.fromJson(parseMap(item)))
           .toList(growable: false),
-      history: parseList(status['history'])
-          .map((dynamic item) => ArgoHistoryEntry.fromJson(parseMap(item)))
+      history: history,
+      healthMessage: _nonEmpty(parseString(health['message'])),
+      reconciledAt: _nonEmpty(parseString(status['reconciledAt'])),
+      conditions: parseList(status['conditions'])
+          .map((dynamic item) => ArgoCondition.fromJson(parseMap(item)))
           .toList(growable: false),
     );
   }
@@ -71,12 +88,46 @@ class ArgoApplication {
   final List<ArgoResource> resources;
   final List<ArgoHistoryEntry> history;
 
+  /// `status.health.message`; only some ArgoCD versions populate it.
+  final String? healthMessage;
+
+  /// When ArgoCD last compared live state with Git (`status.reconciledAt`).
+  final String? reconciledAt;
+
+  /// `status.conditions`: ComparisonError, SyncError, OrphanedResourceWarning…
+  final List<ArgoCondition> conditions;
+
   bool get isOutOfSync => syncStatus.toLowerCase() != 'synced';
   bool get isHealthy => healthStatus.toLowerCase() == 'healthy';
-  bool get hasOperationError =>
-      operationPhase.toLowerCase() == 'failed' &&
-      operationMessage != null &&
-      operationMessage!.isNotEmpty;
+  bool get hasOperationError {
+    final phase = operationPhase.toLowerCase();
+    return (phase == 'failed' || phase == 'error') &&
+        operationMessage != null &&
+        operationMessage!.isNotEmpty;
+  }
+}
+
+class ArgoCondition {
+  const ArgoCondition({
+    required this.type,
+    required this.message,
+    this.lastTransitionTime,
+  });
+
+  factory ArgoCondition.fromJson(Map<String, dynamic> json) {
+    return ArgoCondition(
+      type: parseString(json['type'], fallback: 'Unknown'),
+      message: parseString(json['message']),
+      lastTransitionTime: _nonEmpty(parseString(json['lastTransitionTime'])),
+    );
+  }
+
+  final String type;
+  final String message;
+  final String? lastTransitionTime;
+
+  bool get isError => type.endsWith('Error');
+  bool get isWarning => type.endsWith('Warning');
 }
 
 class ArgoResource {
@@ -89,6 +140,7 @@ class ArgoResource {
     required this.status,
     required this.health,
     required this.healthMessage,
+    this.hasHealth = true,
   });
 
   factory ArgoResource.fromJson(Map<String, dynamic> json) {
@@ -102,6 +154,9 @@ class ArgoResource {
       status: parseString(json['status'], fallback: 'Unknown'),
       health: parseString(healthObj['status'], fallback: 'Unknown'),
       healthMessage: parseString(healthObj['message']),
+      // ArgoCD omits `health` for kinds it doesn't assess (Namespace,
+      // ConfigMap, AppProject…). That's not the same as reporting Unknown.
+      hasHealth: json['health'] != null,
     );
   }
 
@@ -113,6 +168,12 @@ class ArgoResource {
   final String status;
   final String health;
   final String healthMessage;
+
+  /// False when ArgoCD has no health check for this kind.
+  final bool hasHealth;
+
+  bool get isApplication =>
+      kind == 'Application' && (group.isEmpty || group == 'argoproj.io');
 }
 
 class ArgoHistoryEntry {
@@ -148,3 +209,5 @@ Map<String, dynamic> _sourceMap(Map<String, dynamic> spec) {
 
   return const <String, dynamic>{};
 }
+
+String? _nonEmpty(String value) => value.isEmpty ? null : value;
