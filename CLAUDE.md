@@ -98,6 +98,13 @@ Key distinctions:
 
 Imperative `Navigator.of(context).push(MaterialPageRoute(...))`. No named routes, no router package. Detail screens pushed via callbacks (`onOpenApplication`, `onOpenProject`) threaded from `HomeShell`. Four bottom tabs in `IndexedStack` wrapped by `_IndexedStackWithTickerMode` which disables `TickerMode` for offscreen tabs (prevents `pumpAndSettle` hangs in tests).
 
+At widths of 900px and up, the bottom bar is replaced by `_ShellSidebar`, an iPadOS-style sidebar with a Search field and the signed-in account; no golden covers this layout. Each tab page is wrapped in `_ShellPage`, which:
+- caps the page at a readable width (`_ShellDestination.maxContentWidth`);
+- fades in a compact frosted title bar once the large title scrolls past ~36px (it listens for depth-0 vertical scroll notifications, so a tab's large title must scroll inside its root scroll view);
+- scrolls the page back to the top when that bar is tapped.
+
+Tab switches trigger `HapticFeedback.selectionClick`.
+
 ### Dependency Injection
 
 All services are constructor-injected in `main.dart`. No service locator, no `get_it`, no `Provider` package. Abstractions used for testability:
@@ -144,7 +151,15 @@ Conditional imports use `dart.library.js_interop` (Dart 3 idiom). `isIOS` is exp
 
 ### Theme
 
-Material 3 with two bundled font families (not Google Fonts CDN): Space Grotesk (headings), DM Sans (body). Color palette in `app_colors.dart` with theme-aware helper methods. YAML syntax highlighting colors are part of the global palette. Design tokens in `design_tokens.dart` (spacing, radius, opacity, icon sizes, elevation, card decoration).
+Material 3 widgets styled with an Apple HIG-inspired visual language. Bundled fonts (OFL, not Google Fonts CDN): Inter (UI text), InterDisplay (large titles and numerals), and JetBrainsMono (code, logs, diffs), exposed as `AppFonts.text/display/mono` in `design_tokens.dart`. The color scheme is hand-built in `_buildColorScheme()` (`app_root.dart`), not seed-generated, so the surfaces stay neutral. Pages sit on `surface` (#F2F2F7 light, black dark), cards on `surfaceContainerLow` (white / #1C1C1E), and teal `primary` is the only tint. The text ramp maps to HIG styles (`headlineLarge` = Large Title, `titleLarge` = Title 3 section headers, `titleMedium` = Headline, `bodySmall` = Footnote). Pages use Cupertino transitions on all platforms.
+
+#### Design language (follow when adding UI)
+
+- Build with the shared primitives in `shared_widgets.dart`: `AppPageHeader` (large title), `SectionHeader`, `GroupedList`/`GroupedRow` (inset-grouped rows with hairlines and chevrons), `IconWell`, `StatusDot`, `StatusChip`, `SectionCard`, `EmptyStateCard`, `FactBadge`, `StatusSegmentBar`.
+- Status hues (`AppColors.healthColor/syncColor`) only carry state: dots, small glyphs, tinted capsules, thin bars. When a status hue is used as text, route it through `AppColors.statusForeground(theme, c)` so it stays legible in light mode. For washes use `AppColors.statusTint(theme, c)`.
+- Avoid gradients, tinted icon tiles next to titles, colored card stripes and borders, ALL-CAPS colored headers, and w800+ weights. Toolbar actions are plain `IconButton`s (the theme tints them).
+- `OutlinedButton` is themed as a borderless tinted button. `TabBar` is themed as a segmented-control thumb; wrap it in an `AppColors.fill(theme)` track.
+- YAML colors come from `yamlTokenColorFor(type, brightness)`, which uses Xcode-like light and dark palettes.
 
 ## Testing
 

@@ -52,9 +52,9 @@ void main() {
       expect(theme.scaffoldBackgroundColor, equals(theme.colorScheme.surface));
     });
 
-    test('uses the correct primary color (AppColors.teal)', () {
+    test('uses the brightened brand tint (AppColors.tealBright)', () {
       final theme = buildDarkAppTheme();
-      expect(theme.colorScheme.primary, equals(AppColors.teal));
+      expect(theme.colorScheme.primary, equals(AppColors.tealBright));
     });
 
     test('uses orange as the secondary brand colour', () {

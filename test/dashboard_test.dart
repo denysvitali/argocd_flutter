@@ -44,7 +44,7 @@ void main() {
       await tester.pumpWidget(_wrapDashboard(controller));
       await tester.pumpAndSettle();
 
-      expect(find.text('HEALTH BREAKDOWN'), findsOneWidget);
+      expect(find.text('Health Breakdown'), findsOneWidget);
 
       // Hero banner metric chip values are visible
       expect(find.text('Total apps'), findsOneWidget);
@@ -64,9 +64,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Scroll down to find the Needs Attention section
-      await _scrollTo(tester, find.text('NEEDS ATTENTION'));
+      await _scrollTo(tester, find.text('Needs Attention'));
 
-      expect(find.text('NEEDS ATTENTION'), findsOneWidget);
+      expect(find.text('Needs Attention'), findsOneWidget);
 
       // Scroll more to see the degraded app
       await _scrollTo(tester, find.text('degraded-app').first);
@@ -83,9 +83,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Scroll down to find the Recent Activity section
-      await _scrollTo(tester, find.text('RECENT ACTIVITY'));
+      await _scrollTo(tester, find.text('Recent Activity'));
 
-      expect(find.text('RECENT ACTIVITY'), findsOneWidget);
+      expect(find.text('Recent Activity'), findsOneWidget);
     });
 
     testWidgets('shows all healthy message when nothing needs attention', (
@@ -151,9 +151,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Scroll down to find the Health Breakdown section
-      await _scrollTo(tester, find.text('HEALTH BREAKDOWN'));
+      await _scrollTo(tester, find.text('Health Breakdown'));
 
-      expect(find.text('HEALTH BREAKDOWN'), findsOneWidget);
+      expect(find.text('Health Breakdown'), findsOneWidget);
     });
   });
 }

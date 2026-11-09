@@ -33,7 +33,8 @@ class ArgoLogo extends StatelessWidget {
           ringColor: ringColor ?? theme.colorScheme.primary,
           dotColor: dotColor ?? AppColors.orange,
           coreColor: coreColor ?? theme.colorScheme.primary,
-          haloColor: haloColor ?? theme.colorScheme.primary.withValues(alpha: 0.16),
+          haloColor:
+              haloColor ?? theme.colorScheme.primary.withValues(alpha: 0.16),
         ),
       ),
     );

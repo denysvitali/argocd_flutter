@@ -1,3 +1,4 @@
+import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -54,8 +55,13 @@ void main() {
         wrapInApp(const StatusChip(label: 'Degraded', color: Colors.red)),
       );
 
+      // Light mode deepens vivid status hues for legibility on white.
       final text = tester.widget<Text>(find.text('Degraded'));
-      expect(text.style?.color, Colors.red);
+      final context = tester.element(find.text('Degraded'));
+      expect(
+        text.style?.color,
+        AppColors.statusForeground(Theme.of(context), Colors.red),
+      );
     });
 
     testWidgets('semantic label includes Status prefix', (
@@ -117,7 +123,7 @@ void main() {
       expect(find.text('Child content'), findsOneWidget);
     });
 
-    testWidgets('title has bold font weight', (WidgetTester tester) async {
+    testWidgets('title uses semibold headline weight', (WidgetTester tester) async {
       await tester.pumpWidget(
         wrapInApp(
           const SectionCard(title: 'Bold Title', child: SizedBox.shrink()),
@@ -125,7 +131,7 @@ void main() {
       );
 
       final text = tester.widget<Text>(find.text('Bold Title'));
-      expect(text.style?.fontWeight, FontWeight.w800);
+      expect(text.style?.fontWeight, FontWeight.w600);
     });
 
     testWidgets('renders without title when title is null', (
@@ -178,7 +184,7 @@ void main() {
       expect(find.text('Please try again later.'), findsOneWidget);
     });
 
-    testWidgets('title has bold font weight', (WidgetTester tester) async {
+    testWidgets('title uses semibold headline weight', (WidgetTester tester) async {
       await tester.pumpWidget(
         wrapInApp(
           const EmptyStateCard(
@@ -189,7 +195,7 @@ void main() {
       );
 
       final text = tester.widget<Text>(find.text('Empty'));
-      expect(text.style?.fontWeight, FontWeight.w700);
+      expect(text.style?.fontWeight, FontWeight.w600);
     });
 
     testWidgets('has combined semantic label for accessibility', (

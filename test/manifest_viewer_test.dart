@@ -277,14 +277,22 @@ void main() {
       // Initially in YAML mode - shows collapsible sections
       expect(find.text('metadata'), findsWidgets);
 
-      // Find and tap the toggle button (code icon for YAML mode)
-      final toggleButton = find.byIcon(Icons.code);
-      expect(toggleButton, findsOneWidget);
-      await tester.tap(toggleButton);
+      // The mode picker exposes YAML (code) and JSON (data_object) segments.
+      expect(find.byIcon(Icons.code), findsOneWidget);
+      final jsonSegment = find.byIcon(Icons.data_object);
+      expect(jsonSegment, findsOneWidget);
+      await tester.tap(jsonSegment);
       await tester.pumpAndSettle();
 
-      // Now in JSON mode - should show raw JSON with braces
-      expect(find.byIcon(Icons.data_object), findsOneWidget);
+      // Now in JSON mode - shows raw JSON with quoted keys, no YAML sections.
+      expect(find.textContaining('"apiVersion"'), findsOneWidget);
+      expect(find.text('metadata'), findsNothing);
+
+      // Switching back restores the sectioned YAML view.
+      await tester.tap(find.byIcon(Icons.code));
+      await tester.pumpAndSettle();
+      expect(find.text('metadata'), findsWidgets);
+      expect(find.textContaining('"apiVersion"'), findsNothing);
     });
 
     testWidgets('search opens and filters content', (

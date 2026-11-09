@@ -42,8 +42,10 @@ Color colorForResourceKind(String kind) {
     'deployment' || 'statefulset' || 'daemonset' => AppColors.teal,
     'replicaset' => AppColors.teal,
     'pod' => AppColors.healthy,
-    'service' || 'ingress' || 'endpoints' || 'endpointslice' =>
-      AppColors.outOfSync,
+    'service' ||
+    'ingress' ||
+    'endpoints' ||
+    'endpointslice' => AppColors.outOfSync,
     'configmap' || 'secret' => AppColors.degraded,
     'job' || 'cronjob' => AppColors.gray6,
     'persistentvolumeclaim' ||

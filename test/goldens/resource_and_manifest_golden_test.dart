@@ -98,6 +98,28 @@ void main() {
 
     await screenMatchesGolden(tester, 'manifest_viewer_light');
   });
+
+  testGoldens('manifest viewer matches dark theme', (
+    WidgetTester tester,
+  ) async {
+    final controller = await _createGoldenController();
+
+    await pumpGoldenScreen(
+      tester,
+      themeMode: ThemeMode.dark,
+      child: ManifestViewerScreen(
+        controller: controller,
+        applicationName: 'payments-api',
+        namespace: 'payments',
+        resourceName: 'payments-api',
+        kind: 'Deployment',
+        group: 'apps',
+        version: 'v1',
+      ),
+    );
+
+    await screenMatchesGolden(tester, 'manifest_viewer_dark');
+  });
 }
 
 Future<AppController> _createGoldenController() {

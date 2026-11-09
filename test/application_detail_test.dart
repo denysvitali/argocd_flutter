@@ -76,9 +76,10 @@ void main() {
     expect(find.text('Resources'), findsOneWidget);
     expect(find.text('History'), findsOneWidget);
 
-    // Overview tab content is visible by default
-    expect(find.text('HEALTH'), findsOneWidget);
-    expect(find.text('Source'), findsOneWidget);
+    // Overview tab content is visible by default (grouped-list rows with
+    // small uppercase section headers).
+    expect(find.text('Health'), findsOneWidget);
+    expect(find.text('SOURCE'), findsOneWidget);
   });
 
   testWidgets('switches to resources tab', (WidgetTester tester) async {
@@ -94,8 +95,8 @@ void main() {
     await tester.tap(find.text('Resources'));
     await tester.pumpAndSettle();
 
-    // Resource cards should be visible
-    expect(find.text('Deployment'), findsWidgets);
+    // Resource groups should be visible (kind title + muted count)
+    expect(find.textContaining('Deployment'), findsWidgets);
     expect(find.text('my-deploy'), findsOneWidget);
   });
 

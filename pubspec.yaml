@@ -30,17 +30,27 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   fonts:
-    - family: SpaceGrotesk
+    # Inter / Inter Display (SIL OFL 1.1, see assets/fonts/Inter-LICENSE.txt)
+    - family: Inter
       fonts:
-        - asset: assets/fonts/SpaceGrotesk-Regular.ttf
+        - asset: assets/fonts/Inter-Regular.ttf
           weight: 400
-        - asset: assets/fonts/SpaceGrotesk-Bold.ttf
-          weight: 700
-    - family: DMSans
-      fonts:
-        - asset: assets/fonts/DMSans-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/DMSans-SemiBold.ttf
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
           weight: 600
-        - asset: assets/fonts/DMSans-Bold.ttf
+        - asset: assets/fonts/Inter-Bold.ttf
           weight: 700
+    - family: InterDisplay
+      fonts:
+        - asset: assets/fonts/InterDisplay-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/InterDisplay-Bold.ttf
+          weight: 700
+    # JetBrains Mono (SIL OFL 1.1, see assets/fonts/JetBrainsMono-LICENSE.txt)
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/JetBrainsMono-Medium.ttf
+          weight: 500

@@ -13,6 +13,20 @@ enum _DiffViewMode { unified, sideBySide }
 
 enum _SourceSyntax { yaml, json, text }
 
+/// Code metrics shared by every diff line.
+const double _kCodeFontSize = 12.5;
+const double _kCodeLineHeight = 1.55;
+const double _kLineNumberWidth = 40;
+const double _kPrefixWidth = 20;
+const double _kCodePadding = 12;
+
+TextStyle _codeStyle(ThemeData theme) => TextStyle(
+  fontFamily: AppFonts.mono,
+  fontSize: _kCodeFontSize,
+  height: _kCodeLineHeight,
+  color: theme.colorScheme.onSurface,
+);
+
 class AppDiffScreen extends StatefulWidget {
   const AppDiffScreen({
     super.key,
@@ -42,24 +56,30 @@ class _AppDiffScreenState extends State<AppDiffScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final narrow = MediaQuery.sizeOf(context).width < 640;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Diff: ${widget.applicationName}',
-          style: theme.textTheme.titleMedium,
-        ),
+        title: Text('Diff: ${widget.applicationName}'),
+        actions: <Widget>[
+          IconButton(
+            tooltip: 'Refresh',
+            onPressed: _refresh,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+          const SizedBox(width: 4),
+        ],
         bottom: PreferredSize(
-          preferredSize: Size.fromHeight(narrow ? 92 : 60),
+          preferredSize: Size.fromHeight(narrow ? 96 : 54),
           child: _DiffCommandBar(
+            narrow: narrow,
             viewMode: _viewMode,
             ignoreWhitespace: _ignoreWhitespace,
             hideManagedFields: _hideManagedFields,
-            onToggleMode: _toggleMode,
+            onModeChanged: _setMode,
             onToggleWhitespace: _toggleWhitespace,
             onToggleManagedFields: _toggleManagedFields,
-            onRefresh: _refresh,
           ),
         ),
       ),
@@ -67,28 +87,22 @@ class _AppDiffScreenState extends State<AppDiffScreen> {
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            );
           }
           if (snapshot.hasError) {
             return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(snapshot.error.toString()),
-                    const SizedBox(height: 16),
-                    OutlinedButton(
-                      onPressed: () {
-                        setState(() {
-                          _future = widget.controller.fetchManagedResources(
-                            widget.applicationName,
-                          );
-                        });
-                      },
-                      child: const Text('Retry'),
-                    ),
-                  ],
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: EmptyStateCard(
+                  icon: Icons.error_outline_rounded,
+                  title: 'Couldn’t Load Diff',
+                  subtitle: snapshot.error.toString(),
+                  action: OutlinedButton(
+                    onPressed: _refresh,
+                    child: const Text('Retry'),
+                  ),
                 ),
               ),
             );
@@ -100,9 +114,9 @@ class _AppDiffScreenState extends State<AppDiffScreen> {
           if (diffResources.isEmpty) {
             return const Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: EdgeInsets.all(16),
                 child: EmptyStateCard(
-                  icon: Icons.check_circle_outline,
+                  icon: Icons.check_circle_outline_rounded,
                   title: 'In Sync',
                   subtitle: 'All resources match their desired state.',
                 ),
@@ -110,51 +124,47 @@ class _AppDiffScreenState extends State<AppDiffScreen> {
             );
           }
 
-          return Column(
-            children: <Widget>[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                color: theme.colorScheme.surfaceContainerHighest.withValues(
-                  alpha: theme.brightness == Brightness.dark ? 0.35 : 0.55,
-                ),
-                child: Text(
-                  '${diffResources.length} resources with drift',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: theme.colorScheme.onSurfaceVariant,
+          final count = diffResources.length;
+          return ListView.builder(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              12,
+              16,
+              32 + MediaQuery.paddingOf(context).bottom,
+            ),
+            itemCount: count + 1,
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
+                  child: Text(
+                    '$count ${count == 1 ? 'resource' : 'resources'} with drift'
+                    ' · desired → live',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
+                );
+              }
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: _ResourceDiffCard(
+                  resource: diffResources[index - 1],
+                  hideManagedFields: _hideManagedFields,
+                  ignoreWhitespace: _ignoreWhitespace,
+                  viewMode: _viewMode,
                 ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(14),
-                  itemCount: diffResources.length,
-                  itemBuilder: (context, index) {
-                    return _ResourceDiffCard(
-                      resource: diffResources[index],
-                      hideManagedFields: _hideManagedFields,
-                      ignoreWhitespace: _ignoreWhitespace,
-                      viewMode: _viewMode,
-                    );
-                  },
-                ),
-              ),
-            ],
+              );
+            },
           );
         },
       ),
     );
   }
 
-  void _toggleMode() {
+  void _setMode(_DiffViewMode mode) {
     setState(() {
-      _viewMode = _viewMode == _DiffViewMode.unified
-          ? _DiffViewMode.sideBySide
-          : _DiffViewMode.unified;
+      _viewMode = mode;
     });
   }
 
@@ -179,84 +189,143 @@ class _AppDiffScreenState extends State<AppDiffScreen> {
 
 class _DiffCommandBar extends StatelessWidget {
   const _DiffCommandBar({
+    required this.narrow,
     required this.viewMode,
     required this.ignoreWhitespace,
     required this.hideManagedFields,
-    required this.onToggleMode,
+    required this.onModeChanged,
     required this.onToggleWhitespace,
     required this.onToggleManagedFields,
-    required this.onRefresh,
   });
 
+  final bool narrow;
   final _DiffViewMode viewMode;
   final bool ignoreWhitespace;
   final bool hideManagedFields;
-  final VoidCallback onToggleMode;
+  final ValueChanged<_DiffViewMode> onModeChanged;
   final VoidCallback onToggleWhitespace;
   final VoidCallback onToggleManagedFields;
-  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final modeControl = _ModeControl(value: viewMode, onChanged: onModeChanged);
+    final filters = <Widget>[
+      Tooltip(
+        message: ignoreWhitespace ? 'Compare whitespace' : 'Ignore whitespace',
+        child: FilterChip(
+          label: const Text('Ignore whitespace'),
+          selected: ignoreWhitespace,
+          onSelected: (_) => onToggleWhitespace(),
+        ),
+      ),
+      const SizedBox(width: 8),
+      Tooltip(
+        message: hideManagedFields
+            ? 'Show managed fields'
+            : 'Hide managed fields',
+        child: FilterChip(
+          label: const Text('Hide managed fields'),
+          selected: hideManagedFields,
+          onSelected: (_) => onToggleManagedFields(),
+        ),
+      ),
+    ];
+
+    if (narrow) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            modeControl,
+            const SizedBox(height: 10),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: filters),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+      child: Row(
+        children: <Widget>[
+          SizedBox(width: 240, child: modeControl),
+          const Spacer(),
+          ...filters,
+        ],
+      ),
+    );
+  }
+}
+
+/// iOS segmented control: a raised thumb on a neutral track.
+class _ModeControl extends StatelessWidget {
+  const _ModeControl({required this.value, required this.onChanged});
+
+  final _DiffViewMode value;
+  final ValueChanged<_DiffViewMode> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    Widget segment(_DiffViewMode mode, String label) {
+      final selected = mode == value;
+      return Expanded(
+        child: Semantics(
+          button: true,
+          selected: selected,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => onChanged(mode),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: selected
+                    ? (isDark ? const Color(0xFF636366) : Colors.white)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(7),
+                boxShadow: selected && !isDark
+                    ? <BoxShadow>[
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.10),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Text(
+                label,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontSize: 13,
+                  color: scheme.onSurface,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
+      height: 32,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: AppColors.fill(theme),
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Row(
         children: <Widget>[
-          SegmentedButton<_DiffViewMode>(
-            segments: const <ButtonSegment<_DiffViewMode>>[
-              ButtonSegment<_DiffViewMode>(
-                value: _DiffViewMode.unified,
-                icon: Icon(Icons.subject),
-                label: Text('Unified'),
-              ),
-              ButtonSegment<_DiffViewMode>(
-                value: _DiffViewMode.sideBySide,
-                icon: Icon(Icons.view_week),
-                label: Text('Split'),
-              ),
-            ],
-            selected: <_DiffViewMode>{viewMode},
-            onSelectionChanged: (_) => onToggleMode(),
-            style: ButtonStyle(
-              visualDensity: VisualDensity.compact,
-              textStyle: WidgetStatePropertyAll(theme.textTheme.labelMedium),
-            ),
-          ),
-          Tooltip(
-            message: ignoreWhitespace
-                ? 'Compare whitespace'
-                : 'Ignore whitespace',
-            child: FilterChip(
-              avatar: const Icon(Icons.format_line_spacing, size: 16),
-              label: const Text('Whitespace'),
-              selected: ignoreWhitespace,
-              onSelected: (_) => onToggleWhitespace(),
-            ),
-          ),
-          Tooltip(
-            message: hideManagedFields
-                ? 'Show managed fields'
-                : 'Hide managed fields',
-            child: FilterChip(
-              avatar: Icon(
-                hideManagedFields ? Icons.visibility_off : Icons.visibility,
-                size: 16,
-              ),
-              label: const Text('Managed fields'),
-              selected: hideManagedFields,
-              onSelected: (_) => onToggleManagedFields(),
-            ),
-          ),
-          IconButton.filledTonal(
-            tooltip: 'Refresh',
-            onPressed: onRefresh,
-            icon: const Icon(Icons.refresh),
-          ),
+          segment(_DiffViewMode.unified, 'Unified'),
+          segment(_DiffViewMode.sideBySide, 'Split'),
         ],
       ),
     );
@@ -279,8 +348,7 @@ class _ResourceDiffCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final kindColor = colorForResourceKind(resource.kind);
-    final kindIcon = iconForResourceKind(resource.kind);
+    final scheme = theme.colorScheme;
     final targetYaml = _formatManifest(
       resource.targetState!,
       hideManagedFields,
@@ -304,72 +372,75 @@ class _ResourceDiffCard extends StatelessWidget {
       liveLines,
       ignoreWhitespace: ignoreWhitespace,
     );
+    final maxChars = <String>[
+      ...targetLines,
+      ...liveLines,
+    ].fold<int>(0, (max, line) => line.length > max ? line.length : max);
+    final title = resource.namespace.isEmpty
+        ? resource.name
+        : '${resource.namespace}/${resource.name}';
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: AppRadius.md,
-          border: Border.all(color: theme.dividerColor),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: theme.colorScheme.shadow.withValues(alpha: 0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Container(
-              padding: const EdgeInsets.all(12),
-              color: kindColor.withValues(alpha: 0.06),
-              child: Row(
-                children: <Widget>[
-                  Icon(kindIcon, color: kindColor, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    resource.kind,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: kindColor,
-                      fontWeight: FontWeight.w600,
-                    ),
+    return Material(
+      color: scheme.surfaceContainerLow,
+      borderRadius: AppRadius.md,
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: Row(
+              children: <Widget>[
+                ExcludeSemantics(
+                  child: Icon(
+                    iconForResourceKind(resource.kind),
+                    size: 20,
+                    color: scheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '${resource.namespace}/${resource.name}',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        resource.kind,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                      const SizedBox(height: 1),
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium,
+                      ),
+                    ],
                   ),
-                  _DiffStats(stats: stats),
-                ],
-              ),
+                ),
+                const SizedBox(width: 12),
+                _DiffStats(stats: stats),
+              ],
             ),
-            Container(
-              color: theme.colorScheme.surfaceContainerLowest,
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: stats.hasChanges
-                  ? _DiffBody(
-                      sections: sections,
-                      sideBySideSections: sideBySideSections,
-                      viewMode: viewMode,
-                    )
-                  : const _NoVisibleDiff(),
-            ),
-          ],
-        ),
+          ),
+          Divider(height: 0.5, color: scheme.outlineVariant),
+          if (stats.hasChanges)
+            _DiffBody(
+              sections: sections,
+              sideBySideSections: sideBySideSections,
+              viewMode: viewMode,
+              maxChars: maxChars,
+            )
+          else
+            const _NoVisibleDiff(),
+        ],
       ),
     );
   }
 }
 
+/// GitHub-style change summary: "+3 −2" plus a five-block ratio bar.
 class _DiffStats extends StatelessWidget {
   const _DiffStats({required this.stats});
 
@@ -378,37 +449,51 @@ class _DiffStats extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        if (stats.changed > 0)
-          Text(
-            '~${stats.changed}',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        if (stats.changed > 0 && (stats.added > 0 || stats.removed > 0))
-          const SizedBox(width: 6),
-        if (stats.added > 0)
-          Text(
-            '+${stats.added}',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: AppColors.teal,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        if (stats.added > 0 && stats.removed > 0) const SizedBox(width: 6),
-        if (stats.removed > 0)
-          Text(
-            '-${stats.removed}',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: AppColors.coral,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-      ],
+    final added = stats.added + stats.changed;
+    final removed = stats.removed + stats.changed;
+    final total = added + removed;
+    final addFg = AppColors.statusForeground(theme, AppColors.healthy);
+    final removeFg = AppColors.statusForeground(theme, AppColors.degraded);
+    final style = theme.textTheme.labelMedium?.copyWith(
+      fontFamily: AppFonts.mono,
+      fontWeight: FontWeight.w600,
+      fontFeatures: AppFonts.tabularFigures,
+    );
+
+    var addBlocks = total == 0 ? 0 : (added / total * 5).round();
+    if (added > 0 && addBlocks == 0) addBlocks = 1;
+    if (removed > 0 && addBlocks == 5) addBlocks = 4;
+    final removeBlocks = total == 0 ? 0 : 5 - addBlocks;
+
+    return Semantics(
+      label: '$added additions, $removed deletions',
+      child: ExcludeSemantics(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            if (added > 0)
+              Text('+$added', style: style?.copyWith(color: addFg)),
+            if (added > 0 && removed > 0) const SizedBox(width: 6),
+            if (removed > 0)
+              Text('−$removed', style: style?.copyWith(color: removeFg)),
+            const SizedBox(width: 8),
+            for (var i = 0; i < 5; i++)
+              Container(
+                width: 7,
+                height: 7,
+                margin: const EdgeInsets.only(left: 2),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(1.5),
+                  color: i < addBlocks
+                      ? AppColors.healthy
+                      : i < addBlocks + removeBlocks
+                      ? AppColors.degraded
+                      : AppColors.fill(theme),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -418,44 +503,95 @@ class _DiffBody extends StatelessWidget {
     required this.sections,
     required this.sideBySideSections,
     required this.viewMode,
+    required this.maxChars,
   });
 
   final List<DiffSection> sections;
   final List<DiffSideBySideSection> sideBySideSections;
   final _DiffViewMode viewMode;
+  final int maxChars;
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: viewMode == _DiffViewMode.sideBySide
-            ? _buildSideBySideChildren()
-            : _buildUnifiedChildren(),
-      ),
+    final theme = Theme.of(context);
+    final charWidth = _monoCharWidth(_codeStyle(theme));
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final available = constraints.maxWidth;
+        final sideBySide = viewMode == _DiffViewMode.sideBySide;
+        final textWidth = maxChars * charWidth + _kCodePadding * 2;
+        final double contentWidth;
+        final double cellWidth;
+        if (sideBySide) {
+          cellWidth = _max(
+            available / 2,
+            _kLineNumberWidth + _kPrefixWidth + textWidth,
+          );
+          contentWidth = cellWidth * 2;
+        } else {
+          cellWidth = 0;
+          contentWidth = _max(
+            available,
+            _kLineNumberWidth * 2 + _kPrefixWidth + textWidth,
+          );
+        }
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: SizedBox(
+              width: contentWidth,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: sideBySide
+                    ? <Widget>[
+                        for (final section in sideBySideSections)
+                          if (section.isCollapsed)
+                            _CollapsedSection(count: section.collapsedCount)
+                          else
+                            for (final row in section.rows)
+                              _SideBySideRow(row: row, cellWidth: cellWidth),
+                      ]
+                    : <Widget>[
+                        for (final section in sections)
+                          if (section.isCollapsed)
+                            _CollapsedSection(count: section.collapsedCount)
+                          else
+                            for (final line in section.lines)
+                              _DiffLineWidget(line: line),
+                      ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
+}
 
-  List<Widget> _buildUnifiedChildren() {
-    return <Widget>[
-      for (final section in sections)
-        if (section.isCollapsed)
-          _CollapsedSection(count: section.collapsedCount)
-        else
-          for (final line in section.lines) _DiffLineWidget(line: line),
-    ];
-  }
+double _max(double a, double b) => a > b ? a : b;
 
-  List<Widget> _buildSideBySideChildren() {
-    return <Widget>[
-      for (final section in sideBySideSections)
-        if (section.isCollapsed)
-          _CollapsedSection(count: section.collapsedCount, width: 1440)
-        else
-          for (final row in section.rows) _SideBySideRow(row: row),
-    ];
-  }
+/// A lighter version of [AppColors.fill] for bands inside code blocks.
+Color _softFill(ThemeData theme) {
+  final fill = AppColors.fill(theme);
+  return fill.withValues(alpha: fill.a * 0.6);
+}
+
+final Map<String, double> _charWidthCache = <String, double>{};
+
+double _monoCharWidth(TextStyle style) {
+  final key = '${style.fontFamily}/${style.fontSize}';
+  return _charWidthCache.putIfAbsent(key, () {
+    final painter = TextPainter(
+      text: TextSpan(text: 'MMMMMMMMMM', style: style),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final width = painter.width / 10;
+    painter.dispose();
+    return width;
+  });
 }
 
 class _NoVisibleDiff extends StatelessWidget {
@@ -477,36 +613,67 @@ class _NoVisibleDiff extends StatelessWidget {
 }
 
 class _CollapsedSection extends StatelessWidget {
-  const _CollapsedSection({required this.count, this.width = 2000});
+  const _CollapsedSection({required this.count});
 
   final int count;
-  final double width;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final muted = AppColors.tertiaryLabel(theme);
     return Container(
-      width: width,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        border: Border.symmetric(
-          horizontal: BorderSide(
-            color: theme.dividerColor.withValues(alpha: 0.5),
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      color: _softFill(theme),
+      child: Row(
+        children: <Widget>[
+          SizedBox(
+            width: _kLineNumberWidth * 2,
+            child: Icon(Icons.unfold_more_rounded, size: 16, color: muted),
           ),
-        ),
-      ),
-      child: Text(
-        '\u2022\u2022\u2022 $count unchanged lines \u2022\u2022\u2022',
-        textAlign: TextAlign.center,
-        style: theme.textTheme.bodySmall?.copyWith(
-          fontFamily: 'monospace',
-          color: theme.colorScheme.onSurfaceVariant,
-          fontStyle: FontStyle.italic,
-        ),
+          const SizedBox(width: _kPrefixWidth),
+          Text(
+            '$count unchanged ${count == 1 ? 'line' : 'lines'}',
+            style: theme.textTheme.labelMedium?.copyWith(color: muted),
+          ),
+        ],
       ),
     );
   }
+}
+
+/// Background / gutter / glyph colors for a diff line.
+class _LineColors {
+  const _LineColors({
+    required this.background,
+    required this.gutter,
+    required this.prefix,
+  });
+
+  factory _LineColors.of(ThemeData theme, DiffLineKind? kind) {
+    final hue = switch (kind) {
+      DiffLineKind.added => AppColors.healthy,
+      DiffLineKind.removed => AppColors.degraded,
+      _ => null,
+    };
+    if (hue == null) {
+      return _LineColors(
+        background: Colors.transparent,
+        gutter: Colors.transparent,
+        prefix: AppColors.tertiaryLabel(theme),
+      );
+    }
+    final tint = AppColors.statusTint(theme, hue);
+    return _LineColors(
+      background: tint,
+      gutter: tint,
+      prefix: AppColors.statusForeground(theme, hue),
+    );
+  }
+
+  final Color background;
+  final Color gutter;
+  final Color prefix;
 }
 
 class _DiffLineWidget extends StatelessWidget {
@@ -517,55 +684,45 @@ class _DiffLineWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final Color backgroundColor;
-    final Color textColor;
+    final colors = _LineColors.of(theme, line.kind);
+    final style = _codeStyle(theme);
 
-    switch (line.kind) {
-      case DiffLineKind.added:
-        backgroundColor = AppColors.teal.withValues(alpha: 0.10);
-        textColor = AppColors.teal;
-      case DiffLineKind.removed:
-        backgroundColor = AppColors.coral.withValues(alpha: 0.10);
-        textColor = AppColors.coral;
-      case DiffLineKind.unchanged:
-        backgroundColor = Colors.transparent;
-        textColor = theme.colorScheme.onSurface.withValues(alpha: 0.6);
-    }
-
-    return Container(
-      width: 2000,
-      color: backgroundColor,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+    return ColoredBox(
+      color: colors.background,
       child: Row(
         children: <Widget>[
-          _LineNumber(value: line.oldLineNumber),
-          _LineNumber(value: line.newLineNumber),
-          SizedBox(
-            width: 24,
-            child: Text(
-              line.prefix,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontFamily: 'monospace',
-                color: textColor,
-                height: 1.5,
-              ),
+          ColoredBox(
+            color: colors.gutter,
+            child: Row(
+              children: <Widget>[
+                _LineNumber(value: line.oldLineNumber),
+                _LineNumber(value: line.newLineNumber),
+              ],
             ),
           ),
-          Text.rich(
-            TextSpan(
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontFamily: 'monospace',
-                color: textColor,
-                height: 1.5,
-              ),
-              children: <TextSpan>[
-                ..._buildSourceLineSpans(
-                  line.text,
-                  _sourceSyntaxForDiffLine(line.text),
-                  fallbackColor: textColor,
-                  isDark: theme.brightness == Brightness.dark,
+          SizedBox(
+            width: _kPrefixWidth,
+            child: Text(
+              line.prefix,
+              textAlign: TextAlign.center,
+              style: style.copyWith(color: colors.prefix),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(right: _kCodePadding),
+              child: Text.rich(
+                TextSpan(
+                  style: style,
+                  children: _buildSourceLineSpans(
+                    line.text,
+                    _sourceSyntaxForDiffLine(line.text),
+                    fallbackColor: theme.colorScheme.onSurface,
+                    brightness: theme.brightness,
+                  ),
                 ),
-              ],
+                softWrap: false,
+              ),
             ),
           ),
         ],
@@ -575,17 +732,29 @@ class _DiffLineWidget extends StatelessWidget {
 }
 
 class _SideBySideRow extends StatelessWidget {
-  const _SideBySideRow({required this.row});
+  const _SideBySideRow({required this.row, required this.cellWidth});
 
   final DiffSideBySideRow row;
+  final double cellWidth;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        _SideBySideCell(line: row.oldLine, isOldSide: true),
-        _SideBySideCell(line: row.newLine, isOldSide: false),
-      ],
+    final scheme = Theme.of(context).colorScheme;
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          SizedBox(
+            width: cellWidth,
+            child: _SideBySideCell(line: row.oldLine, isOldSide: true),
+          ),
+          VerticalDivider(width: 0.5, color: scheme.outlineVariant),
+          SizedBox(
+            width: cellWidth - 0.5,
+            child: _SideBySideCell(line: row.newLine, isOldSide: false),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -599,65 +768,41 @@ class _SideBySideCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isChanged = line != null && line!.kind != DiffLineKind.unchanged;
-    final backgroundColor = line == null
-        ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35)
-        : switch (line!.kind) {
-            DiffLineKind.added => AppColors.teal.withValues(alpha: 0.10),
-            DiffLineKind.removed => AppColors.coral.withValues(alpha: 0.10),
-            DiffLineKind.unchanged => Colors.transparent,
-          };
-    final textColor = line == null
-        ? theme.colorScheme.onSurfaceVariant
-        : switch (line!.kind) {
-            DiffLineKind.added => AppColors.teal,
-            DiffLineKind.removed => AppColors.coral,
-            DiffLineKind.unchanged => theme.colorScheme.onSurface.withValues(
-              alpha: 0.65,
-            ),
-          };
+    final colors = _LineColors.of(theme, line?.kind);
+    final style = _codeStyle(theme);
+    final background = line == null ? _softFill(theme) : colors.background;
 
-    return Container(
-      width: 720,
-      color: backgroundColor,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+    return ColoredBox(
+      color: background,
       child: Row(
         children: <Widget>[
-          _LineNumber(
-            value: isOldSide ? line?.oldLineNumber : line?.newLineNumber,
+          ColoredBox(
+            color: line == null ? Colors.transparent : colors.gutter,
+            child: _LineNumber(
+              value: isOldSide ? line?.oldLineNumber : line?.newLineNumber,
+            ),
           ),
           SizedBox(
-            width: 24,
+            width: _kPrefixWidth,
             child: Text(
               line?.prefix ?? ' ',
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontFamily: 'monospace',
-                color: textColor,
-                fontWeight: isChanged ? FontWeight.w600 : null,
-                height: 1.5,
-              ),
+              textAlign: TextAlign.center,
+              style: style.copyWith(color: colors.prefix),
             ),
           ),
           Expanded(
             child: Text.rich(
               TextSpan(
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontFamily: 'monospace',
-                  color: textColor,
-                  fontWeight: isChanged ? FontWeight.w600 : null,
-                  height: 1.5,
+                style: style,
+                children: _buildSourceLineSpans(
+                  line?.text ?? '',
+                  _sourceSyntaxForDiffLine(line?.text ?? ''),
+                  fallbackColor: theme.colorScheme.onSurface,
+                  brightness: theme.brightness,
                 ),
-                children: <TextSpan>[
-                  ..._buildSourceLineSpans(
-                    line?.text ?? '',
-                    _sourceSyntaxForDiffLine(line?.text ?? ''),
-                    fallbackColor: textColor,
-                    isDark: theme.brightness == Brightness.dark,
-                  ),
-                ],
               ),
-              overflow: TextOverflow.visible,
               softWrap: false,
+              overflow: TextOverflow.clip,
             ),
           ),
         ],
@@ -675,14 +820,15 @@ class _LineNumber extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return SizedBox(
-      width: 48,
-      child: Text(
-        value?.toString() ?? '',
-        textAlign: TextAlign.right,
-        style: theme.textTheme.bodySmall?.copyWith(
-          fontFamily: 'monospace',
-          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-          height: 1.5,
+      width: _kLineNumberWidth,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 6),
+        child: Text(
+          value?.toString() ?? '',
+          textAlign: TextAlign.right,
+          style: _codeStyle(
+            theme,
+          ).copyWith(fontSize: 11.5, color: AppColors.tertiaryLabel(theme)),
         ),
       ),
     );
@@ -697,7 +843,7 @@ List<TextSpan> _buildSourceLineSpans(
   String line,
   _SourceSyntax syntax, {
   required Color fallbackColor,
-  required bool isDark,
+  required Brightness brightness,
 }) {
   return <TextSpan>[
     for (final token in _tokenizeSourceLine(line, syntax))
@@ -707,7 +853,7 @@ List<TextSpan> _buildSourceLineSpans(
           color: _sourceTokenColor(
             token,
             baseColor: fallbackColor,
-            isDark: isDark,
+            brightness: brightness,
           ),
         ),
       ),
@@ -718,7 +864,7 @@ List<_SourceToken> _tokenizeSourceLine(String line, _SourceSyntax syntax) {
   return switch (syntax) {
     _SourceSyntax.yaml =>
       tokenizeYamlLine(line)
-          .map((_token) => _SourceToken(_token.text, _token.type?.name))
+          .map((token) => _SourceToken(token.text, token.type?.name))
           .toList(growable: false),
     _SourceSyntax.json => _tokenizeJsonLine(line),
     _SourceSyntax.text => <_SourceToken>[_SourceToken(line, null)],
@@ -784,23 +930,25 @@ String? _jsonTokenType(String tokenText, String restOfLine) {
 Color _sourceTokenColor(
   _SourceToken token, {
   required Color baseColor,
-  required bool isDark,
+  required Brightness brightness,
 }) {
-  return switch (token.type) {
-    'key' => AppColors.yamlKey,
-    'stringValue' => AppColors.yamlString,
-    'numberValue' => AppColors.yamlNumber,
-    'boolNullValue' => AppColors.yamlNumber,
-    'listDash' => AppColors.yamlKey,
-    'comment' => AppColors.yamlComment,
-    'jsonKey' => AppColors.yamlString,
-    'jsonString' => AppColors.yamlString,
-    'jsonNumber' => AppColors.yamlNumber,
-    'jsonLiteral' => AppColors.yamlKey,
-    'jsonPunctuation' => AppColors.yamlPunctuation,
-    null => isDark ? baseColor : baseColor.withValues(alpha: 0.92),
-    _ => baseColor,
+  final YamlTokenType? yamlType = switch (token.type) {
+    'key' || 'listDash' || 'jsonLiteral' => YamlTokenType.key,
+    'stringValue' || 'jsonKey' || 'jsonString' => YamlTokenType.stringValue,
+    'numberValue' ||
+    'boolNullValue' ||
+    'jsonNumber' => YamlTokenType.numberValue,
+    'comment' => YamlTokenType.comment,
+    _ => null,
   };
+  if (yamlType == null) {
+    // Punctuation and plain text use the neutral palette entry; anything
+    // unrecognised keeps the line's base color.
+    return token.type == 'jsonPunctuation'
+        ? yamlTokenColorFor(null, brightness)
+        : baseColor;
+  }
+  return yamlTokenColorFor(yamlType, brightness);
 }
 
 class _SourceToken {

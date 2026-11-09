@@ -1,3 +1,4 @@
+import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/models/argo_project.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
@@ -60,28 +61,36 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     );
   }
 
+  Widget _refreshButton() {
+    return IconButton(
+      tooltip: 'Refresh',
+      onPressed: _refresh,
+      icon: const Icon(Icons.refresh_rounded),
+    );
+  }
+
   Widget _buildLoadingScaffold() {
+    final theme = Theme.of(context);
     return CustomScrollView(
       slivers: <Widget>[
         SliverAppBar(
           title: Text(widget.projectName),
           pinned: true,
-          actions: <Widget>[
-            IconButton(
-              tooltip: 'Refresh',
-              onPressed: _refresh,
-              icon: const Icon(Icons.refresh),
-            ),
-          ],
+          actions: <Widget>[_refreshButton()],
         ),
-        const SliverFillRemaining(
+        SliverFillRemaining(
           child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Loading project details...'),
+                const CircularProgressIndicator(strokeWidth: 2.5),
+                const SizedBox(height: 16),
+                Text(
+                  'Loading project details...',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),
@@ -96,13 +105,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         SliverAppBar(
           title: Text(widget.projectName),
           pinned: true,
-          actions: <Widget>[
-            IconButton(
-              tooltip: 'Refresh',
-              onPressed: _refresh,
-              icon: const Icon(Icons.refresh),
-            ),
-          ],
+          actions: <Widget>[_refreshButton()],
         ),
         SliverFillRemaining(
           child: Center(
@@ -117,45 +120,81 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   }
 
   Widget _buildContent(ArgoProject project) {
+    final theme = Theme.of(context);
+    final applications = widget.controller.applications
+        .where((application) => application.project == project.name)
+        .toList(growable: false);
+
     return NestedScrollView(
       headerSliverBuilder: (context, innerBoxIsScrolled) {
         return <Widget>[
           SliverAppBar(
-            title: Text(widget.projectName),
+            title: innerBoxIsScrolled ? Text(widget.projectName) : null,
             pinned: true,
-            floating: true,
-            actions: <Widget>[
-              IconButton(
-                tooltip: 'Refresh',
-                onPressed: _refresh,
-                icon: const Icon(Icons.refresh),
-              ),
-            ],
+            actions: <Widget>[_refreshButton()],
           ),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-              child: _HeaderBanner(project: project),
+              child: _Hero(project: project),
             ),
           ),
           SliverPersistentHeader(
             pinned: true,
-            delegate: _TabBarDelegate(
-              tabBar: TabBar(
-                controller: _tabController,
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                tabs: <Widget>[
-                  const Tab(text: 'Overview'),
-                  Tab(text: 'Sources (${project.sourceRepos.length})'),
-                  Tab(text: 'Destinations (${project.destinations.length})'),
-                  Tab(
-                    text:
-                        'Permissions (${project.clusterResourceWhitelist.length})',
+            delegate: _SegmentedHeaderDelegate(
+              color: theme.scaffoldBackgroundColor,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: Container(
+                    height: 36,
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: AppColors.fill(theme),
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Equal-width segments when there is room; on phones the
+                        // labels are sized to content so all four fit.
+                        final roomy = constraints.maxWidth >= 480;
+                        final labelStyle = theme.tabBarTheme.labelStyle
+                            ?.copyWith(fontSize: roomy ? 13 : 12);
+                        return TabBar(
+                          controller: _tabController,
+                          isScrollable: !roomy,
+                          tabAlignment: roomy
+                              ? TabAlignment.fill
+                              : TabAlignment.start,
+                          labelPadding: EdgeInsets.symmetric(
+                            horizontal: roomy ? 8 : 6,
+                          ),
+                          labelStyle: labelStyle,
+                          unselectedLabelStyle: theme
+                              .tabBarTheme
+                              .unselectedLabelStyle
+                              ?.copyWith(fontSize: roomy ? 13 : 12),
+                          tabs: <Widget>[
+                            const Tab(text: 'Overview'),
+                            Tab(
+                              text: 'Sources (${project.sourceRepos.length})',
+                            ),
+                            Tab(
+                              text:
+                                  'Destinations (${project.destinations.length})',
+                            ),
+                            Tab(
+                              text:
+                                  'Permissions (${project.clusterResourceWhitelist.length})',
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                   ),
-                ],
+                ),
               ),
-              color: Theme.of(context).scaffoldBackgroundColor,
             ),
           ),
         ];
@@ -163,7 +202,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
       body: TabBarView(
         controller: _tabController,
         children: <Widget>[
-          _OverviewTab(project: project),
+          _OverviewTab(project: project, applications: applications),
           _SourcesTab(sourceRepos: project.sourceRepos),
           _DestinationsTab(destinations: project.destinations),
           _PermissionsTab(resources: project.clusterResourceWhitelist),
@@ -179,17 +218,20 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   }
 }
 
-class _TabBarDelegate extends SliverPersistentHeaderDelegate {
-  const _TabBarDelegate({required this.tabBar, required this.color});
+/// Pins the segmented control below the app bar on the page background.
+class _SegmentedHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _SegmentedHeaderDelegate({required this.child, required this.color});
 
-  final TabBar tabBar;
+  static const double _height = 36 + 4 + 12;
+
+  final Widget child;
   final Color color;
 
   @override
-  double get minExtent => tabBar.preferredSize.height;
+  double get minExtent => _height;
 
   @override
-  double get maxExtent => tabBar.preferredSize.height;
+  double get maxExtent => _height;
 
   @override
   Widget build(
@@ -197,17 +239,24 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    return Container(color: color, child: tabBar);
+    return ColoredBox(
+      color: color,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+        child: child,
+      ),
+    );
   }
 
   @override
-  bool shouldRebuild(_TabBarDelegate oldDelegate) {
-    return tabBar != oldDelegate.tabBar || color != oldDelegate.color;
+  bool shouldRebuild(_SegmentedHeaderDelegate oldDelegate) {
+    return child != oldDelegate.child || color != oldDelegate.color;
   }
 }
 
-class _HeaderBanner extends StatelessWidget {
-  const _HeaderBanner({required this.project});
+/// Entity hero: name as Title 1 with the description as a secondary line.
+class _Hero extends StatelessWidget {
+  const _Hero({required this.project});
 
   final ArgoProject project;
 
@@ -215,229 +264,194 @@ class _HeaderBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: AppRadius.md,
-        border: Border.all(color: AppColors.outline(theme)),
-        boxShadow: AppElevation.subtle(
-          AppColors.surfaceShadow(theme, alpha: 0.06),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.cobalt.withValues(alpha: 0.10),
-                  borderRadius: AppRadius.sm,
-                ),
-                child: Icon(
-                  Icons.account_tree_outlined,
-                  color: AppColors.cobalt,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  project.name,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    color: theme.colorScheme.onSurface,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (project.description.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 6),
-            Text(
-              project.description,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: AppColors.mutedText(theme),
-              ),
-            ),
-          ],
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: <Widget>[
-              _BannerChip(
-                icon: Icons.code_outlined,
-                label: '${project.sourceRepos.length} repos',
-              ),
-              _BannerChip(
-                icon: Icons.dns_outlined,
-                label: '${project.destinations.length} destinations',
-              ),
-              _BannerChip(
-                icon: Icons.shield_outlined,
-                label:
-                    '${project.clusterResourceWhitelist.length} cluster resources',
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BannerChip extends StatelessWidget {
-  const _BannerChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.headerChipBackground(theme),
-        borderRadius: AppRadius.sm,
-        border: Border.all(
-          color: AppColors.headerForeground(theme).withValues(alpha: 0.14),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(icon, size: 16, color: AppColors.headerMutedForeground(theme)),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.headerForeground(theme),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _OverviewTab extends StatelessWidget {
-  const _OverviewTab({required this.project});
-
-  final ArgoProject project;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return ListView(
-      padding: const EdgeInsets.all(14),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: AppRadius.base,
-            border: Border.all(color: theme.dividerColor),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              _SectionHeader(
-                icon: Icons.info_outline,
-                iconColor: AppColors.cobalt,
-                title: 'Project Details',
-              ),
-              const SizedBox(height: 12),
-              _DetailRow(label: 'Name', value: project.name),
-              const SizedBox(height: 8),
-              _DetailRow(
-                label: 'Description',
-                value: project.description.isNotEmpty
-                    ? project.description
-                    : 'No description',
-              ),
-            ],
+        Text(
+          'Project',
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
-        const SizedBox(height: 8),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final compact = constraints.maxWidth < 520;
-            final tiles = <Widget>[
-              SummaryTile(
-                label: 'Source Repos',
-                value: project.sourceRepos.length,
-                valueColor: AppColors.cobalt,
-              ),
-              SummaryTile(
-                label: 'Destinations',
-                value: project.destinations.length,
-                valueColor: AppColors.teal,
-              ),
-              SummaryTile(
-                label: 'Resources',
-                value: project.clusterResourceWhitelist.length,
-                valueColor: AppColors.coral,
-              ),
-            ];
-            if (compact) {
-              return Column(
-                children: <Widget>[
-                  for (var i = 0; i < tiles.length; i++) ...<Widget>[
-                    SizedBox(width: double.infinity, child: tiles[i]),
-                    if (i != tiles.length - 1) const SizedBox(height: 8),
-                  ],
-                ],
-              );
-            }
-            return Row(
-              children: <Widget>[
-                for (var i = 0; i < tiles.length; i++) ...<Widget>[
-                  Expanded(child: tiles[i]),
-                  if (i != tiles.length - 1) const SizedBox(width: 8),
-                ],
-              ],
-            );
-          },
-        ),
+        const SizedBox(height: 2),
+        Text(project.name, style: theme.textTheme.headlineMedium),
+        if (project.description.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 4),
+          Text(
+            project.description,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       ],
     );
   }
 }
 
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
+const EdgeInsets _tabPadding = EdgeInsets.fromLTRB(16, 10, 16, 32);
 
-  final String label;
-  final String value;
+class _OverviewTab extends StatelessWidget {
+  const _OverviewTab({required this.project, required this.applications});
+
+  final ArgoProject project;
+  final List<ArgoApplication> applications;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: _tabPadding,
+      children: <Widget>[
+        _StatsCard(
+          stats: <(int, String)>[
+            (project.sourceRepos.length, 'Repositories'),
+            (project.destinations.length, 'Destinations'),
+            (project.clusterResourceWhitelist.length, 'Cluster rules'),
+          ],
+        ),
+        const SizedBox(height: 28),
+        const SectionHeader(title: 'Project Details'),
+        GroupedList(
+          children: <Widget>[
+            _DetailRow(label: 'Name', value: project.name),
+            _DetailRow(
+              label: 'Description',
+              value: project.description.isNotEmpty
+                  ? project.description
+                  : 'No description',
+              stacked: true,
+            ),
+          ],
+        ),
+        if (applications.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 28),
+          GroupedList(
+            header: 'Applications (${applications.length})',
+            dividerIndent: 38,
+            children: <Widget>[
+              for (final application in applications)
+                Semantics(
+                  label:
+                      'Application: ${application.name}, '
+                      '${application.healthStatus}, ${application.syncStatus}',
+                  child: ExcludeSemantics(
+                    child: GroupedRow(
+                      leading: StatusDot(
+                        color: AppColors.healthColor(application.healthStatus),
+                      ),
+                      title: application.name,
+                      subtitle: application.namespace,
+                      value: _syncLabel(application.syncStatus),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  static String _syncLabel(String status) =>
+      status.toLowerCase() == 'outofsync' ? 'Out of sync' : status;
+}
+
+/// Compact figures row: tabular numerals over muted captions, separated by
+/// hairlines.
+class _StatsCard extends StatelessWidget {
+  const _StatsCard({required this.stats});
+
+  final List<(int, String)> stats;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLow,
+        borderRadius: AppRadius.md,
+      ),
+      child: Row(
+        children: <Widget>[
+          for (var i = 0; i < stats.length; i++) ...<Widget>[
+            if (i > 0)
+              Container(width: 0.5, height: 36, color: scheme.outlineVariant),
+            Expanded(
+              child: Semantics(
+                label: '${stats[i].$1} ${stats[i].$2}',
+                child: ExcludeSemantics(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        '${stats[i].$1}',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontFeatures: AppFonts.tabularFigures,
+                        ),
+                      ),
+                      Text(
+                        stats[i].$2,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Key/value row for a [GroupedList]. Inline (label left, muted value right)
+/// by default; [stacked] puts long values on their own line below the label.
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({
+    required this.label,
+    required this.value,
+    this.stacked = false,
+  });
+
+  final String label;
+  final String value;
+  final bool stacked;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
 
     return Semantics(
       label: '$label: $value',
       child: ExcludeSemantics(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              label,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: AppColors.grey,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(value, style: theme.textTheme.bodyLarge),
-          ],
-        ),
+        child: stacked
+            ? Padding(
+                padding: const EdgeInsets.fromLTRB(16, 11, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      label,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: muted,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(value, style: theme.textTheme.bodyLarge),
+                  ],
+                ),
+              )
+            : GroupedRow(title: label, value: value),
       ),
     );
   }
@@ -452,86 +466,41 @@ class _SourcesTab extends StatelessWidget {
   Widget build(BuildContext context) {
     if (sourceRepos.isEmpty) {
       return const _TabEmptyState(
-        icon: Icons.code_off_outlined,
+        icon: Icons.code_off_rounded,
         title: 'No source repositories',
         subtitle: 'This project has no source repositories configured.',
       );
     }
 
-    final theme = Theme.of(context);
-    final outlineColor = AppColors.outline(theme);
-    final mutedColor = AppColors.mutedText(theme);
-
-    return ListView.separated(
-      padding: const EdgeInsets.all(14),
-      itemCount: sourceRepos.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        final repo = sourceRepos[index];
-        final isWildcard = repo == '*';
-
-        return Semantics(
-          label: isWildcard
-              ? 'Source repository: All repositories (wildcard)'
-              : 'Source repository: $repo',
-          child: ExcludeSemantics(
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: AppRadius.base,
-                border: Border.all(color: outlineColor),
-              ),
-              child: Row(
-                children: <Widget>[
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.cobalt.withValues(alpha: 0.1),
-                      borderRadius: AppRadius.base,
-                    ),
-                    child: Icon(
-                      isWildcard ? Icons.all_inclusive : Icons.commit_outlined,
-                      size: 20,
-                      color: AppColors.cobalt,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          isWildcard ? 'All repositories (wildcard)' : repo,
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: AppColors.cobalt,
-                            decoration: isWildcard
-                                ? null
-                                : TextDecoration.underline,
-                            decorationColor: AppColors.cobalt.withValues(
-                              alpha: 0.4,
-                            ),
-                          ),
+    return ListView(
+      padding: _tabPadding,
+      children: <Widget>[
+        GroupedList(
+          header: 'Source repositories',
+          footer: 'Applications in this project may deploy from these sources.',
+          dividerIndent: 50,
+          children: <Widget>[
+            for (final repo in sourceRepos)
+              Semantics(
+                label: repo == '*'
+                    ? 'Source repository: All repositories (wildcard)'
+                    : 'Source repository: $repo',
+                child: ExcludeSemantics(
+                  child: repo == '*'
+                      ? const GroupedRow(
+                          leading: _RowGlyph(Icons.all_inclusive_rounded),
+                          title: 'All repositories (wildcard)',
+                          subtitle: 'Any source repository is allowed',
+                        )
+                      : GroupedRow(
+                          leading: const _RowGlyph(Icons.commit_rounded),
+                          title: repo,
                         ),
-                        if (isWildcard)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text(
-                              'Any source repository is allowed',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: mutedColor,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-        );
-      },
+          ],
+        ),
+      ],
     );
   }
 }
@@ -551,106 +520,36 @@ class _DestinationsTab extends StatelessWidget {
       );
     }
 
-    final theme = Theme.of(context);
-    final outlineColor = AppColors.outline(theme);
-    final mutedColor = AppColors.mutedText(theme);
-
-    return ListView.separated(
-      padding: const EdgeInsets.all(14),
-      itemCount: destinations.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        final destination = destinations[index];
-        final destinationSemantics = [
-          if (destination.name.isNotEmpty) destination.name,
-          destination.server,
-          if (destination.namespace.isNotEmpty) destination.namespace,
-        ].join(', ');
-
-        return Semantics(
-          label: 'Destination: $destinationSemantics',
-          child: ExcludeSemantics(
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: AppRadius.base,
-                border: Border.all(color: outlineColor),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  if (destination.name.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Row(
-                        children: <Widget>[
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: AppColors.teal.withValues(alpha: 0.1),
-                              borderRadius: AppRadius.sm,
-                            ),
-                            child: const Icon(
-                              Icons.label_outline,
-                              size: 16,
-                              color: AppColors.teal,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              destination.name,
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  Row(
-                    children: <Widget>[
-                      Icon(Icons.cloud_outlined, size: 16, color: mutedColor),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          destination.server,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: mutedColor,
-                          ),
-                        ),
-                      ),
-                    ],
+    return ListView(
+      padding: _tabPadding,
+      children: <Widget>[
+        GroupedList(
+          header: 'Destinations',
+          footer: 'Cluster and namespace pairs this project may deploy to.',
+          dividerIndent: 50,
+          children: <Widget>[
+            for (final destination in destinations)
+              Semantics(
+                label:
+                    'Destination: ${<String>[if (destination.name.isNotEmpty) destination.name, destination.server, if (destination.namespace.isNotEmpty) destination.namespace].join(', ')}',
+                child: ExcludeSemantics(
+                  child: GroupedRow(
+                    leading: const _RowGlyph(Icons.dns_rounded),
+                    title: destination.name.isNotEmpty
+                        ? destination.name
+                        : _clusterLabel(destination.server),
+                    subtitle: destination.name.isNotEmpty
+                        ? _clusterLabel(destination.server)
+                        : null,
+                    value: destination.namespace.isNotEmpty
+                        ? _scopeLabel(destination.namespace)
+                        : null,
                   ),
-                  if (destination.namespace.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Row(
-                        children: <Widget>[
-                          Icon(
-                            Icons.folder_outlined,
-                            size: 16,
-                            color: mutedColor,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              destination.namespace,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: mutedColor,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
+                ),
               ),
-            ),
-          ),
-        );
-      },
+          ],
+        ),
+      ],
     );
   }
 }
@@ -671,95 +570,66 @@ class _PermissionsTab extends StatelessWidget {
       );
     }
 
-    final theme = Theme.of(context);
-
     return ListView(
-      padding: const EdgeInsets.all(14),
+      padding: _tabPadding,
       children: <Widget>[
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: AppRadius.base,
-            border: Border.all(color: theme.dividerColor),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              _SectionHeader(
-                icon: Icons.shield_outlined,
-                iconColor: AppColors.coral,
-                title: 'Cluster Resource Whitelist',
-                count: resources.length,
+        GroupedList(
+          header: 'Cluster resource whitelist',
+          footer: resources.length == 1
+              ? '1 cluster-scoped kind may be managed by this project.'
+              : '${resources.length} cluster-scoped kinds may be managed by '
+                    'this project.',
+          dividerIndent: 50,
+          children: <Widget>[
+            for (final resource in resources)
+              Semantics(
+                label:
+                    'Cluster resource: ${_kindLabel(resource)}'
+                    '${resource.group.isNotEmpty ? ' (${resource.group})' : ''}',
+                child: ExcludeSemantics(
+                  child: GroupedRow(
+                    leading: _RowGlyph(iconForResourceKind(resource.kind)),
+                    title: _isWildcard(resource) ? 'All kinds' : resource.kind,
+                    subtitle: resource.group.isNotEmpty
+                        ? resource.group
+                        : 'core',
+                    value: _isWildcard(resource) ? '*' : null,
+                  ),
+                ),
               ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: resources
-                    .map((resource) {
-                      final kindColor = colorForResourceKind(resource.kind);
-                      final kindLabel = resource.kind.isEmpty
-                          ? '*'
-                          : resource.kind;
-                      final semanticsLabel = resource.group.isNotEmpty
-                          ? '$kindLabel (${resource.group})'
-                          : kindLabel;
-                      return Semantics(
-                        label: 'Cluster resource: $semanticsLabel',
-                        child: ExcludeSemantics(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 7,
-                            ),
-                            decoration: BoxDecoration(
-                              color: kindColor.withValues(alpha: 0.08),
-                              borderRadius: AppRadius.sm,
-                              border: Border.all(
-                                color: kindColor.withValues(alpha: 0.2),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Icon(
-                                  iconForResourceKind(resource.kind),
-                                  size: 18,
-                                  color: kindColor,
-                                ),
-                                const SizedBox(width: 8),
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    Text(
-                                      kindLabel,
-                                      style: theme.textTheme.bodyMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                    if (resource.group.isNotEmpty)
-                                      Text(
-                                        resource.group,
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(color: AppColors.grey),
-                                      ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    })
-                    .toList(growable: false),
-              ),
-            ],
-          ),
+          ],
         ),
       ],
+    );
+  }
+
+  static bool _isWildcard(ArgoProjectClusterResource resource) =>
+      resource.kind.isEmpty || resource.kind == '*';
+
+  static String _kindLabel(ArgoProjectClusterResource resource) =>
+      resource.kind.isEmpty ? '*' : resource.kind;
+}
+
+String _clusterLabel(String server) => server == '*' ? 'Any cluster' : server;
+
+String _scopeLabel(String namespace) =>
+    namespace == '*' ? 'All namespaces' : namespace;
+
+/// Muted leading glyph for list rows.
+class _RowGlyph extends StatelessWidget {
+  const _RowGlyph(this.icon);
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 20,
+      child: Icon(
+        icon,
+        size: 20,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
     );
   }
 }
@@ -778,71 +648,9 @@ class _TabEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(32),
+      padding: _tabPadding,
       children: <Widget>[
-        Center(
-          child: ExcludeSemantics(
-            child: Icon(icon, size: 56, color: AppColors.greyLight),
-          ),
-        ),
-        const SizedBox(height: 16),
-        EmptyStateCard(title: title, subtitle: subtitle),
-      ],
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    this.count,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final int? count;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Row(
-      children: <Widget>[
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: iconColor.withValues(alpha: 0.12),
-            borderRadius: AppRadius.base,
-          ),
-          child: Icon(icon, size: 20, color: iconColor),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            title,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-        if (count != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.1),
-              borderRadius: AppRadius.sm,
-            ),
-            child: Text(
-              '$count',
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: iconColor,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
+        EmptyStateCard(icon: icon, title: title, subtitle: subtitle),
       ],
     );
   }

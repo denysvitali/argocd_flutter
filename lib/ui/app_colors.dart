@@ -5,108 +5,118 @@ import 'package:flutter/material.dart';
 /// Colors are sourced directly from the ArgoCD web UI
 /// (`argo-ui/src/styles/config.scss`, `argo-ui/v2/styles/colors.scss`,
 /// and `colors.ts`).
+/// App color palette.
+///
+/// The palette follows Apple's Human Interface Guidelines: neutral grouped
+/// backgrounds, white (light) / near-black (dark) content surfaces, a single
+/// brand tint (Argo teal) and the system status hues for health/sync state.
+/// Status colors are mid-tone so they read on both light and dark surfaces;
+/// when a status color is used for *text* in light mode route it through
+/// [AppColors.statusForeground] to keep WCAG contrast.
 abstract final class AppColors {
   // ── Core neutrals ──────────────────────────────────────────────────────
 
   static const Color white = Color(0xFFFFFFFF);
 
-  /// Light-mode canvas / scaffold background.
-  static const Color canvas = Color(0xFFEAF0F4);
+  /// Light-mode grouped background (iOS systemGroupedBackground).
+  static const Color canvas = Color(0xFFF2F2F7);
 
-  /// Slightly warmer content plane used inside the app shell.
-  static const Color canvasInset = Color(0xFFF7FAFC);
+  /// Light-mode content surface (iOS secondarySystemGroupedBackground).
+  static const Color canvasInset = Color(0xFFFFFFFF);
 
-  /// Primary dark text (ArgoCD gray-7).
-  static const Color ink = Color(0xFF495763);
+  /// Primary label (light mode).
+  static const Color ink = Color(0xFF1C1C1E);
 
-  /// Darkest text / label badge text (ArgoCD gray-8).
-  static const Color inkDark = Color(0xFF363C4A);
+  /// Darkest label.
+  static const Color inkDark = Color(0xFF000000);
 
-  // ── Gray scale (ArgoCD official grays) ─────────────────────────────────
+  // ── Gray scale (iOS system grays, light appearance) ────────────────────
 
-  static const Color gray1 = Color(0xFFFAFCFD);
-  static const Color gray2 = Color(0xFFF0F4F6);
-  static const Color gray3 = Color(0xFFDEE6EB);
-  static const Color gray4 = Color(0xFFCCD6DD);
-  static const Color gray5 = Color(0xFF8FA4B1);
-  static const Color gray6 = Color(0xFF6D7F8B);
-  static const Color gray7 = Color(0xFF495763);
-  static const Color gray8 = Color(0xFF363C4A);
+  static const Color gray1 = Color(0xFFF9F9FB);
+  static const Color gray2 = Color(0xFFF2F2F7);
+  static const Color gray3 = Color(0xFFE5E5EA);
+  static const Color gray4 = Color(0xFFD1D1D6);
+  static const Color gray5 = Color(0xFFAEAEB2);
+  static const Color gray6 = Color(0xFF8E8E93);
+  static const Color gray7 = Color(0xFF636366);
+  static const Color gray8 = Color(0xFF3A3A3C);
 
   // ── Brand / accent ─────────────────────────────────────────────────────
 
-  /// ArgoCD primary interactive teal (teal-5).
-  static const Color teal = Color(0xFF00A7B7);
+  /// Brand tint (Argo teal, deepened for 4.5:1 contrast on white).
+  static const Color teal = Color(0xFF00809A);
 
-  /// Darker teal for headings / links (teal-7).
-  static const Color tealDark = Color(0xFF006F8A);
+  /// Brand tint for dark appearance (brighter for contrast on black).
+  static const Color tealBright = Color(0xFF45C4DA);
 
-  /// Light teal for backgrounds (teal-2).
-  static const Color tealLight = Color(0xFFDFF6F9);
+  /// Deep teal for pressed states / emphasis.
+  static const Color tealDark = Color(0xFF00596B);
 
-  /// Sidebar active icon / loading accent (ArgoCD orange).
+  /// Very light tint wash.
+  static const Color tealLight = Color(0xFFE3F3F6);
+
+  /// Argo orange — used sparingly (logo, secondary accent).
   static const Color orange = Color(0xFFFF6B35);
 
-  /// Secondary operational accent for focused controls and active rails.
-  static const Color indigo = Color(0xFF3655D4);
+  /// Indigo accent (iOS systemIndigo).
+  static const Color indigo = Color(0xFF5856D6);
 
-  /// Cool accent for informational badges and charts.
-  static const Color azure = Color(0xFF0B84FF);
+  /// Blue accent (iOS systemBlue).
+  static const Color azure = Color(0xFF007AFF);
 
   // ── Status: Health ─────────────────────────────────────────────────────
 
-  /// Healthy (ArgoCD green).
-  static const Color healthy = Color(0xFF18BE94);
+  /// Healthy (iOS systemGreen).
+  static const Color healthy = Color(0xFF30C05A);
 
-  /// Degraded (ArgoCD salmon-pink).
-  static const Color degraded = Color(0xFFE96D76);
+  /// Degraded (iOS systemRed).
+  static const Color degraded = Color(0xFFFF3B30);
 
-  /// Progressing (ArgoCD sky-blue).
-  static const Color progressing = Color(0xFF0DADEA);
+  /// Progressing (iOS systemBlue).
+  static const Color progressing = Color(0xFF0A84FF);
 
-  /// Suspended (ArgoCD purple).
-  static const Color suspended = Color(0xFF766F94);
+  /// Suspended (iOS systemPurple).
+  static const Color suspended = Color(0xFFAF52DE);
 
-  /// Missing (ArgoCD amber/yellow).
-  static const Color missing = Color(0xFFF4C030);
+  /// Missing (iOS systemOrange).
+  static const Color missing = Color(0xFFFF9500);
 
-  /// Unknown status (ArgoCD gray-4).
-  static const Color unknown = Color(0xFFCCD6DD);
+  /// Unknown status (iOS systemGray).
+  static const Color unknown = Color(0xFF8E8E93);
 
   // ── Status: Sync ───────────────────────────────────────────────────────
 
-  /// Synced — same green as healthy in ArgoCD.
-  static const Color synced = Color(0xFF18BE94);
+  /// Synced — same green as healthy.
+  static const Color synced = healthy;
 
-  /// OutOfSync (ArgoCD amber).
-  static const Color outOfSync = Color(0xFFF4C030);
+  /// OutOfSync (iOS systemOrange).
+  static const Color outOfSync = Color(0xFFFF9500);
 
   // ── Semantic shortcuts ─────────────────────────────────────────────────
 
-  /// Error / destructive actions (same as degraded).
+  /// Error / destructive actions.
   static const Color error = degraded;
 
-  /// Warning (same as missing / outOfSync).
+  /// Warning.
   static const Color warning = missing;
 
-  /// Success (same as healthy / synced).
+  /// Success.
   static const Color success = healthy;
 
   // ── Sidebar / navigation dark surface ──────────────────────────────────
 
-  /// ArgoCD sidebar background.
-  static const Color sidebarDark = Color(0xFF0F2733);
-  static const Color sidebarDarkAlt = Color(0xFF152F3C);
-  static const Color sidebarRail = Color(0xFF0A1A23);
+  static const Color sidebarDark = Color(0xFF1C1C1E);
+  static const Color sidebarDarkAlt = Color(0xFF2C2C2E);
+  static const Color sidebarRail = Color(0xFF000000);
 
-  // ── Dark mode surfaces ─────────────────────────────────────────────────
+  // ── Dark mode surfaces (iOS dark grouped palette) ──────────────────────
 
-  static const Color darkBackground = Color(0xFF0F1317);
-  static const Color darkCanvasInset = Color(0xFF131A20);
-  static const Color darkSurface = Color(0xFF171D23);
-  static const Color darkSurfaceElevated = Color(0xFF202831);
-  static const Color darkBorder = Color(0xFF33414D);
-  static const Color darkSlidingPanel = Color(0xFF232B33);
+  static const Color darkBackground = Color(0xFF000000);
+  static const Color darkCanvasInset = Color(0xFF0C0C0E);
+  static const Color darkSurface = Color(0xFF1C1C1E);
+  static const Color darkSurfaceElevated = Color(0xFF2C2C2E);
+  static const Color darkBorder = Color(0xFF38383A);
+  static const Color darkSlidingPanel = Color(0xFF2C2C2E);
 
   // ── Legacy aliases (keep in sync with the rest of the codebase) ────────
 
@@ -129,24 +139,32 @@ abstract final class AppColors {
   static const Color border = gray4;
 
   static const Color cobaltLight = tealLight;
-  static const Color blueLight = Color(0xFFEAF3FF);
+  static const Color blueLight = Color(0xFFE5F1FF);
   static const Color canvasSubtle = gray1;
   static const Color peach = Color(0xFFFFF1E9);
 
   // ── Header / dark-surface helpers ──────────────────────────────────────
 
-  static const Color headerDark = Color(0xFF111A20);
-  static const Color headerDarkAlt = Color(0xFF203135);
-  static const Color textOnDarkMuted = Color(0xFF9AA8B2);
+  static const Color headerDark = Color(0xFF1C1C1E);
+  static const Color headerDarkAlt = Color(0xFF2C2C2E);
+  static const Color textOnDarkMuted = Color(0xFF98989F);
   static const Color textOnDarkGreen = Color(0xFFDCFCE7);
 
   // ── YAML syntax highlighting ───────────────────────────────────────────
 
-  static const Color yamlKey = Color(0xFF1565C0);
-  static const Color yamlString = Color(0xFF2E7D32);
-  static const Color yamlNumber = Color(0xFFE65100);
-  static const Color yamlComment = Color(0xFF9E9E9E);
-  static const Color yamlPunctuation = Color(0xFF37474F);
+  // Xcode "Default (Light)" inspired. Dark-mode equivalents live below and
+  // are selected by [yamlTokenColorFor] in shared_widgets.dart.
+  static const Color yamlKey = Color(0xFF0F68A0);
+  static const Color yamlString = Color(0xFFC41A16);
+  static const Color yamlNumber = Color(0xFF1C00CF);
+  static const Color yamlComment = Color(0xFF707F8C);
+  static const Color yamlPunctuation = Color(0xFF3A3A3C);
+
+  static const Color yamlKeyDark = Color(0xFF6BC7F2);
+  static const Color yamlStringDark = Color(0xFFFC6A5D);
+  static const Color yamlNumberDark = Color(0xFFD0BF69);
+  static const Color yamlCommentDark = Color(0xFF7F8C98);
+  static const Color yamlPunctuationDark = Color(0xFFD1D1D6);
 
   // ── Theme-aware helpers ────────────────────────────────────────────────
   //
@@ -202,6 +220,51 @@ abstract final class AppColors {
         ? theme.colorScheme.onSurface
         : theme.colorScheme.onSurface;
     return base.withValues(alpha: alpha);
+  }
+
+  /// Page / grouped background (behind cards).
+  static Color groupedBackground(ThemeData theme) => theme.colorScheme.surface;
+
+  /// Card / grouped-row surface.
+  static Color cardSurface(ThemeData theme) =>
+      theme.colorScheme.surfaceContainerLow;
+
+  /// Hairline separator inside cards and lists.
+  static Color separator(ThemeData theme) => theme.colorScheme.outlineVariant;
+
+  /// Secondary label (captions, metadata).
+  static Color secondaryLabel(ThemeData theme) =>
+      theme.colorScheme.onSurfaceVariant;
+
+  /// Tertiary label (placeholders, disabled glyphs, chevrons).
+  static Color tertiaryLabel(ThemeData theme) =>
+      theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6);
+
+  /// Neutral fill for inline controls (search fields, segmented tracks,
+  /// neutral capsules) — iOS tertiarySystemFill.
+  static Color fill(ThemeData theme) => theme.brightness == Brightness.dark
+      ? const Color(0x3D767680)
+      : const Color(0x1F767680);
+
+  /// Readable foreground for a status/accent [color] when used as text or a
+  /// small glyph. In light mode vivid hues are deepened to keep contrast on
+  /// white; in dark mode the vivid hue is used as-is.
+  static Color statusForeground(ThemeData theme, Color color) {
+    if (theme.brightness == Brightness.dark) {
+      return color;
+    }
+    final hsl = HSLColor.fromColor(color);
+    return hsl
+        .withLightness((hsl.lightness * 0.78).clamp(0.0, 1.0))
+        .withSaturation((hsl.saturation * 0.95).clamp(0.0, 1.0))
+        .toColor();
+  }
+
+  /// Soft background wash for a status/accent [color] (capsules, icon wells).
+  static Color statusTint(ThemeData theme, Color color) {
+    return color.withValues(
+      alpha: theme.brightness == Brightness.dark ? 0.20 : 0.12,
+    );
   }
 
   /// Map health status string to the matching ArgoCD status color.

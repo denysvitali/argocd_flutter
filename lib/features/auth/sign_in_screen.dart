@@ -1,6 +1,5 @@
-import 'dart:math' as math;
-
 import 'package:argocd_flutter/core/services/app_controller.dart';
+import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:argocd_flutter/ui/argo_logo.dart';
 import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:flutter/material.dart';
@@ -55,17 +54,30 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 
-  InputDecoration _inputDecoration({
+  /// Borderless field decoration for rows inside the inset-grouped form card.
+  InputDecoration _fieldDecoration(
+    ThemeData theme, {
     required String labelText,
     String? hintText,
-    required Widget prefixIcon,
     Widget? suffixIcon,
   }) {
+    const none = InputBorder.none;
     return InputDecoration(
       labelText: labelText,
       hintText: hintText,
-      prefixIcon: prefixIcon,
       suffixIcon: suffixIcon,
+      filled: false,
+      border: none,
+      enabledBorder: none,
+      focusedBorder: none,
+      errorBorder: none,
+      focusedErrorBorder: none,
+      disabledBorder: none,
+      contentPadding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+      floatingLabelStyle: theme.textTheme.bodySmall?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+        fontWeight: FontWeight.w500,
+      ),
     );
   }
 
@@ -76,119 +88,55 @@ class _SignInScreenState extends State<SignInScreen> {
     final certificateStatus = widget.controller.certificateStatus;
     final errorMessage = widget.controller.errorMessage;
     final showError = errorMessage != null && errorMessage != _dismissedError;
+    final busy = widget.controller.busy;
+    final secondaryDisabled = busy || _testingConnection;
 
     return Scaffold(
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[
-              scheme.primaryContainer.withValues(alpha: 0.45),
-              scheme.surface,
-              scheme.tertiaryContainer.withValues(alpha: 0.30),
-            ],
-            stops: const <double>[0, 0.5, 1],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
+      backgroundColor: scheme.surface,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 32, 20, 24),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 460),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4),
-                      child: ArgoLockup(
-                        logoSize: 64,
-                        subtitle: 'Deployment control plane',
-                      ),
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  const Center(child: ArgoLogo(size: 64)),
+                  const SizedBox(height: 20),
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      'Sign in to Argo CD',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.headlineMedium,
                     ),
-                    const SizedBox(height: 28),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                      decoration: BoxDecoration(
-                        color: scheme.secondaryContainer.withValues(
-                          alpha: 0.55,
-                        ),
-                        borderRadius: AppRadius.lg,
-                      ),
-                      child: Row(
-                        children: <Widget>[
-                          Icon(
-                            Icons.bolt_rounded,
-                            color: scheme.secondary,
-                            size: 22,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Connect with a token-backed ArgoCD session.',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: scheme.onSecondaryContainer,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Use your Argo CD account or single sign-on.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
                     ),
-                    const SizedBox(height: 20),
-                    AnimatedSize(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                      child: showError
-                          ? Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: _ErrorBanner(
-                                message: errorMessage,
-                                onDismiss: () {
-                                  setState(() {
-                                    _dismissedError = errorMessage;
-                                  });
-                                  widget.controller.clearError();
-                                },
-                              ),
-                            )
-                          : const SizedBox.shrink(),
-                    ),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
+                  ),
+                  const SizedBox(height: 32),
+                  Form(
+                    key: _formKey,
+                    child: AutofillGroup(
+                      child: Material(
                         color: scheme.surfaceContainerLow,
-                        borderRadius: AppRadius.lg,
-                      ),
-                      child: Form(
-                        key: _formKey,
+                        borderRadius: AppRadius.md,
+                        clipBehavior: Clip.antiAlias,
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: <Widget>[
-                            Text(
-                              'Connect to ArgoCD',
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Use your ArgoCD credentials or single sign-on.',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
                             TextFormField(
                               controller: _serverController,
-                              decoration: _inputDecoration(
+                              decoration: _fieldDecoration(
+                                theme,
                                 labelText: 'Server URL',
                                 hintText: 'https://argocd.example.com',
-                                prefixIcon: const Icon(Icons.cloud_outlined),
                                 suffixIcon: _serverUrlRemembered
                                     ? Tooltip(
                                         message:
@@ -197,23 +145,32 @@ class _SignInScreenState extends State<SignInScreen> {
                                             'pre-filled on future sign-ins',
                                         child: Icon(
                                           Icons.bookmark_rounded,
+                                          size: 18,
                                           color: scheme.primary,
                                         ),
                                       )
                                     : null,
                               ),
                               keyboardType: TextInputType.url,
+                              textInputAction: TextInputAction.next,
+                              autocorrect: false,
+                              autofillHints: const <String>[AutofillHints.url],
                               validator: _serverValidator,
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                             ),
-                            const SizedBox(height: 14),
+                            const _FieldSeparator(),
                             TextFormField(
                               controller: _usernameController,
-                              decoration: _inputDecoration(
+                              decoration: _fieldDecoration(
+                                theme,
                                 labelText: 'Username',
-                                prefixIcon: const Icon(Icons.person_outline),
                               ),
+                              textInputAction: TextInputAction.next,
+                              autocorrect: false,
+                              autofillHints: const <String>[
+                                AutofillHints.username,
+                              ],
                               validator: (value) {
                                 if ((value ?? '').trim().isEmpty) {
                                   return 'Enter your ArgoCD username.';
@@ -221,13 +178,22 @@ class _SignInScreenState extends State<SignInScreen> {
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 14),
+                            const _FieldSeparator(),
                             TextFormField(
                               controller: _passwordController,
                               obscureText: _obscurePassword,
-                              decoration: _inputDecoration(
+                              textInputAction: TextInputAction.done,
+                              autofillHints: const <String>[
+                                AutofillHints.password,
+                              ],
+                              onFieldSubmitted: (_) {
+                                if (!busy && !_testingConnection) {
+                                  _submit();
+                                }
+                              },
+                              decoration: _fieldDecoration(
+                                theme,
                                 labelText: 'Password',
-                                prefixIcon: const Icon(Icons.lock_outline),
                                 suffixIcon: IconButton(
                                   tooltip: _obscurePassword
                                       ? 'Show password'
@@ -237,16 +203,12 @@ class _SignInScreenState extends State<SignInScreen> {
                                       _obscurePassword = !_obscurePassword;
                                     });
                                   },
-                                  icon: AnimatedSwitcher(
-                                    duration: const Duration(milliseconds: 200),
-                                    child: Icon(
-                                      _obscurePassword
-                                          ? Icons.visibility_outlined
-                                          : Icons.visibility_off_outlined,
-                                      key: ValueKey<bool>(_obscurePassword),
-                                      size: 20,
-                                      color: scheme.onSurfaceVariant,
-                                    ),
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                    size: 20,
+                                    color: AppColors.tertiaryLabel(theme),
                                   ),
                                 ),
                               ),
@@ -257,62 +219,62 @@ class _SignInScreenState extends State<SignInScreen> {
                                 return null;
                               },
                             ),
-                            if (certificateStatus != null) ...<Widget>[
-                              const SizedBox(height: 16),
-                              _CertificateBanner(
-                                message: certificateStatus.message,
-                              ),
-                            ],
-                            const SizedBox(height: 20),
-                            Wrap(
-                              spacing: 12,
-                              runSpacing: 12,
-                              children: <Widget>[
-                                OutlinedButton.icon(
-                                  onPressed:
-                                      widget.controller.busy ||
-                                          _testingConnection
-                                      ? null
-                                      : _testConnection,
-                                  icon: _testingConnection
-                                      ? const SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      : const Icon(Icons.network_ping_rounded),
-                                  label: Text(
-                                    _testingConnection
-                                        ? 'Testing...'
-                                        : 'Test server',
-                                  ),
-                                ),
-                                _SignInButton(
-                                  busy: widget.controller.busy,
-                                  enabled: !_testingConnection,
-                                  onPressed: _submit,
-                                ),
-                                OutlinedButton.icon(
-                                  onPressed:
-                                      widget.controller.busy ||
-                                          _testingConnection
-                                      ? null
-                                      : _submitSso,
-                                  icon: const Icon(
-                                    Icons.open_in_browser_rounded,
-                                  ),
-                                  label: const Text('Sign in with SSO'),
-                                ),
-                              ],
-                            ),
                           ],
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                    alignment: Alignment.topCenter,
+                    child: showError
+                        ? _InlineError(
+                            message: errorMessage,
+                            onDismiss: () {
+                              setState(() {
+                                _dismissedError = errorMessage;
+                              });
+                              widget.controller.clearError();
+                            },
+                          )
+                        : const SizedBox(width: double.infinity),
+                  ),
+                  if (certificateStatus != null)
+                    _Footnote(message: certificateStatus.message),
+                  const SizedBox(height: 24),
+                  _SignInButton(
+                    busy: busy,
+                    enabled: !_testingConnection,
+                    onPressed: _submit,
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton(
+                    onPressed: secondaryDisabled ? null : _submitSso,
+                    child: const Text('Sign in with SSO'),
+                  ),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: TextButton(
+                      onPressed: secondaryDisabled ? null : _testConnection,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          if (_testingConnection) ...<Widget>[
+                            const SizedBox.square(
+                              dimension: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          Text(
+                            _testingConnection ? 'Testing...' : 'Test server',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -442,196 +404,135 @@ class _SignInButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FilledButton.icon(
+    final scheme = Theme.of(context).colorScheme;
+    return FilledButton(
       onPressed: busy || !enabled ? null : onPressed,
-      icon: busy
-          ? const _ShimmerIcon()
-          : const Icon(Icons.arrow_forward_rounded),
-      label: AnimatedSwitcher(
+      child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
-        child: Text(
-          busy ? 'Connecting...' : 'Sign in',
-          key: ValueKey<bool>(busy),
-        ),
+        child: busy
+            ? Row(
+                key: const ValueKey<bool>(true),
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  SizedBox.square(
+                    dimension: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text('Connecting...'),
+                ],
+              )
+            : const Text('Sign in', key: ValueKey<bool>(false)),
       ),
     );
   }
 }
 
-class _ShimmerIcon extends StatefulWidget {
-  const _ShimmerIcon();
-
-  @override
-  State<_ShimmerIcon> createState() => _ShimmerIconState();
-}
-
-class _ShimmerIconState extends State<_ShimmerIcon>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _animationController;
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
+/// Inset hairline between rows of the grouped form card.
+class _FieldSeparator extends StatelessWidget {
+  const _FieldSeparator();
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animationController,
-      builder: (context, child) {
-        final pulse =
-            0.4 +
-            0.6 *
-                ((math.sin(_animationController.value * 2 * math.pi) + 1) / 2);
-        return Opacity(opacity: pulse, child: child);
-      },
-      child: const SizedBox(
-        width: 18,
-        height: 18,
-        child: CircularProgressIndicator(strokeWidth: 2),
+    return Divider(
+      height: 0.5,
+      thickness: 0.5,
+      indent: 16,
+      color: Theme.of(context).colorScheme.outlineVariant,
+    );
+  }
+}
+
+/// Muted footnote beneath the form (certificate trust note).
+class _Footnote extends StatelessWidget {
+  const _Footnote({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: ExcludeSemantics(
+              child: Icon(
+                Icons.info_outline_rounded,
+                size: 14,
+                color: AppColors.tertiaryLabel(theme),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              message,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _ErrorBanner extends StatefulWidget {
-  const _ErrorBanner({required this.message, required this.onDismiss});
+/// Inline red footnote describing the last sign-in failure.
+class _InlineError extends StatelessWidget {
+  const _InlineError({required this.message, required this.onDismiss});
 
   final String message;
   final VoidCallback onDismiss;
 
   @override
-  State<_ErrorBanner> createState() => _ErrorBannerState();
-}
-
-class _ErrorBannerState extends State<_ErrorBanner>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _slideController;
-  late final Animation<Offset> _slideAnimation;
-  late final Animation<double> _fadeAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _slideController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 350),
-    );
-    _slideAnimation =
-        Tween<Offset>(begin: const Offset(0, -0.3), end: Offset.zero).animate(
-          CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
-        );
-    _fadeAnimation = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
-    _slideController.forward();
-  }
-
-  @override
-  void dispose() {
-    _slideController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final color = AppColors.statusForeground(theme, theme.colorScheme.error);
 
-    return SlideTransition(
-      position: _slideAnimation,
-      child: FadeTransition(
-        opacity: _fadeAnimation,
-        child: Material(
-          color: theme.colorScheme.errorContainer,
-          borderRadius: AppRadius.md,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Icon(
-                  Icons.error_outline,
-                  color: theme.colorScheme.error,
-                  size: 22,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    widget.message,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onErrorContainer,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: Material(
-                    type: MaterialType.transparency,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(14),
-                      onTap: widget.onDismiss,
-                      child: Center(
-                        child: Icon(
-                          Icons.close,
-                          size: 16,
-                          color: theme.colorScheme.onErrorContainer,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CertificateBanner extends StatelessWidget {
-  const _CertificateBanner({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: scheme.tertiaryContainer.withValues(alpha: 0.55),
-        borderRadius: AppRadius.base,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Icon(Icons.verified_user_outlined, color: scheme.tertiary, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              message,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: scheme.onTertiaryContainer,
+    return Semantics(
+      liveRegion: true,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 4, 0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: ExcludeSemantics(
+                child: Icon(Icons.error_rounded, size: 15, color: color),
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                message,
+                style: theme.textTheme.bodySmall?.copyWith(color: color),
+              ),
+            ),
+            const SizedBox(width: 4),
+            InkResponse(
+              onTap: onDismiss,
+              radius: 14,
+              child: Tooltip(
+                message: 'Dismiss',
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 16,
+                  color: AppColors.tertiaryLabel(theme),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

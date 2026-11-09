@@ -6,6 +6,7 @@ import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 export 'package:argocd_flutter/ui/shared_widgets.dart'
@@ -21,15 +22,7 @@ enum _ManifestViewMode { yaml, json, diff }
 
 enum _SourceSyntax { yaml, json, text }
 
-enum _ManifestAction {
-  wrap,
-  toggleFormat,
-  toggleDiff,
-  toggleSections,
-  toggleManagedFields,
-  copy,
-  refresh,
-}
+enum _ManifestAction { toggleManagedFields, copy, refresh }
 
 class ManifestViewerScreen extends StatefulWidget {
   const ManifestViewerScreen({
@@ -70,7 +63,6 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       <_ManifestViewMode, double>{};
 
   _ManifestViewMode _viewMode = _ManifestViewMode.yaml;
-  _ManifestViewMode _lastNonDiffMode = _ManifestViewMode.yaml;
   bool _showSearch = false;
   bool _wrapLines = false;
   bool _hideManagedFields = true;
@@ -92,15 +84,35 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     super.dispose();
   }
 
+  // ── Code metrics ─────────────────────────────────────────────────────────
+
+  static const double _codeFontSize = 12.5;
+  static const double _codeLineHeight = 1.55;
+  static const double _gutterWidth = 38;
+  static const double _foldColumnWidth = 22;
+
+  TextStyle _codeStyle(ThemeData theme) {
+    return TextStyle(
+      fontFamily: AppFonts.mono,
+      fontSize: _codeFontSize,
+      height: _codeLineHeight,
+      color: yamlTokenColorFor(null, theme.brightness),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final compactActions = MediaQuery.sizeOf(context).width < 420;
 
     return Scaffold(
       appBar: AppBar(
         title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: (theme.appBarTheme.centerTitle ?? false)
+              ? CrossAxisAlignment.center
+              : CrossAxisAlignment.start,
           children: <Widget>[
             Text(
               compactActions
@@ -115,237 +127,28 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                   : '${widget.namespace} / ${widget.applicationName}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ],
         ),
         actions: <Widget>[
-          FutureBuilder<String>(
-            future: _future,
-            builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
-              if (!snapshot.hasData) {
-                return const SizedBox.shrink();
-              }
-
-              final document = _buildDocumentBundle(snapshot.requireData);
-              final lineCount = switch (_viewMode) {
-                _ManifestViewMode.yaml => document.yamlLines.length,
-                _ManifestViewMode.json => document.jsonLines.length,
-                _ManifestViewMode.diff => document.diff?.lines.length ?? 0,
-              };
-              final hasExpandableSections = document.sections.any(
-                (_YamlSection section) => section.expandable,
-              );
-              final allExpanded = _allExpandableSectionsExpanded(document);
-
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  if (!compactActions)
-                    Container(
-                      margin: const EdgeInsets.only(right: 4),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest
-                            .withValues(
-                              alpha: theme.brightness == Brightness.dark
-                                  ? 0.55
-                                  : 0.9,
-                            ),
-                        borderRadius: AppRadius.pill,
-                      ),
-                      child: Text(
-                        'Lines: $lineCount',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          fontFamily: 'monospace',
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  if (!compactActions)
-                    IconButton(
-                      tooltip: allExpanded
-                          ? 'Collapse all sections'
-                          : 'Expand all sections',
-                      onPressed:
-                          _viewMode == _ManifestViewMode.yaml &&
-                              snapshot.hasData &&
-                              hasExpandableSections
-                          ? () => _toggleAllSections(document)
-                          : null,
-                      icon: Icon(
-                        allExpanded ? Icons.unfold_less : Icons.unfold_more,
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
           IconButton(
             tooltip: 'Search',
             onPressed: _toggleSearch,
+            isSelected: _showSearch,
             icon: const Icon(Icons.search),
           ),
           if (compactActions)
-            FutureBuilder<String>(
-              future: _future,
-              builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
-                final document = snapshot.hasData
-                    ? _buildDocumentBundle(snapshot.requireData)
-                    : null;
-                final hasExpandableSections =
-                    document?.sections.any(
-                      (_YamlSection section) => section.expandable,
-                    ) ??
-                    false;
-                final allExpanded = document == null
-                    ? false
-                    : _allExpandableSectionsExpanded(document);
-
-                return PopupMenuButton<_ManifestAction>(
-                  tooltip: 'More actions',
-                  itemBuilder: (BuildContext context) {
-                    return <PopupMenuEntry<_ManifestAction>>[
-                      if (snapshot.hasData)
-                        CheckedPopupMenuItem<_ManifestAction>(
-                          value: _ManifestAction.wrap,
-                          checked: _wrapLines,
-                          child: Text(
-                            _wrapLines
-                                ? 'Disable word wrap'
-                                : 'Enable word wrap',
-                          ),
-                        ),
-                      if (snapshot.hasData)
-                        PopupMenuItem<_ManifestAction>(
-                          value: _ManifestAction.toggleFormat,
-                          child: Text(
-                            _viewMode == _ManifestViewMode.json
-                                ? 'Show YAML'
-                                : 'Show JSON',
-                          ),
-                        ),
-                      if (snapshot.hasData)
-                        PopupMenuItem<_ManifestAction>(
-                          value: _ManifestAction.toggleDiff,
-                          child: Text(
-                            _viewMode == _ManifestViewMode.diff
-                                ? 'Hide diff'
-                                : 'Show diff',
-                          ),
-                        ),
-                      if (hasExpandableSections)
-                        PopupMenuItem<_ManifestAction>(
-                          value: _ManifestAction.toggleSections,
-                          child: Text(
-                            allExpanded
-                                ? 'Collapse all sections'
-                                : 'Expand all sections',
-                          ),
-                        ),
-                      if (snapshot.hasData)
-                        CheckedPopupMenuItem<_ManifestAction>(
-                          value: _ManifestAction.toggleManagedFields,
-                          checked: _hideManagedFields,
-                          child: const Text('Hide managed fields'),
-                        ),
-                      if (snapshot.hasData)
-                        const PopupMenuItem<_ManifestAction>(
-                          value: _ManifestAction.copy,
-                          child: Text('Copy'),
-                        ),
-                      const PopupMenuItem<_ManifestAction>(
-                        value: _ManifestAction.refresh,
-                        child: Text('Refresh'),
-                      ),
-                    ];
-                  },
-                  onSelected: (_ManifestAction action) {
-                    switch (action) {
-                      case _ManifestAction.wrap:
-                        setState(() {
-                          _wrapLines = !_wrapLines;
-                        });
-                      case _ManifestAction.toggleFormat:
-                        if (snapshot.hasData) {
-                          _toggleJsonYamlMode();
-                        }
-                      case _ManifestAction.toggleDiff:
-                        if (snapshot.hasData) {
-                          _toggleDiffMode();
-                        }
-                      case _ManifestAction.toggleSections:
-                        if (document != null) {
-                          _toggleAllSections(document);
-                        }
-                      case _ManifestAction.toggleManagedFields:
-                        setState(() {
-                          _hideManagedFields = !_hideManagedFields;
-                        });
-                      case _ManifestAction.copy:
-                        if (snapshot.hasData) {
-                          _copyManifest(snapshot.requireData);
-                        }
-                      case _ManifestAction.refresh:
-                        _refreshManifest();
-                    }
-                  },
-                );
-              },
-            )
+            _buildOverflowMenu()
           else ...<Widget>[
-            IconButton(
-              tooltip: _wrapLines ? 'Disable word wrap' : 'Enable word wrap',
-              onPressed: () {
-                setState(() {
-                  _wrapLines = !_wrapLines;
-                });
-              },
-              icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
-            ),
-            FutureBuilder<String>(
-              future: _future,
-              builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
-                return IconButton(
-                  tooltip: _viewMode == _ManifestViewMode.json
-                      ? 'Show YAML'
-                      : 'Show JSON',
-                  onPressed: snapshot.hasData ? _toggleJsonYamlMode : null,
-                  icon: Icon(
-                    _viewMode == _ManifestViewMode.json
-                        ? Icons.data_object
-                        : Icons.code,
-                  ),
-                );
-              },
-            ),
-            FutureBuilder<String>(
-              future: _future,
-              builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
-                return IconButton(
-                  tooltip: _viewMode == _ManifestViewMode.diff
-                      ? 'Hide diff'
-                      : 'Show diff',
-                  onPressed: snapshot.hasData ? _toggleDiffMode : null,
-                  icon: const Icon(Icons.compare_arrows),
-                );
-              },
-            ),
             IconButton(
               tooltip: _hideManagedFields
                   ? 'Show managed fields'
                   : 'Hide managed fields',
-              onPressed: () {
-                setState(() {
-                  _hideManagedFields = !_hideManagedFields;
-                });
-              },
+              onPressed: _toggleManagedFields,
               icon: Icon(
                 _hideManagedFields
                     ? Icons.visibility_off_outlined
@@ -370,73 +173,184 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
               icon: const Icon(Icons.refresh),
             ),
           ],
+          const SizedBox(width: 4),
         ],
       ),
-      body: Column(
-        children: <Widget>[
-          if (_showSearch) _buildSearchBar(),
-          Expanded(
-            child: FutureBuilder<String>(
-              future: _future,
-              builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+      body: FutureBuilder<String>(
+        future: _future,
+        builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              ),
+            );
+          }
 
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          Text(
-                            snapshot.error.toString(),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          FilledButton(
-                            onPressed: _refreshManifest,
-                            child: const Text('Retry'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-
-                final manifest = snapshot.requireData;
-                final document = _buildDocumentBundle(manifest);
-
-                final viewData = _activeViewData(document);
-                _activeMatches = viewData.matches;
-                _syncCurrentMatch(viewData.matches.length);
-
-                return AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 240),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  child: Container(
-                    key: ValueKey<String>(_viewMode.name),
-                    color: theme.colorScheme.surface,
-                    child: switch (_viewMode) {
-                      _ManifestViewMode.json => _buildJsonView(
-                        document,
-                        viewData,
-                      ),
-                      _ManifestViewMode.yaml => _buildYamlView(
-                        document,
-                        viewData,
-                      ),
-                      _ManifestViewMode.diff => _buildDiffView(
-                        document,
-                        viewData,
-                      ),
-                    },
+          if (snapshot.hasError) {
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+              children: <Widget>[
+                EmptyStateCard(
+                  icon: Icons.description_outlined,
+                  title: "Couldn't Load Manifest",
+                  subtitle: snapshot.error.toString(),
+                  action: FilledButton(
+                    onPressed: _refreshManifest,
+                    child: const Text('Retry'),
                   ),
-                );
-              },
+                ),
+              ],
+            );
+          }
+
+          final document = _buildDocumentBundle(snapshot.requireData);
+          final viewData = _activeViewData(document);
+          _activeMatches = viewData.matches;
+          _syncCurrentMatch(viewData.matches.length);
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              _buildToolbar(document, showLineCount: !compactActions),
+              if (_showSearch) _buildSearchBar(),
+              Expanded(
+                // Instant switch (like a segmented control in Xcode): a
+                // cross-fade would attach the shared scroll controllers to
+                // two scroll views at once.
+                child: KeyedSubtree(
+                  key: ValueKey<String>(_viewMode.name),
+                  child: _buildModeBody(document, viewData),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildOverflowMenu() {
+    return FutureBuilder<String>(
+      future: _future,
+      builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+        return PopupMenuButton<_ManifestAction>(
+          tooltip: 'More actions',
+          icon: const Icon(Icons.more_horiz_rounded),
+          itemBuilder: (BuildContext context) {
+            return <PopupMenuEntry<_ManifestAction>>[
+              CheckedPopupMenuItem<_ManifestAction>(
+                value: _ManifestAction.toggleManagedFields,
+                checked: _hideManagedFields,
+                child: const Text('Hide managed fields'),
+              ),
+              if (snapshot.hasData)
+                const PopupMenuItem<_ManifestAction>(
+                  value: _ManifestAction.copy,
+                  child: Text('Copy'),
+                ),
+              const PopupMenuItem<_ManifestAction>(
+                value: _ManifestAction.refresh,
+                child: Text('Refresh'),
+              ),
+            ];
+          },
+          onSelected: (_ManifestAction action) {
+            switch (action) {
+              case _ManifestAction.toggleManagedFields:
+                _toggleManagedFields();
+              case _ManifestAction.copy:
+                if (snapshot.hasData) {
+                  _copyManifest(snapshot.requireData);
+                }
+              case _ManifestAction.refresh:
+                _refreshManifest();
+            }
+          },
+        );
+      },
+    );
+  }
+
+  /// Mode picker (YAML / JSON / Diff) plus editor options.
+  Widget _buildToolbar(
+    _ManifestDocumentBundle document, {
+    required bool showLineCount,
+  }) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final lineCount = switch (_viewMode) {
+      _ManifestViewMode.yaml => document.yamlLines.length,
+      _ManifestViewMode.json => document.jsonLines.length,
+      _ManifestViewMode.diff => document.diff?.lines.length ?? 0,
+    };
+    final hasExpandableSections = document.sections.any(
+      (_YamlSection section) => section.expandable,
+    );
+    final allExpanded = _allExpandableSectionsExpanded(document);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 8, 10),
+      child: Row(
+        children: <Widget>[
+          _SegmentedControl<_ManifestViewMode>(
+            value: _viewMode,
+            onChanged: _setViewMode,
+            segments: const <_Segment<_ManifestViewMode>>[
+              _Segment<_ManifestViewMode>(
+                value: _ManifestViewMode.yaml,
+                icon: Icons.code,
+                label: 'YAML',
+              ),
+              _Segment<_ManifestViewMode>(
+                value: _ManifestViewMode.json,
+                icon: Icons.data_object,
+                label: 'JSON',
+              ),
+              _Segment<_ManifestViewMode>(
+                value: _ManifestViewMode.diff,
+                icon: Icons.compare_arrows,
+                label: 'Diff',
+              ),
+            ],
+          ),
+          const Spacer(),
+          if (showLineCount) ...<Widget>[
+            Text(
+              'Lines: $lineCount',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+                fontFeatures: AppFonts.tabularFigures,
+              ),
             ),
+            const SizedBox(width: 6),
+          ],
+          IconButton(
+            tooltip: allExpanded
+                ? 'Collapse all sections'
+                : 'Expand all sections',
+            visualDensity: VisualDensity.compact,
+            iconSize: 20,
+            onPressed:
+                _viewMode == _ManifestViewMode.yaml && hasExpandableSections
+                ? () => _toggleAllSections(document)
+                : null,
+            icon: Icon(allExpanded ? Icons.unfold_less : Icons.unfold_more),
+          ),
+          IconButton(
+            tooltip: _wrapLines ? 'Disable word wrap' : 'Enable word wrap',
+            visualDensity: VisualDensity.compact,
+            iconSize: 20,
+            isSelected: _wrapLines,
+            onPressed: () {
+              setState(() {
+                _wrapLines = !_wrapLines;
+              });
+            },
+            selectedIcon: Icon(Icons.wrap_text_rounded, color: scheme.primary),
+            icon: Icon(Icons.wrap_text_rounded, color: scheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -445,37 +359,48 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
 
   Widget _buildSearchBar() {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final scheme = theme.colorScheme;
     final matchCount = _activeMatchCount;
     final currentLabel = matchCount == 0
         ? '0/0'
         : '${_currentMatchIndex + 1}/$matchCount';
 
-    return Container(
-      color: colorScheme.surfaceContainerHighest.withValues(
-        alpha: theme.brightness == Brightness.dark ? 0.65 : 0.9,
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 8, 10),
       child: Row(
         children: <Widget>[
           Expanded(
             child: TextField(
               controller: _searchController,
-              style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14),
+              autofocus: true,
+              textInputAction: TextInputAction.search,
+              textAlignVertical: TextAlignVertical.center,
+              style: theme.textTheme.bodyLarge,
               decoration: InputDecoration(
-                hintText: 'Search manifest...',
-                hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
+                hintText: 'Search manifest',
+                isDense: true,
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: AppRadius.base,
+                  borderSide: BorderSide.none,
                 ),
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: colorScheme.onSurfaceVariant,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 9,
+                ),
+                prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                prefixIconConstraints: const BoxConstraints(minWidth: 36),
+                suffixIconConstraints: const BoxConstraints(
+                  minWidth: 36,
+                  minHeight: 36,
                 ),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
+                        tooltip: 'Clear search',
+                        iconSize: 18,
+                        visualDensity: VisualDensity.compact,
                         icon: Icon(
-                          Icons.clear,
-                          color: colorScheme.onSurfaceVariant,
+                          Icons.cancel_rounded,
+                          color: AppColors.tertiaryLabel(theme),
                         ),
                         onPressed: () {
                           _searchController.clear();
@@ -486,24 +411,6 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
                         },
                       )
                     : null,
-                filled: true,
-                fillColor: colorScheme.surface,
-                border: OutlineInputBorder(
-                  borderRadius: AppRadius.md,
-                  borderSide: BorderSide(color: colorScheme.outlineVariant),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: AppRadius.md,
-                  borderSide: BorderSide(color: colorScheme.outlineVariant),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: AppRadius.md,
-                  borderSide: BorderSide(color: colorScheme.primary),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
               ),
               onChanged: (String value) {
                 setState(() {
@@ -514,59 +421,83 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
               },
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Text(
             currentLabel,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-              fontFamily: 'monospace',
-              fontSize: 13,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+              fontFeatures: AppFonts.tabularFigures,
             ),
           ),
           IconButton(
             tooltip: 'Previous match',
+            visualDensity: VisualDensity.compact,
             onPressed: matchCount == 0 ? null : _goToPreviousMatch,
             icon: const Icon(Icons.keyboard_arrow_up),
-            color: colorScheme.onSurfaceVariant,
           ),
           IconButton(
             tooltip: 'Next match',
+            visualDensity: VisualDensity.compact,
             onPressed: matchCount == 0 ? null : _goToNextMatch,
             icon: const Icon(Icons.keyboard_arrow_down),
-            color: colorScheme.onSurfaceVariant,
           ),
         ],
       ),
     );
   }
 
+  Widget _buildModeBody(
+    _ManifestDocumentBundle document,
+    _ManifestViewData viewData,
+  ) {
+    switch (_viewMode) {
+      case _ManifestViewMode.json:
+        return _buildJsonView(document, viewData);
+      case _ManifestViewMode.yaml:
+        return _buildYamlView(document, viewData);
+      case _ManifestViewMode.diff:
+        if (document.diff == null) {
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+            children: const <Widget>[
+              EmptyStateCard(
+                icon: Icons.compare_arrows_rounded,
+                title: 'No Diff Available',
+                subtitle:
+                    'Desired/live diff is not available for this manifest '
+                    'response.',
+              ),
+            ],
+          );
+        }
+        return _buildDiffView(document, viewData);
+    }
+  }
+
   Widget _buildJsonView(
     _ManifestDocumentBundle document,
     _ManifestViewData viewData,
   ) {
-    return _buildScrollableSurface(
+    return _buildCodeCard(
       lineCount: viewData.lines.length,
       matches: viewData.matches,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            for (var i = 0; i < viewData.lines.length; i++)
-              _buildCodeLine(
-                keyId: '${_viewMode.name}-$i',
-                lineNumber: i + 1,
-                line: viewData.lines[i],
-                syntax: document.sourceSyntax == _SourceSyntax.yaml
-                    ? _SourceSyntax.json
-                    : document.sourceSyntax,
-                isMatch: viewData.matches.contains(i),
-                isCurrentMatch:
-                    viewData.matches.isNotEmpty &&
-                    viewData.matches[_currentMatchIndex] == i,
-              ),
-          ],
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          for (var i = 0; i < viewData.lines.length; i++)
+            _buildCodeLine(
+              keyId: '${_viewMode.name}-$i',
+              lineNumber: i + 1,
+              line: viewData.lines[i],
+              syntax: document.sourceSyntax == _SourceSyntax.yaml
+                  ? _SourceSyntax.json
+                  : document.sourceSyntax,
+              isMatch: viewData.matches.contains(i),
+              isCurrentMatch:
+                  viewData.matches.isNotEmpty &&
+                  viewData.matches[_currentMatchIndex] == i,
+            ),
+        ],
       ),
     );
   }
@@ -581,23 +512,41 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       contextRadius: _searchContextRadius,
     );
 
-    return _buildScrollableSurface(
-      lineCount: document.yamlLines.length,
-      matches: viewData.matches,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(0, 8, 12, 8),
+    if (document.sections.isEmpty) {
+      // Unstructured payloads (plain text, top-level lists) have no
+      // sections; render them as a flat listing.
+      return _buildCodeCard(
+        lineCount: document.yamlLines.length,
+        matches: viewData.matches,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            for (var i = 0; i < document.sections.length; i++)
-              _buildSection(
-                document,
-                document.sections[i],
-                viewData,
-                visibleLineIndices,
-              ),
+            for (var i = 0; i < document.yamlLines.length; i++)
+              if (visibleLineIndices.contains(i))
+                _buildCodeLine(
+                  keyId: 'yaml-$i',
+                  lineNumber: i + 1,
+                  line: document.yamlLines[i],
+                  syntax: document.sourceSyntax,
+                  isMatch: viewData.matches.contains(i),
+                  isCurrentMatch:
+                      viewData.matches.isNotEmpty &&
+                      viewData.matches[_currentMatchIndex] == i,
+                ),
           ],
         ),
+      );
+    }
+
+    return _buildCodeCard(
+      lineCount: document.yamlLines.length,
+      matches: viewData.matches,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          for (final section in document.sections)
+            _buildSection(document, section, viewData, visibleLineIndices),
+        ],
       ),
     );
   }
@@ -606,87 +555,88 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     _ManifestDocumentBundle document,
     _ManifestViewData viewData,
   ) {
-    if (document.diff == null) {
-      final theme = Theme.of(context);
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            'Desired/live diff is not available for this manifest response.',
-            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
-
     final diff = document.diff!;
-    return _buildScrollableSurface(
+    return _buildCodeCard(
       lineCount: diff.lines.length,
       matches: viewData.matches,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            for (var i = 0; i < diff.lines.length; i++)
-              _buildDiffLine(
-                keyId: '${_viewMode.name}-$i',
-                lineNumber: i + 1,
-                line: diff.lines[i],
-                isMatch: viewData.matches.contains(i),
-                isCurrentMatch:
-                    viewData.matches.isNotEmpty &&
-                    viewData.matches[_currentMatchIndex] == i,
-              ),
-          ],
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          for (var i = 0; i < diff.lines.length; i++)
+            _buildDiffLine(
+              keyId: '${_viewMode.name}-$i',
+              lineNumber: i + 1,
+              line: diff.lines[i],
+              isMatch: viewData.matches.contains(i),
+              isCurrentMatch:
+                  viewData.matches.isNotEmpty &&
+                  viewData.matches[_currentMatchIndex] == i,
+            ),
+        ],
       ),
     );
   }
 
-  Widget _buildScrollableSurface({
+  /// The code "editor": a rounded card on the grouped background with
+  /// vertical (and, without wrapping, horizontal) scrolling plus a slim
+  /// search-match ruler along the right edge.
+  Widget _buildCodeCard({
     required int lineCount,
     required List<int> matches,
     required Widget child,
   }) {
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        Widget content = SingleChildScrollView(
-          controller: _verticalScrollController,
-          padding: const EdgeInsets.only(right: 18),
-          child: child,
-        );
+    final theme = Theme.of(context);
 
-        if (!_wrapLines) {
-          content = SingleChildScrollView(
-            controller: _horizontalScrollController,
-            scrollDirection: Axis.horizontal,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minWidth: constraints.maxWidth - 18),
-              child: content,
-            ),
-          );
-        }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerLow,
+          borderRadius: AppRadius.md,
+        ),
+        child: ClipRRect(
+          borderRadius: AppRadius.md,
+          child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              const padding = EdgeInsets.fromLTRB(0, 10, 10, 10);
+              Widget content = SingleChildScrollView(
+                controller: _verticalScrollController,
+                padding: padding,
+                child: _wrapLines ? child : IntrinsicWidth(child: child),
+              );
 
-        return Stack(
-          children: <Widget>[
-            Positioned.fill(child: content),
-            Positioned(
-              top: 0,
-              right: 0,
-              bottom: 0,
-              child: _MiniMap(
-                lineCount: lineCount,
-                matches: matches,
-                currentMatchLine: matches.isEmpty
-                    ? null
-                    : matches[_currentMatchIndex],
-              ),
-            ),
-          ],
-        );
-      },
+              if (!_wrapLines) {
+                content = SingleChildScrollView(
+                  controller: _horizontalScrollController,
+                  scrollDirection: Axis.horizontal,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                    child: content,
+                  ),
+                );
+              }
+
+              return Stack(
+                children: <Widget>[
+                  Positioned.fill(child: content),
+                  Positioned(
+                    top: 8,
+                    right: 3,
+                    bottom: 8,
+                    child: _MiniMap(
+                      lineCount: lineCount,
+                      matches: matches,
+                      currentMatchLine: matches.isEmpty
+                          ? null
+                          : matches[_currentMatchIndex],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
     );
   }
 
@@ -697,7 +647,6 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     Set<int> visibleLineIndices,
   ) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final visibleLines = section.visibleLineIndices(
       visibleDocumentLines: visibleLineIndices,
       query: viewData.query,
@@ -709,73 +658,89 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       return const SizedBox.shrink();
     }
 
+    final isMatch = viewData.matches.contains(section.startLine);
+    final isCurrentMatch =
+        viewData.matches.isNotEmpty &&
+        viewData.matches[_currentMatchIndex] == section.startLine;
+
+    // Scalars and empty collections render as a single ordinary line.
+    if (!section.expandable || section.lineCount <= 1) {
+      return _buildCodeLine(
+        keyId: 'yaml-${section.startLine}',
+        lineNumber: section.startLine + 1,
+        line: document.yamlLines[section.startLine],
+        syntax: _SourceSyntax.yaml,
+        isMatch: isMatch,
+        isCurrentMatch: isCurrentMatch,
+      );
+    }
+
     final userExpanded = _expandedSections[section.key] ?? true;
     final isExpanded = viewData.query.isNotEmpty ? true : userExpanded;
+    final codeStyle = _codeStyle(theme);
+    final secondary = theme.colorScheme.onSurfaceVariant;
+
+    final header = InkWell(
+      onTap: () {
+        setState(() {
+          _expandedSections[section.key] = !userExpanded;
+        });
+      },
+      child: _buildLineFrame(
+        keyId: 'yaml-${section.startLine}',
+        lineNumber: section.startLine + 1,
+        isMatch: isMatch,
+        isCurrentMatch: isCurrentMatch,
+        fold: AnimatedRotation(
+          turns: isExpanded ? 0.25 : 0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          child: Icon(Icons.chevron_right_rounded, size: 16, color: secondary),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            Text(
+              section.key,
+              style: codeStyle.copyWith(
+                color: yamlTokenColorFor(YamlTokenType.key, theme.brightness),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            Text(':', style: codeStyle),
+            if (!isExpanded) ...<Widget>[
+              const SizedBox(width: 8),
+              _CollapsedBadge(
+                label:
+                    '${section.lineCount - 1} '
+                    '${section.lineCount - 1 == 1 ? 'line' : 'lines'}',
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        InkWell(
-          onTap: section.expandable
-              ? () {
-                  setState(() {
-                    _expandedSections[section.key] = !userExpanded;
-                  });
-                }
-              : null,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Icon(
-                  section.expandable
-                      ? (isExpanded
-                            ? Icons.keyboard_arrow_down
-                            : Icons.keyboard_arrow_right)
-                      : Icons.drag_handle,
-                  size: 16,
-                  color: section.expandable
-                      ? colorScheme.primary
-                      : colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  section.key,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontFamily: 'monospace',
-                    fontSize: 13,
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        AnimatedCrossFade(
-          firstCurve: Curves.easeOutCubic,
-          secondCurve: Curves.easeInCubic,
-          sizeCurve: Curves.easeInOutCubic,
-          duration: const Duration(milliseconds: 220),
-          crossFadeState: isExpanded && section.expandable
-              ? CrossFadeState.showFirst
-              : CrossFadeState.showSecond,
-          firstChild: Padding(
-            padding: EdgeInsets.zero,
-            child: _buildExpandableSectionBody(
-              document: document,
-              section: section,
-              viewData: viewData,
-              visibleLines: visibleLines,
-            ),
-          ),
-          secondChild: section.expandable
-              ? const SizedBox.shrink()
-              : Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
-                  child: _buildScalarSectionLine(document, section, viewData),
-                ),
+        header,
+        // AnimatedSize (not AnimatedCrossFade): the cross-fade positions its
+        // hidden child, which would drop out of the IntrinsicWidth used for
+        // horizontal scrolling and overflow mid-animation.
+        AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOutCubic,
+          alignment: Alignment.topLeft,
+          child: isExpanded
+              ? _buildExpandableSectionBody(
+                  document: document,
+                  section: section,
+                  viewData: viewData,
+                  visibleLines: visibleLines,
+                )
+              : const SizedBox.shrink(),
         ),
       ],
     );
@@ -790,8 +755,6 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     required bool isCurrentMatch,
   }) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final baseColor = theme.colorScheme.onSurface;
 
     return _buildLineFrame(
       keyId: keyId,
@@ -801,25 +764,19 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       child: Text.rich(
         softWrap: _wrapLines,
         TextSpan(
-          style: TextStyle(
-            fontFamily: 'monospace',
-            fontSize: 12,
-            color: baseColor,
-            height: 1.4,
+          style: _codeStyle(theme).copyWith(
+            color: syntax == _SourceSyntax.text
+                ? theme.colorScheme.onSurface
+                : null,
           ),
-          children: <TextSpan>[
-            for (final token in _tokenizeSourceLine(line, syntax))
-              TextSpan(
-                text: token.text,
-                style: TextStyle(
-                  color: _sourceTokenColor(
-                    token,
-                    baseColor: baseColor,
-                    isDark: isDark,
-                  ),
-                ),
-              ),
-          ],
+          children: _buildSourceLineSpans(
+            line,
+            syntax,
+            brightness: theme.brightness,
+            overrideColor: syntax == _SourceSyntax.text
+                ? theme.colorScheme.onSurface
+                : null,
+          ),
         ),
       ),
     );
@@ -850,40 +807,41 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     required bool isCurrentMatch,
   }) {
     final theme = Theme.of(context);
-    final lineColor = switch (line.kind) {
-      DiffLineKind.added => AppColors.teal,
-      DiffLineKind.removed => AppColors.coral,
-      DiffLineKind.unchanged => theme.colorScheme.onSurface,
+    final codeStyle = _codeStyle(theme);
+    final (Color? background, Color prefixColor) = switch (line.kind) {
+      DiffLineKind.added => (
+        AppColors.statusTint(theme, AppColors.healthy),
+        AppColors.statusForeground(theme, AppColors.healthy),
+      ),
+      DiffLineKind.removed => (
+        AppColors.statusTint(theme, AppColors.degraded),
+        AppColors.statusForeground(theme, AppColors.degraded),
+      ),
+      DiffLineKind.unchanged => (null, AppColors.tertiaryLabel(theme)),
     };
 
-    final prefixText = '${line.prefix} ';
-    final bodySyntax = _SourceSyntax.yaml;
     return _buildLineFrame(
       keyId: keyId,
       lineNumber: lineNumber,
       isMatch: isMatch,
       isCurrentMatch: isCurrentMatch,
+      background: background,
+      fold: Text(
+        line.prefix,
+        style: codeStyle.copyWith(
+          color: prefixColor,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
       child: Text.rich(
         softWrap: _wrapLines,
         TextSpan(
-          style: TextStyle(
-            fontFamily: 'monospace',
-            fontSize: 12,
-            color: lineColor,
-            height: 1.4,
+          style: codeStyle,
+          children: _buildSourceLineSpans(
+            line.text,
+            _SourceSyntax.yaml,
+            brightness: theme.brightness,
           ),
-          children: <TextSpan>[
-            TextSpan(
-              text: prefixText,
-              style: TextStyle(color: lineColor, fontWeight: FontWeight.bold),
-            ),
-            ..._buildSourceLineSpans(
-              line.text,
-              bodySyntax,
-              fallbackColor: lineColor,
-              isDark: Theme.of(context).brightness == Brightness.dark,
-            ),
-          ],
         ),
       ),
     );
@@ -893,7 +851,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     return switch (syntax) {
       _SourceSyntax.yaml =>
         tokenizeYamlLine(line)
-            .map((_token) => _SourceToken(_token.text, _token.type?.name))
+            .map((token) => _SourceToken(token.text, token.type?.name))
             .toList(growable: false),
       _SourceSyntax.json => _tokenizeJsonLine(line),
       _SourceSyntax.text => <_SourceToken>[_SourceToken(line, null)],
@@ -903,8 +861,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
   List<TextSpan> _buildSourceLineSpans(
     String line,
     _SourceSyntax syntax, {
-    required Color fallbackColor,
-    required bool isDark,
+    required Brightness brightness,
     Color? overrideColor,
   }) {
     return <TextSpan>[
@@ -914,8 +871,7 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
           style: TextStyle(
             color: _sourceTokenColor(
               token,
-              baseColor: fallbackColor,
-              isDark: isDark,
+              brightness: brightness,
               overrideColor: overrideColor,
             ),
           ),
@@ -923,33 +879,26 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     ];
   }
 
+  /// Maps YAML and JSON token kinds onto the shared Xcode-style palette.
   Color _sourceTokenColor(
     _SourceToken token, {
-    required Color baseColor,
-    required bool isDark,
+    required Brightness brightness,
     Color? overrideColor,
   }) {
     if (overrideColor != null && token.type == null) {
       return overrideColor;
     }
 
-    return switch (token.type) {
-      'key' => AppColors.yamlKey,
-      'stringValue' => AppColors.yamlString,
-      'numberValue' => AppColors.yamlNumber,
-      'boolNullValue' => AppColors.yamlNumber,
-      'listDash' => AppColors.yamlKey,
-      'comment' => AppColors.yamlComment,
-      'jsonKey' => AppColors.yamlString,
-      'jsonString' => AppColors.yamlString,
-      'jsonNumber' => AppColors.yamlNumber,
-      'jsonLiteral' => AppColors.yamlKey,
-      'jsonPunctuation' => AppColors.yamlPunctuation,
-      null =>
-        overrideColor ??
-            (isDark ? baseColor : baseColor.withValues(alpha: 0.92)),
-      _ => overrideColor ?? baseColor,
+    final YamlTokenType? type = switch (token.type) {
+      'key' || 'jsonKey' => YamlTokenType.key,
+      'listDash' => YamlTokenType.listDash,
+      'stringValue' || 'jsonString' => YamlTokenType.stringValue,
+      'numberValue' || 'jsonNumber' => YamlTokenType.numberValue,
+      'boolNullValue' || 'jsonLiteral' => YamlTokenType.boolNullValue,
+      'comment' => YamlTokenType.comment,
+      _ => null,
     };
+    return yamlTokenColorFor(type, brightness);
   }
 
   List<_SourceToken> _tokenizeJsonLine(String line) {
@@ -1008,47 +957,57 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     return null;
   }
 
+  /// One editor row: muted line-number gutter, a narrow fold/prefix column,
+  /// then the code. Search matches tint the full row.
   Widget _buildLineFrame({
     required String keyId,
-    required int lineNumber,
+    required int? lineNumber,
     required bool isMatch,
     required bool isCurrentMatch,
     required Widget child,
+    Widget? fold,
+    Color? background,
   }) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final key = _lineKeys.putIfAbsent(keyId, GlobalKey.new);
+
+    final rowColor = isCurrentMatch
+        ? AppColors.missing.withValues(alpha: isDark ? 0.32 : 0.26)
+        : isMatch
+        ? scheme.primary.withValues(alpha: isDark ? 0.18 : 0.10)
+        : background;
 
     return Container(
       key: key,
-      color: isCurrentMatch
-          ? AppColors.amber.withValues(
-              alpha: theme.brightness == Brightness.dark ? 0.22 : 0.28,
-            )
-          : isMatch
-          ? colorScheme.primary.withValues(
-              alpha: theme.brightness == Brightness.dark ? 0.16 : 0.12,
-            )
-          : null,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      color: rowColor,
+      constraints: const BoxConstraints(
+        minHeight: _codeFontSize * _codeLineHeight,
+      ),
       child: Row(
         mainAxisSize: _wrapLines ? MainAxisSize.max : MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           SizedBox(
-            width: 48,
+            width: _gutterWidth,
             child: Text(
-              '$lineNumber',
+              lineNumber == null ? '' : '$lineNumber',
               textAlign: TextAlign.right,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontFamily: 'monospace',
-                fontSize: 12,
-                color: colorScheme.onSurfaceVariant,
-                height: 1.4,
+              style: TextStyle(
+                fontFamily: AppFonts.mono,
+                fontSize: 11,
+                // Match the code line box so numbers sit on the same row.
+                height: (_codeFontSize * _codeLineHeight) / 11,
+                color: AppColors.tertiaryLabel(theme),
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(
+            width: _foldColumnWidth,
+            height: _codeFontSize * _codeLineHeight,
+            child: fold == null ? null : Center(child: fold),
+          ),
           if (_wrapLines) Expanded(child: child) else child,
         ],
       ),
@@ -1346,30 +1305,9 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
       }
     }
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: widgets,
-      ),
-    );
-  }
-
-  Widget _buildScalarSectionLine(
-    _ManifestDocumentBundle document,
-    _YamlSection section,
-    _ManifestViewData viewData,
-  ) {
-    final lineText = document.yamlLines[section.startLine];
-    final valueText = _scalarValueForLine(lineText);
-    return _buildYamlLine(
-      keyId: 'yaml-${section.startLine}',
-      lineNumber: section.startLine + 1,
-      line: valueText,
-      isMatch: viewData.matches.contains(section.startLine),
-      isCurrentMatch:
-          viewData.matches.isNotEmpty &&
-          viewData.matches[_currentMatchIndex] == section.startLine,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: widgets,
     );
   }
 
@@ -1379,15 +1317,20 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     required int endLine,
   }) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final tertiary = AppColors.tertiaryLabel(theme);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: Text(
-        '... $hiddenLineCount lines hidden between $startLine and $endLine ...',
-        style: theme.textTheme.labelSmall?.copyWith(
-          fontFamily: 'monospace',
-          color: colorScheme.onSurfaceVariant,
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 3),
+      color: theme.colorScheme.surfaceContainerHigh,
+      child: _buildLineFrame(
+        keyId: 'gap-$startLine-$endLine',
+        lineNumber: null,
+        isMatch: false,
+        isCurrentMatch: false,
+        fold: Icon(Icons.more_horiz_rounded, size: 14, color: tertiary),
+        child: Text(
+          '$hiddenLineCount lines hidden between $startLine and $endLine',
+          style: _codeStyle(theme).copyWith(fontSize: 11, color: tertiary),
         ),
       ),
     );
@@ -1477,11 +1420,25 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     if (context == null) {
       return;
     }
-    Scrollable.ensureVisible(
-      context,
+    // Reveal vertically only — Scrollable.ensureVisible would also scroll
+    // the horizontal code viewport and hide the start of the lines.
+    final renderObject = context.findRenderObject();
+    if (renderObject == null || !_verticalScrollController.hasClients) {
+      return;
+    }
+    final viewport = RenderAbstractViewport.maybeOf(renderObject);
+    if (viewport == null) {
+      return;
+    }
+    final position = _verticalScrollController.position;
+    final target = viewport
+        .getOffsetToReveal(renderObject, 0.2)
+        .offset
+        .clamp(position.minScrollExtent, position.maxScrollExtent);
+    _verticalScrollController.animateTo(
+      target,
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
-      alignment: 0.2,
     );
   }
 
@@ -1496,32 +1453,21 @@ class _ManifestViewerScreenState extends State<ManifestViewerScreen> {
     });
   }
 
-  void _toggleJsonYamlMode() {
+  void _setViewMode(_ManifestViewMode mode) {
+    if (mode == _viewMode) {
+      return;
+    }
     _storeCurrentScrollOffsets();
     setState(() {
-      if (_viewMode == _ManifestViewMode.diff) {
-        _viewMode = _lastNonDiffMode;
-      } else {
-        _viewMode = _viewMode == _ManifestViewMode.json
-            ? _ManifestViewMode.yaml
-            : _ManifestViewMode.json;
-        _lastNonDiffMode = _viewMode;
-      }
+      _viewMode = mode;
     });
     _restoreScrollOffsets();
   }
 
-  void _toggleDiffMode() {
-    _storeCurrentScrollOffsets();
+  void _toggleManagedFields() {
     setState(() {
-      if (_viewMode == _ManifestViewMode.diff) {
-        _viewMode = _lastNonDiffMode;
-      } else {
-        _lastNonDiffMode = _viewMode;
-        _viewMode = _ManifestViewMode.diff;
-      }
+      _hideManagedFields = !_hideManagedFields;
     });
-    _restoreScrollOffsets();
   }
 
   void _goToPreviousMatch() {
@@ -1724,6 +1670,8 @@ class _DiffDocument {
   final List<DiffLine> lines;
 }
 
+/// Slim search ruler along the right edge of the code card: one tick per
+/// match, the current match highlighted.
 class _MiniMap extends StatelessWidget {
   const _MiniMap({
     required this.lineCount,
@@ -1737,47 +1685,195 @@ class _MiniMap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (lineCount <= 0) {
-      return const SizedBox(width: 10);
+    if (lineCount <= 0 || matches.isEmpty) {
+      return const SizedBox(width: 4);
     }
 
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final scheme = Theme.of(context).colorScheme;
 
     return SizedBox(
-      width: 10,
+      width: 4,
       child: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
           final height = constraints.maxHeight;
-          return DecoratedBox(
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest.withValues(
-                alpha: theme.brightness == Brightness.dark ? 0.9 : 0.95,
-              ),
-              border: Border.all(color: colorScheme.outlineVariant),
-              borderRadius: AppRadius.pill,
-            ),
-            child: Stack(
-              children: <Widget>[
-                for (final match in matches)
-                  Positioned(
-                    left: 1,
-                    right: 1,
-                    top: (match / lineCount) * (height - 6),
-                    child: Container(
-                      height: currentMatchLine == match ? 6 : 4,
-                      decoration: BoxDecoration(
-                        color: currentMatchLine == match
-                            ? AppColors.amber
-                            : AppColors.cobalt,
-                        borderRadius: AppRadius.pill,
-                      ),
+          return Stack(
+            children: <Widget>[
+              for (final match in matches)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: (match / lineCount) * (height - 6),
+                  child: Container(
+                    height: currentMatchLine == match ? 6 : 3,
+                    decoration: BoxDecoration(
+                      color: currentMatchLine == match
+                          ? AppColors.missing
+                          : scheme.primary.withValues(alpha: 0.7),
+                      borderRadius: AppRadius.pill,
                     ),
                   ),
-              ],
-            ),
+                ),
+            ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// Neutral "12 lines" capsule shown after a folded section key.
+class _CollapsedBadge extends StatelessWidget {
+  const _CollapsedBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        color: AppColors.fill(theme),
+        borderRadius: AppRadius.xs,
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontFamily: AppFonts.mono,
+          fontSize: 11,
+          height: 1.4,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+class _Segment<T> {
+  const _Segment({
+    required this.value,
+    required this.icon,
+    required this.label,
+  });
+
+  final T value;
+  final IconData icon;
+  final String label;
+}
+
+/// iOS-style segmented control: neutral track with a sliding raised thumb.
+class _SegmentedControl<T> extends StatelessWidget {
+  const _SegmentedControl({
+    required this.segments,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final List<_Segment<T>> segments;
+  final T value;
+  final ValueChanged<T> onChanged;
+
+  static const double _segmentWidth = 76;
+  static const double _height = 32;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final count = segments.length;
+    final selectedIndex = segments.indexWhere(
+      (_Segment<T> segment) => segment.value == value,
+    );
+
+    return Container(
+      height: _height,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: AppColors.fill(theme),
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: SizedBox(
+        width: _segmentWidth * count,
+        child: Stack(
+          children: <Widget>[
+            if (selectedIndex >= 0)
+              AnimatedAlign(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                alignment: Alignment(
+                  count == 1 ? 0 : -1 + 2 * selectedIndex / (count - 1),
+                  0,
+                ),
+                child: Container(
+                  width: _segmentWidth,
+                  height: _height - 4,
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF636366) : Colors.white,
+                    borderRadius: BorderRadius.circular(7),
+                    boxShadow: isDark
+                        ? null
+                        : <BoxShadow>[
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.10),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 1,
+                              offset: const Offset(0, 0.5),
+                            ),
+                          ],
+                  ),
+                ),
+              ),
+            Row(
+              children: <Widget>[
+                for (var i = 0; i < count; i++)
+                  _buildSegment(theme, scheme, segments[i], i == selectedIndex),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSegment(
+    ThemeData theme,
+    ColorScheme scheme,
+    _Segment<T> segment,
+    bool selected,
+  ) {
+    final color = selected ? scheme.onSurface : scheme.onSurfaceVariant;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: segment.label,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => onChanged(segment.value),
+        child: SizedBox(
+          width: _segmentWidth,
+          height: _height - 4,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Icon(segment.icon, size: 14, color: color),
+              const SizedBox(width: 5),
+              Text(
+                segment.label,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontSize: 13,
+                  color: color,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -84,8 +84,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Appearance'), findsOneWidget);
-      expect(find.text('Connection'), findsOneWidget);
+      expect(find.text('APPEARANCE'), findsOneWidget);
+      expect(find.text('CONNECTION'), findsOneWidget);
     });
 
     testWidgets('renders connection info with server and username', (
@@ -122,7 +122,7 @@ void main() {
       expect(find.text('Dark'), findsOneWidget);
     });
 
-    testWidgets('tapping theme card changes theme mode', (
+    testWidgets('tapping theme row changes theme mode', (
       WidgetTester tester,
     ) async {
       final controller = createAuthenticatedController();
@@ -223,13 +223,13 @@ void main() {
 
       // Scroll to the About section
       await tester.scrollUntilVisible(
-        find.text('About'),
+        find.text('ABOUT'),
         200,
         scrollable: find.byType(Scrollable).first,
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('About'), findsOneWidget);
+      expect(find.text('ABOUT'), findsOneWidget);
       expect(find.text('v1.0.0+1'), findsOneWidget);
     });
   });
@@ -242,7 +242,7 @@ void main() {
       await tester.pumpWidget(wrapSignIn(controller: controller));
       await tester.pumpAndSettle();
 
-      expect(find.text('Connect to ArgoCD'), findsOneWidget);
+      expect(find.text('Sign in to Argo CD'), findsOneWidget);
       expect(find.text('Server URL'), findsOneWidget);
       expect(find.text('Username'), findsOneWidget);
       expect(find.text('Password'), findsOneWidget);
@@ -363,7 +363,7 @@ void main() {
       await tester.pumpWidget(wrapSignIn(controller: controller));
       await tester.pumpAndSettle();
 
-      expect(find.text('Argo CD'), findsOneWidget);
+      expect(find.text('Sign in to Argo CD'), findsOneWidget);
       expect(find.byType(ArgoLogo), findsOneWidget);
     });
   });

@@ -2,21 +2,24 @@ import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:flutter/material.dart';
 
-const EdgeInsets kPagePadding = EdgeInsets.fromLTRB(16, 12, 16, 16);
+const EdgeInsets kPagePadding = EdgeInsets.fromLTRB(16, 8, 16, 24);
 
+/// iOS-style large-title page header.
+///
+/// Renders a bold large title with an optional one-line secondary label,
+/// trailing toolbar actions aligned to the title baseline area, and an
+/// optional [bottom] widget (search field, filters, ...).
 class AppPageHeader extends StatelessWidget {
   const AppPageHeader({
     super.key,
     required this.title,
-    required this.subtitle,
-    this.leadingIcon,
+    this.subtitle,
     this.trailing,
     this.bottom,
   });
 
   final String title;
-  final String subtitle;
-  final IconData? leadingIcon;
+  final String? subtitle;
   final Widget? trailing;
   final Widget? bottom;
 
@@ -28,28 +31,13 @@ class AppPageHeader extends StatelessWidget {
     return SafeArea(
       bottom: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(2, 6, 2, 4),
+        padding: const EdgeInsets.fromLTRB(4, 8, 0, 4),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
-                if (leadingIcon != null) ...<Widget>[
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: scheme.primaryContainer,
-                      borderRadius: AppRadius.base,
-                    ),
-                    child: Icon(
-                      leadingIcon,
-                      color: scheme.onPrimaryContainer,
-                      size: 22,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                ],
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,22 +46,19 @@ class AppPageHeader extends StatelessWidget {
                         title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: scheme.onSurface,
-                          letterSpacing: -0.3,
-                        ),
+                        style: theme.textTheme.headlineLarge,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
+                      if (subtitle != null && subtitle!.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -84,12 +69,297 @@ class AppPageHeader extends StatelessWidget {
               ],
             ),
             if (bottom != null) ...<Widget>[
-              const SizedBox(height: 10),
+              const SizedBox(height: 14),
               bottom!,
             ],
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Content section title in the App Store / Health style ("Needs Attention").
+/// Sits *outside* a card, directly above it.
+class SectionHeader extends StatelessWidget {
+  const SectionHeader({
+    super.key,
+    required this.title,
+    this.trailing,
+    this.padding = const EdgeInsets.fromLTRB(4, 0, 4, 10),
+  });
+
+  final String title;
+  final Widget? trailing;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: padding,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          Expanded(
+            child: Semantics(
+              header: true,
+              child: Text(title, style: theme.textTheme.titleLarge),
+            ),
+          ),
+          ?trailing,
+        ],
+      ),
+    );
+  }
+}
+
+/// iOS inset-grouped list: a rounded card whose [children] are separated by
+/// inset hairlines, with an optional small caps [header] and muted [footer].
+class GroupedList extends StatelessWidget {
+  const GroupedList({
+    super.key,
+    this.header,
+    this.footer,
+    required this.children,
+    this.dividerIndent = 16,
+  });
+
+  final String? header;
+  final String? footer;
+  final List<Widget> children;
+
+  /// Leading inset of separators. Use 60 when rows carry an [IconWell].
+  final double dividerIndent;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final rows = <Widget>[];
+    for (var i = 0; i < children.length; i++) {
+      if (i > 0) {
+        rows.add(
+          Divider(
+            height: 0.5,
+            indent: dividerIndent,
+            color: scheme.outlineVariant,
+          ),
+        );
+      }
+      rows.add(children[i]);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        if (header != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 7),
+            child: Semantics(
+              header: true,
+              child: Text(
+                header!.toUpperCase(),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  letterSpacing: 0.3,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        Material(
+          color: scheme.surfaceContainerLow,
+          borderRadius: AppRadius.md,
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: rows,
+          ),
+        ),
+        if (footer != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 7, 16, 0),
+            child: Text(
+              footer!,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// A single row inside a [GroupedList]: leading glyph, title (+ optional
+/// subtitle), a muted trailing [value] and a disclosure chevron when tappable.
+class GroupedRow extends StatelessWidget {
+  const GroupedRow({
+    super.key,
+    this.leading,
+    required this.title,
+    this.subtitle,
+    this.value,
+    this.trailing,
+    this.onTap,
+    this.showChevron,
+    this.destructive = false,
+  });
+
+  final Widget? leading;
+  final String title;
+  final String? subtitle;
+  final String? value;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  /// Defaults to `onTap != null && trailing == null`.
+  final bool? showChevron;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final chevron = showChevron ?? (onTap != null && trailing == null);
+
+    return InkWell(
+      onTap: onTap,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 48),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final label = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    title,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: destructive ? scheme.error : scheme.onSurface,
+                    ),
+                  ),
+                  if (subtitle != null && subtitle!.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle!,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
+              );
+              return Row(
+                children: <Widget>[
+                  if (leading != null) ...<Widget>[
+                    leading!,
+                    const SizedBox(width: 14),
+                  ],
+                  // With a value, the label keeps its natural width (capped
+                  // at 60%) and the value takes the remaining space, so short
+                  // labels don't force long values to truncate at 50%.
+                  if (value == null)
+                    Expanded(child: label)
+                  else ...<Widget>[
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: constraints.maxWidth * 0.6,
+                      ),
+                      child: label,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        value!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.end,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (trailing != null) ...<Widget>[
+                    const SizedBox(width: 12),
+                    trailing!,
+                  ],
+                  if (chevron) ...<Widget>[
+                    const SizedBox(width: 6),
+                    const DisclosureChevron(),
+                  ],
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The muted ">" disclosure indicator used on tappable rows.
+class DisclosureChevron extends StatelessWidget {
+  const DisclosureChevron({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ExcludeSemantics(
+      child: Icon(
+        Icons.chevron_right_rounded,
+        size: 22,
+        color: AppColors.tertiaryLabel(Theme.of(context)),
+      ),
+    );
+  }
+}
+
+/// iOS Settings-style icon: a white glyph on a solid rounded square.
+class IconWell extends StatelessWidget {
+  const IconWell({
+    super.key,
+    required this.icon,
+    required this.color,
+    this.size = 30,
+  });
+
+  final IconData icon;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return ExcludeSemantics(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(size * 0.24),
+        ),
+        child: Icon(icon, size: size * 0.6, color: Colors.white),
+      ),
+    );
+  }
+}
+
+/// Small solid status dot.
+class StatusDot extends StatelessWidget {
+  const StatusDot({super.key, required this.color, this.size = 8});
+
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 }
@@ -439,10 +709,25 @@ List<YamlToken> _tokenizeValue(String text) {
   ];
 }
 
-/// Returns the color for a given YAML token type.
-///
-/// Colours are chosen for readability on a light background (the primary use
-/// case) and are applied at ~92 % opacity by the caller in dark mode.
+/// Returns the theme-appropriate color for a YAML token type (Xcode-style
+/// palettes for light and dark appearance).
+Color yamlTokenColorFor(YamlTokenType? type, Brightness brightness) {
+  if (brightness == Brightness.light) {
+    return yamlTokenColor(type);
+  }
+  return switch (type) {
+    YamlTokenType.key => AppColors.yamlKeyDark,
+    YamlTokenType.stringValue => AppColors.yamlStringDark,
+    YamlTokenType.numberValue => AppColors.yamlNumberDark,
+    YamlTokenType.boolNullValue => AppColors.yamlNumberDark,
+    YamlTokenType.listDash => AppColors.yamlKeyDark,
+    YamlTokenType.comment => AppColors.yamlCommentDark,
+    null => AppColors.yamlPunctuationDark,
+  };
+}
+
+/// Returns the light-appearance color for a given YAML token type.
+/// Prefer [yamlTokenColorFor] in widgets so dark mode stays legible.
 Color yamlTokenColor(YamlTokenType? type) {
   return switch (type) {
     YamlTokenType.key => AppColors.yamlKey, // clear blue
@@ -455,6 +740,10 @@ Color yamlTokenColor(YamlTokenType? type) {
   };
 }
 
+/// Compact tinted capsule for a health / sync status.
+///
+/// The text and glyph use [AppColors.statusForeground] so vivid status hues
+/// stay legible on light surfaces.
 class StatusChip extends StatelessWidget {
   const StatusChip({
     super.key,
@@ -470,29 +759,34 @@ class StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final foreground = AppColors.statusForeground(theme, color);
 
     return Semantics(
       label: 'Status: $label',
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: EdgeInsets.fromLTRB(icon != null ? 6 : 8, 3, 8, 3),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: isDark ? 0.22 : 0.14),
+          color: AppColors.statusTint(theme, color),
           borderRadius: AppRadius.pill,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             if (icon != null) ...<Widget>[
-              Icon(icon, size: 12, color: color),
+              Icon(icon, size: 12, color: foreground),
               const SizedBox(width: 4),
             ],
-            Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.2,
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: foreground,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.05,
+                ),
               ),
             ),
           ],
@@ -502,38 +796,41 @@ class StatusChip extends StatelessWidget {
   }
 }
 
-/// Returns an ArgoCD-style icon for a health status string.
-///
-/// Icons match the ArgoCD web UI FontAwesome mappings:
-/// healthy=heart, degraded=heart-broken, progressing=circle-notch,
-/// suspended=pause-circle, missing=warning (ghost equivalent).
+/// Returns an icon for a health status string (rounded glyph family).
 IconData healthStatusIcon(String status) {
   return switch (status.toLowerCase()) {
-    'healthy' => Icons.favorite,
-    'progressing' => Icons.autorenew,
-    'degraded' => Icons.heart_broken,
-    'suspended' => Icons.pause_circle_filled,
+    'healthy' => Icons.favorite_rounded,
+    'progressing' => Icons.autorenew_rounded,
+    'degraded' => Icons.heart_broken_rounded,
+    'suspended' => Icons.pause_circle_filled_rounded,
     'missing' => Icons.warning_amber_rounded,
-    _ => Icons.help_outline,
+    _ => Icons.help_outline_rounded,
   };
 }
 
-/// Returns an ArgoCD-style icon for a sync status string.
-///
-/// Icons match the ArgoCD web UI: synced=check-circle,
-/// outofsync=arrow-circle-up.
+/// Returns an icon for a sync status string.
 IconData syncStatusIcon(String status) {
   return switch (status.toLowerCase()) {
-    'synced' => Icons.check_circle,
-    'outofsync' => Icons.arrow_circle_up,
-    _ => Icons.help_outline,
+    'synced' => Icons.check_circle_rounded,
+    'outofsync' => Icons.arrow_circle_up_rounded,
+    _ => Icons.help_outline_rounded,
   };
 }
 
+/// Rounded content card (iOS inset-grouped surface) with an optional
+/// headline [title].
 class SectionCard extends StatelessWidget {
-  const SectionCard({super.key, this.title, required this.child});
+  const SectionCard({
+    super.key,
+    this.title,
+    this.trailing,
+    this.padding = const EdgeInsets.all(16),
+    required this.child,
+  });
 
   final String? title;
+  final Widget? trailing;
+  final EdgeInsetsGeometry padding;
   final Widget child;
 
   @override
@@ -541,7 +838,7 @@ class SectionCard extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: padding,
       decoration: BoxDecoration(
         color: scheme.surfaceContainerLow,
         borderRadius: AppRadius.md,
@@ -550,12 +847,18 @@ class SectionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           if (title != null) ...<Widget>[
-            Text(
-              title!,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: scheme.onSurface,
-              ),
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    title!,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                ?trailing,
+              ],
             ),
             const SizedBox(height: 12),
           ],
@@ -566,17 +869,21 @@ class SectionCard extends StatelessWidget {
   }
 }
 
+/// Content-unavailable view: a large muted glyph, a headline and a short
+/// explanation, centered (iOS `ContentUnavailableView`).
 class EmptyStateCard extends StatelessWidget {
   const EmptyStateCard({
     super.key,
     this.icon,
     required this.title,
     required this.subtitle,
+    this.action,
   });
 
   final IconData? icon;
   final String title;
   final String subtitle;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -586,39 +893,39 @@ class EmptyStateCard extends StatelessWidget {
     return Semantics(
       label: '$title. $subtitle',
       child: Container(
-        padding: const EdgeInsets.all(20),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerLow,
           borderRadius: AppRadius.md,
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             if (icon != null) ...<Widget>[
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: scheme.primaryContainer,
-                  borderRadius: AppRadius.base,
-                ),
-                child: Icon(icon, size: 22, color: scheme.onPrimaryContainer),
-              ),
-              const SizedBox(height: 12),
+              Icon(icon, size: 40, color: AppColors.tertiaryLabel(theme)),
+              const SizedBox(height: 14),
             ],
             Text(
               title,
+              textAlign: TextAlign.center,
               style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
               subtitle,
+              textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
             ),
+            if (action != null) ...<Widget>[
+              const SizedBox(height: 18),
+              action!,
+            ],
           ],
         ),
       ),
@@ -626,6 +933,7 @@ class EmptyStateCard extends StatelessWidget {
   }
 }
 
+/// Big-number metric tile: a large display numeral over a muted caption.
 class SummaryTile extends StatelessWidget {
   const SummaryTile({
     super.key,
@@ -642,34 +950,33 @@ class SummaryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final accent = valueColor ?? scheme.primary;
 
     return Semantics(
       label: '$value $label',
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: accent.withValues(alpha: 0.10),
+          color: scheme.surfaceContainerLow,
           borderRadius: AppRadius.base,
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Text(
               '$value',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: accent,
+              style: theme.textTheme.headlineMedium?.copyWith(
+                color: valueColor ?? scheme.onSurface,
+                fontFeatures: AppFonts.tabularFigures,
               ),
             ),
             const SizedBox(height: 2),
             Text(
               label,
-              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelMedium?.copyWith(
                 color: scheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.2,
               ),
             ),
           ],
@@ -679,6 +986,8 @@ class SummaryTile extends StatelessWidget {
   }
 }
 
+/// Inline metadata: a small muted glyph followed by a label. No chrome —
+/// lay several out in a `Wrap` with ~12pt spacing.
 class FactBadge extends StatelessWidget {
   const FactBadge({super.key, required this.icon, required this.label});
 
@@ -690,31 +999,24 @@ class FactBadge extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHigh,
-        borderRadius: AppRadius.pill,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          ExcludeSemantics(
-            child: Icon(icon, size: 14, color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
-              overflow: TextOverflow.ellipsis,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        ExcludeSemantics(
+          child: Icon(icon, size: 14, color: AppColors.tertiaryLabel(theme)),
+        ),
+        const SizedBox(width: 5),
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
             ),
+            overflow: TextOverflow.ellipsis,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -727,13 +1029,13 @@ class StatusSegment {
   final int count;
 }
 
-/// ArgoCD-style proportional colored bar showing status distribution.
+/// Proportional capsule bar showing a status distribution.
 ///
 /// Each segment's width is proportional to its [StatusSegment.count].
-/// Segments with count == 0 are skipped. Adjacent segments are separated
-/// by a thin white line.
+/// Segments with count == 0 are skipped; adjacent segments are separated by
+/// a 2pt transparent gap so the bar reads correctly on any surface.
 class StatusSegmentBar extends StatelessWidget {
-  const StatusSegmentBar({super.key, required this.segments, this.height = 8});
+  const StatusSegmentBar({super.key, required this.segments, this.height = 6});
 
   final List<StatusSegment> segments;
   final double height;
@@ -748,7 +1050,7 @@ class StatusSegmentBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(height / 2),
         child: SizedBox(
           height: height,
-          child: Container(color: Theme.of(context).colorScheme.outlineVariant),
+          child: ColoredBox(color: AppColors.fill(Theme.of(context))),
         ),
       );
     }
@@ -757,9 +1059,9 @@ class StatusSegmentBar extends StatelessWidget {
     for (var i = 0; i < nonZero.length; i++) {
       if (i > 0) {
         children.add(
-          SizedBox(
+          const SizedBox(
             width: 2,
-            child: ColoredBox(color: Theme.of(context).colorScheme.surface),
+            child: ColoredBox(color: Colors.transparent),
           ),
         );
       }

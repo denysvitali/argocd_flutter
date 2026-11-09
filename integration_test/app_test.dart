@@ -30,7 +30,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Connect to ArgoCD'), findsOneWidget);
+    expect(find.text('Sign in to Argo CD'), findsOneWidget);
     expect(find.text('Server URL'), findsOneWidget);
     expect(find.text('Sign In'), findsOneWidget);
 
@@ -70,8 +70,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Settings'), findsWidgets);
-    expect(find.text('Appearance'), findsOneWidget);
-    expect(find.text('Connection'), findsOneWidget);
+    expect(find.text('APPEARANCE'), findsOneWidget);
+    expect(find.text('CONNECTION'), findsOneWidget);
 
     // 7. Sign out and return to sign-in
     // Scroll down to find Sign out button
@@ -80,7 +80,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Should be back at sign-in screen
-    expect(find.text('Connect to ArgoCD'), findsOneWidget);
+    expect(find.text('Sign in to Argo CD'), findsOneWidget);
     expect(find.text('Sign In'), findsOneWidget);
   });
 }

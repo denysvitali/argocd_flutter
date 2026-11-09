@@ -2,9 +2,22 @@ import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/core/services/health_monitor.dart';
 import 'package:argocd_flutter/core/services/theme_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
-import 'package:argocd_flutter/ui/design_tokens.dart';
 import 'package:argocd_flutter/ui/shared_widgets.dart';
 import 'package:flutter/material.dart';
+
+/// iOS Settings palette for [IconWell] glyph backgrounds.
+abstract final class _WellColors {
+  static const Color blue = Color(0xFF007AFF);
+  static const Color green = Color(0xFF34C759);
+  static const Color indigo = Color(0xFF5856D6);
+  static const Color orange = Color(0xFFFF9500);
+  static const Color red = Color(0xFFFF3B30);
+  static const Color pink = Color(0xFFFF2D55);
+  static const Color teal = Color(0xFF30B0C7);
+  static const Color gray = Color(0xFF8E8E93);
+}
+
+const double _sectionGap = 28;
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({
@@ -29,10 +42,17 @@ class SettingsScreen extends StatelessWidget {
       builder: (BuildContext context, Widget? child) {
         final session = controller.session;
         final certificateStatus = controller.certificateStatus;
+        final busy = controller.busy;
+        final serverUrl = session?.serverUrl ?? controller.lastServerUrl;
         final savedServerDiffers =
             session != null &&
             controller.lastServerUrl.isNotEmpty &&
             controller.lastServerUrl != session.serverUrl;
+        final username = session?.username.isNotEmpty == true
+            ? session!.username
+            : (controller.lastUsername.isNotEmpty
+                  ? controller.lastUsername
+                  : 'Signed out');
 
         return Scaffold(
           body: ListView(
@@ -43,180 +63,138 @@ class SettingsScreen extends StatelessWidget {
                 subtitle: session == null
                     ? 'Preferences and connection state'
                     : 'Connected as ${session.username}',
-                leadingIcon: Icons.settings_rounded,
               ),
-              const SizedBox(height: 14),
-              _SettingsStatusStrip(
-                connected: session != null,
-                serverUrl: session?.serverUrl ?? controller.lastServerUrl,
-                certificateStatus: certificateStatus?.supported == true
-                    ? 'Certificates enabled'
-                    : 'Certificate support unavailable',
+              const SizedBox(height: 20),
+              _AccountCard(
+                username: username,
+                serverUrl: serverUrl,
+                signedIn: session != null,
               ),
-              const SizedBox(height: 12),
-              _SectionCard(
-                title: 'Appearance',
-                icon: Icons.palette_outlined,
+              const SizedBox(height: _sectionGap),
+              GroupedList(
+                header: 'Appearance',
                 children: <Widget>[
-                  _ThemePicker(themeController: themeController),
+                  for (final option in _themeOptions)
+                    _CheckmarkRow(
+                      label: option.label,
+                      selected: themeController.themeMode == option.mode,
+                      onTap: () => themeController.setThemeMode(option.mode),
+                    ),
                 ],
               ),
               if (monitor != null) ...<Widget>[
-                const SizedBox(height: 12),
-                _NotificationsSection(monitor: monitor),
+                const SizedBox(height: _sectionGap),
+                _HealthMonitorSection(monitor: monitor),
               ],
-              const SizedBox(height: 12),
-              _SectionCard(
-                title: 'Connection',
-                icon: Icons.cloud_outlined,
+              const SizedBox(height: _sectionGap),
+              GroupedList(
+                header: 'Connection',
+                dividerIndent: 60,
                 children: <Widget>[
-                  _ConnectionTile(
-                    icon: Icons.dns_outlined,
+                  GroupedRow(
+                    leading: const IconWell(
+                      icon: Icons.dns_rounded,
+                      color: _WellColors.blue,
+                    ),
                     title: 'Server',
-                    subtitle: session?.serverUrl ?? controller.lastServerUrl,
-                    trailing: _ConnectionDot(connected: session != null),
+                    trailing: _RowValue(_hostOf(serverUrl)),
+                    onTap: busy ? null : () => _showServerDialog(context),
+                    showChevron: true,
                   ),
-                  if (savedServerDiffers) ...<Widget>[
-                    const Divider(height: 1),
-                    _ConnectionTile(
-                      icon: Icons.bookmark_outline,
+                  if (savedServerDiffers)
+                    GroupedRow(
+                      leading: const IconWell(
+                        icon: Icons.bookmark_rounded,
+                        color: _WellColors.orange,
+                      ),
                       title: 'Saved next server',
-                      subtitle: controller.lastServerUrl,
+                      trailing: _RowValue(_hostOf(controller.lastServerUrl)),
                     ),
-                  ],
-                  const Divider(height: 1),
-                  _ConnectionTile(
-                    icon: Icons.person_outline,
-                    title: 'Username',
-                    subtitle: session?.username.isNotEmpty == true
-                        ? session!.username
-                        : (controller.lastUsername.isNotEmpty
-                              ? controller.lastUsername
-                              : 'Signed out'),
+                  GroupedRow(
+                    leading: const IconWell(
+                      icon: Icons.lock_rounded,
+                      color: _WellColors.green,
+                    ),
+                    title: 'Session',
+                    trailing: _SessionState(connected: session != null),
                   ),
-                  const Divider(height: 1),
-                  _ConnectionTile(
-                    icon: Icons.wifi_outlined,
-                    title: 'Session state',
-                    subtitle: session == null
-                        ? 'No active session'
-                        : 'Authenticated',
-                    trailing: _ConnectionDot(connected: session != null),
+                  GroupedRow(
+                    leading: const IconWell(
+                      icon: Icons.wifi_tethering_rounded,
+                      color: _WellColors.teal,
+                    ),
+                    title: 'Test connection',
+                    onTap: busy ? null : () => _testConnection(context),
+                    showChevron: false,
                   ),
-                  const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: <Widget>[
-                      OutlinedButton.icon(
-                        style: _compactButtonStyle,
-                        onPressed: controller.busy
-                            ? null
-                            : () => _showServerDialog(context),
-                        icon: const Icon(Icons.edit_outlined, size: 18),
-                        label: const Text('Edit server'),
-                      ),
-                      OutlinedButton.icon(
-                        style: _compactButtonStyle,
-                        onPressed: controller.busy
-                            ? null
-                            : () => _testConnection(context),
-                        icon: const Icon(Icons.network_ping, size: 18),
-                        label: const Text('Test connection'),
-                      ),
-                      OutlinedButton.icon(
-                        style: _compactButtonStyle,
-                        onPressed: controller.busy
-                            ? null
-                            : () => controller.refreshProjects(),
-                        icon: const Icon(Icons.sync_outlined, size: 18),
-                        label: const Text('Refresh projects'),
-                      ),
-                    ],
+                  GroupedRow(
+                    leading: const IconWell(
+                      icon: Icons.refresh_rounded,
+                      color: _WellColors.indigo,
+                    ),
+                    title: 'Refresh applications',
+                    onTap: busy ? null : () => controller.refreshApplications(),
+                    showChevron: false,
+                  ),
+                  GroupedRow(
+                    leading: const IconWell(
+                      icon: Icons.folder_rounded,
+                      color: _WellColors.gray,
+                    ),
+                    title: 'Refresh projects',
+                    onTap: busy ? null : () => controller.refreshProjects(),
+                    showChevron: false,
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              _SectionCard(
-                title: 'Certificates',
-                icon: Icons.verified_user_outlined,
+              const SizedBox(height: _sectionGap),
+              GroupedList(
+                header: 'Certificates',
+                footer:
+                    certificateStatus?.message ??
+                    'Loading certificate support...',
+                dividerIndent: 60,
                 children: <Widget>[
-                  _ConnectionTile(
-                    icon: Icons.security_outlined,
-                    title: 'Support',
-                    subtitle: certificateStatus?.supported == true
-                        ? 'Enabled'
-                        : 'Unavailable',
-                  ),
-                  const Divider(height: 1),
-                  _ConnectionTile(
-                    icon: Icons.info_outline,
-                    title: 'Details',
-                    subtitle:
-                        certificateStatus?.message ??
-                        'Loading certificate support...',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _SectionCard(
-                title: 'Actions',
-                icon: Icons.bolt_outlined,
-                children: <Widget>[
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: controller.busy
-                          ? null
-                          : () => controller.refreshApplications(),
-                      icon: const Icon(Icons.refresh, size: 18),
-                      label: const Text('Refresh applications'),
+                  GroupedRow(
+                    leading: const IconWell(
+                      icon: Icons.verified_user_rounded,
+                      color: _WellColors.green,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: controller.busy
-                          ? null
-                          : () => _confirmSignOut(context),
-                      icon: const Icon(Icons.logout, size: 18),
-                      label: const Text('Sign out'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.degraded,
-                        side: const BorderSide(
-                          color: AppColors.degraded,
-                          width: 1,
-                        ),
-                      ),
+                    title: 'User certificates',
+                    trailing: _RowValue(
+                      certificateStatus?.supported == true
+                          ? 'Enabled'
+                          : 'Unavailable',
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              _SectionCard(
-                title: 'About',
-                icon: Icons.info_outline,
-                children: <Widget>[
-                  _ConnectionTile(
-                    icon: Icons.apps_outlined,
+              const SizedBox(height: _sectionGap),
+              GroupedList(
+                header: 'About',
+                children: const <Widget>[
+                  GroupedRow(
                     title: 'Application',
-                    subtitle: 'ArgoCD Flutter',
+                    trailing: _RowValue('ArgoCD Flutter'),
                   ),
-                  const Divider(height: 1),
-                  _ConnectionTile(
-                    icon: Icons.flutter_dash_outlined,
+                  GroupedRow(title: 'Version', trailing: _RowValue('v1.0.0+1')),
+                  GroupedRow(
                     title: 'Framework',
-                    subtitle: 'Flutter 3.38+',
+                    trailing: _RowValue('Flutter 3.38+'),
                   ),
-                  const Divider(height: 1),
-                  _ConnectionTile(
-                    icon: Icons.code_outlined,
+                  GroupedRow(
                     title: 'Source',
-                    subtitle: 'github.com/argocd-flutter',
+                    trailing: _RowValue('github.com/argocd-flutter'),
                   ),
-                  const SizedBox(height: 8),
-                  const _VersionBadge(),
+                ],
+              ),
+              const SizedBox(height: _sectionGap),
+              GroupedList(
+                children: <Widget>[
+                  _CenteredActionRow(
+                    label: 'Sign out',
+                    onTap: busy ? null : () => _confirmSignOut(context),
+                  ),
                 ],
               ),
               const SizedBox(height: 80),
@@ -232,7 +210,6 @@ class SettingsScreen extends StatelessWidget {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          icon: const Icon(Icons.logout),
           title: const Text('Sign out'),
           content: const Text(
             'Are you sure you want to sign out? You will need to '
@@ -243,7 +220,10 @@ class SettingsScreen extends StatelessWidget {
               onPressed: () => Navigator.of(dialogContext).pop(false),
               child: const Text('Cancel'),
             ),
-            FilledButton(
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(dialogContext).colorScheme.error,
+              ),
               onPressed: () => Navigator.of(dialogContext).pop(true),
               child: const Text('Sign out'),
             ),
@@ -335,371 +315,194 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
-class _SettingsStatusStrip extends StatelessWidget {
-  const _SettingsStatusStrip({
-    required this.connected,
+String _hostOf(String url) {
+  if (url.isEmpty) {
+    return 'Not set';
+  }
+  final uri = Uri.tryParse(url);
+  if (uri == null || uri.host.isEmpty) {
+    return url;
+  }
+  return uri.hasPort ? '${uri.host}:${uri.port}' : uri.host;
+}
+
+String _initialsOf(String name) {
+  final parts = name
+      .split(RegExp(r'[\s._@-]+'))
+      .where((part) => part.isNotEmpty)
+      .toList(growable: false);
+  if (parts.isEmpty) {
+    return '?';
+  }
+  if (parts.length == 1) {
+    return parts.first.substring(0, 1).toUpperCase();
+  }
+  return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
+}
+
+typedef _ThemeOption = ({String label, ThemeMode mode});
+
+const List<_ThemeOption> _themeOptions = <_ThemeOption>[
+  (label: 'System', mode: ThemeMode.system),
+  (label: 'Light', mode: ThemeMode.light),
+  (label: 'Dark', mode: ThemeMode.dark),
+];
+
+/// Apple ID-style account summary: monogram avatar, name and server.
+class _AccountCard extends StatelessWidget {
+  const _AccountCard({
+    required this.username,
     required this.serverUrl,
-    required this.certificateStatus,
+    required this.signedIn,
   });
 
-  final bool connected;
+  final String username;
   final String serverUrl;
-  final String certificateStatus;
+  final bool signedIn;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final statusColor = connected ? AppColors.healthy : AppColors.degraded;
+    final scheme = theme.colorScheme;
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: statusColor.withValues(alpha: 0.08),
-        borderRadius: AppRadius.md,
-        border: Border.all(color: statusColor.withValues(alpha: 0.20)),
-      ),
+    return SectionCard(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Row(
         children: <Widget>[
-          _ConnectionDot(connected: connected),
-          const SizedBox(width: 10),
+          ExcludeSemantics(
+            child: Container(
+              width: 56,
+              height: 56,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                // Contacts-style neutral monogram, not the brand tint.
+                gradient: signedIn
+                    ? const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: <Color>[Color(0xFFA5A9B3), Color(0xFF858993)],
+                      )
+                    : null,
+                color: signedIn ? null : AppColors.tertiaryLabel(theme),
+              ),
+              child: Text(
+                signedIn ? _initialsOf(username) : '?',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  connected ? 'Session active' : 'No active session',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                  username,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleLarge,
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  serverUrl.isEmpty
-                      ? certificateStatus
-                      : 'Endpoint saved for this workspace',
+                  serverUrl.isEmpty ? 'No server configured' : serverUrl,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.mutedText(theme),
-                    fontWeight: FontWeight.w600,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          Icon(Icons.tune_rounded, color: statusColor),
         ],
       ),
     );
   }
 }
 
-final ButtonStyle _compactButtonStyle = OutlinedButton.styleFrom(
-  visualDensity: VisualDensity.compact,
-  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-);
-
-class _ThemePicker extends StatelessWidget {
-  const _ThemePicker({required this.themeController});
-
-  final ThemeController themeController;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final currentMode = themeController.themeMode;
-
-    return Builder(
-      builder: (context) {
-        final cards = <Widget>[
-          _ThemeCard(
-            icon: Icons.brightness_auto_outlined,
-            label: 'System',
-            selected: currentMode == ThemeMode.system,
-            onTap: () => themeController.setThemeMode(ThemeMode.system),
-            theme: theme,
-          ),
-          _ThemeCard(
-            icon: Icons.light_mode_outlined,
-            label: 'Light',
-            selected: currentMode == ThemeMode.light,
-            onTap: () => themeController.setThemeMode(ThemeMode.light),
-            theme: theme,
-          ),
-          _ThemeCard(
-            icon: Icons.dark_mode_outlined,
-            label: 'Dark',
-            selected: currentMode == ThemeMode.dark,
-            onTap: () => themeController.setThemeMode(ThemeMode.dark),
-            theme: theme,
-          ),
-        ];
-
-        return Row(
-          children: <Widget>[
-            for (var i = 0; i < cards.length; i++) ...<Widget>[
-              Expanded(child: cards[i]),
-              if (i != cards.length - 1) const SizedBox(width: 8),
-            ],
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _ThemeCard extends StatelessWidget {
-  const _ThemeCard({
-    required this.icon,
+/// Selection row with a trailing tint checkmark (iOS single-choice list).
+class _CheckmarkRow extends StatelessWidget {
+  const _CheckmarkRow({
     required this.label,
     required this.selected,
     required this.onTap,
-    required this.theme,
   });
 
-  final IconData icon;
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  final ThemeData theme;
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = selected
-        ? theme.colorScheme.primary
-        : theme.dividerColor;
-    final backgroundColor = selected
-        ? theme.colorScheme.primary.withValues(alpha: 0.08)
-        : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4);
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeInOut,
-      child: Material(
-        color: backgroundColor,
-        borderRadius: AppRadius.md,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: AppRadius.md,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
-            decoration: BoxDecoration(
-              borderRadius: AppRadius.md,
-              border: Border.all(color: borderColor, width: selected ? 1.5 : 1),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Stack(
-                  clipBehavior: Clip.none,
-                  alignment: Alignment.topRight,
-                  children: <Widget>[
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      child: Icon(
-                        icon,
-                        key: ValueKey<bool>(selected),
-                        size: 24,
-                        color: selected
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    if (selected)
-                      Positioned(
-                        top: -4,
-                        right: -6,
-                        child: Container(
-                          width: 16,
-                          height: 16,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: theme.colorScheme.primary,
-                          ),
-                          child: Icon(
-                            Icons.check,
-                            size: 11,
-                            color: theme.colorScheme.onPrimary,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: selected
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: GroupedRow(
+        title: label,
+        onTap: onTap,
+        trailing: selected
+            ? Icon(Icons.check_rounded, size: 22, color: scheme.primary)
+            : const SizedBox(width: 22),
       ),
     );
   }
 }
 
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({
-    required this.title,
-    required this.icon,
-    required this.children,
-  });
-
-  final String title;
-  final IconData icon;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: AppRadius.md,
-        border: Border.all(color: AppColors.outline(theme)),
-        boxShadow: AppElevation.subtle(
-          AppColors.surfaceShadow(theme, alpha: 0.07),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.10),
-                  borderRadius: AppRadius.md,
-                ),
-                child: Icon(icon, size: 19, color: theme.colorScheme.primary),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ...children,
-        ],
-      ),
-    );
-  }
-}
-
-class _ConnectionTile extends StatelessWidget {
-  const _ConnectionTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    this.trailing,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(icon),
-      title: Text(title),
-      subtitle: Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
-      trailing: trailing,
-    );
-  }
-}
-
-class _ConnectionDot extends StatelessWidget {
-  const _ConnectionDot({required this.connected});
+/// Connection status: a status dot followed by a muted label.
+class _SessionState extends StatelessWidget {
+  const _SessionState({required this.connected});
 
   final bool connected;
 
   @override
   Widget build(BuildContext context) {
-    final color = connected ? AppColors.healthy : AppColors.degraded;
-
-    return Container(
-      width: 18,
-      height: 18,
-      alignment: Alignment.center,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        width: 10,
-        height: 10,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-          boxShadow: connected
-              ? <BoxShadow>[
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.4),
-                    blurRadius: 6,
-                    spreadRadius: 1,
-                  ),
-                ]
-              : null,
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        StatusDot(color: connected ? AppColors.healthy : AppColors.degraded),
+        const SizedBox(width: 7),
+        Text(
+          connected ? 'Authenticated' : 'No active session',
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ),
-      ),
+      ],
     );
   }
 }
 
-class _VersionBadge extends StatelessWidget {
-  const _VersionBadge();
+/// Destructive action row with a centered label (iOS "Sign Out").
+class _CenteredActionRow extends StatelessWidget {
+  const _CenteredActionRow({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.primary.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: theme.colorScheme.primary.withValues(alpha: 0.2),
+    final color = onTap == null
+        ? AppColors.tertiaryLabel(theme)
+        : theme.colorScheme.error;
+    return Semantics(
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48),
+          child: Center(
+            child: Text(
+              label,
+              style: theme.textTheme.bodyLarge?.copyWith(color: color),
+            ),
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(
-              Icons.tag_outlined,
-              size: 14,
-              color: theme.colorScheme.primary,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              'v1.0.0+1',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -707,11 +510,11 @@ class _VersionBadge extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Notifications settings section
+// Health monitoring section
 // ---------------------------------------------------------------------------
 
-class _NotificationsSection extends StatelessWidget {
-  const _NotificationsSection({required this.monitor});
+class _HealthMonitorSection extends StatelessWidget {
+  const _HealthMonitorSection({required this.monitor});
 
   final HealthMonitor monitor;
 
@@ -723,56 +526,81 @@ class _NotificationsSection extends StatelessWidget {
       animation: monitor,
       builder: (context, _) {
         final theme = Theme.of(context);
+        final scheme = theme.colorScheme;
+        final interval = _closestInterval(monitor.pollInterval.inMinutes);
 
-        return _SectionCard(
-          title: 'Health Monitor',
-          icon: Icons.monitor_heart_outlined,
+        return GroupedList(
+          header: 'Health monitoring',
+          footer: monitor.isPolling
+              ? 'Polling active. Argo CD is checked every '
+                    '${monitor.pollInterval.inMinutes} min for health and '
+                    'sync changes.'
+              : 'Detects degraded, recovered and drifted applications '
+                    'while the app is open.',
+          dividerIndent: 60,
           children: <Widget>[
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Enable monitoring'),
-              subtitle: Text(
-                monitor.enabled
-                    ? 'Polling every ${monitor.pollInterval.inMinutes} min'
-                    : 'Disabled',
+            GroupedRow(
+              leading: const IconWell(
+                icon: Icons.monitor_heart_rounded,
+                color: _WellColors.pink,
               ),
-              value: monitor.enabled,
-              onChanged: (value) => monitor.setEnabled(value),
+              title: 'Enable monitoring',
+              subtitle: monitor.enabled
+                  ? 'Polling every ${monitor.pollInterval.inMinutes} min'
+                  : 'Disabled',
+              trailing: Switch(
+                value: monitor.enabled,
+                onChanged: (value) => monitor.setEnabled(value),
+              ),
             ),
             if (monitor.enabled) ...<Widget>[
-              const Divider(height: 1),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.timer_outlined),
-                title: const Text('Poll interval'),
-                trailing: DropdownButton<int>(
-                  value: _closestInterval(monitor.pollInterval.inMinutes),
-                  underline: const SizedBox.shrink(),
-                  items: _intervals
-                      .map(
-                        (minutes) => DropdownMenuItem<int>(
-                          value: minutes,
-                          child: Text('$minutes min'),
+              GroupedRow(
+                leading: const IconWell(
+                  icon: Icons.timer_rounded,
+                  color: _WellColors.orange,
+                ),
+                title: 'Poll interval',
+                trailing: PopupMenuButton<int>(
+                  tooltip: 'Poll interval',
+                  initialValue: interval,
+                  onSelected: (value) =>
+                      monitor.setPollInterval(Duration(minutes: value)),
+                  itemBuilder: (context) => <PopupMenuEntry<int>>[
+                    for (final minutes in _intervals)
+                      CheckedPopupMenuItem<int>(
+                        value: minutes,
+                        checked: minutes == interval,
+                        child: Text('$minutes min'),
+                      ),
+                  ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        '$interval min',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: scheme.onSurfaceVariant,
                         ),
-                      )
-                      .toList(growable: false),
-                  onChanged: (value) {
-                    if (value != null) {
-                      monitor.setPollInterval(Duration(minutes: value));
-                    }
-                  },
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(
+                        Icons.unfold_more_rounded,
+                        size: 18,
+                        color: AppColors.tertiaryLabel(theme),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const Divider(height: 1),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.notifications_active_outlined),
-                title: const Text('Active events'),
-                subtitle: Text(
-                  monitor.events.isEmpty
-                      ? 'No events detected'
-                      : '${monitor.events.length} event(s)',
+              GroupedRow(
+                leading: const IconWell(
+                  icon: Icons.notifications_active_rounded,
+                  color: _WellColors.red,
                 ),
+                title: 'Active events',
+                subtitle: monitor.events.isEmpty
+                    ? 'No events detected'
+                    : '${monitor.events.length} event(s)',
                 trailing: monitor.events.isNotEmpty
                     ? TextButton(
                         onPressed: () => monitor.acknowledgeAll(),
@@ -780,13 +608,14 @@ class _NotificationsSection extends StatelessWidget {
                       )
                     : null,
               ),
-              if (monitor.mutedApps.isNotEmpty) ...<Widget>[
-                const Divider(height: 1),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.notifications_off_outlined),
-                  title: const Text('Muted apps'),
-                  subtitle: Text(monitor.mutedApps.join(', ')),
+              if (monitor.mutedApps.isNotEmpty)
+                GroupedRow(
+                  leading: const IconWell(
+                    icon: Icons.notifications_off_rounded,
+                    color: _WellColors.gray,
+                  ),
+                  title: 'Muted apps',
+                  subtitle: monitor.mutedApps.join(', '),
                   trailing: TextButton(
                     onPressed: () {
                       for (final app in monitor.mutedApps.toList()) {
@@ -796,32 +625,7 @@ class _NotificationsSection extends StatelessWidget {
                     child: const Text('Unmute all'),
                   ),
                 ),
-              ],
             ],
-            if (monitor.isPolling)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Row(
-                  children: <Widget>[
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.healthy,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Polling active',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.healthy,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
           ],
         );
       },
@@ -831,6 +635,31 @@ class _NotificationsSection extends StatelessWidget {
   int _closestInterval(int minutes) {
     return _intervals.reduce(
       (a, b) => (a - minutes).abs() < (b - minutes).abs() ? a : b,
+    );
+  }
+}
+
+/// Muted trailing value for a [GroupedRow] that hugs its content so the
+/// title keeps the remaining width.
+class _RowValue extends StatelessWidget {
+  const _RowValue(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 210),
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.end,
+        style: theme.textTheme.bodyLarge?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
     );
   }
 }

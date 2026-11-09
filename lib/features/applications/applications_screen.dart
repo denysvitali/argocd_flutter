@@ -129,54 +129,21 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
     );
   }
 
+  void _clearAllControls() {
+    _debounce?.cancel();
+    _searchController.clear();
+    setState(() {
+      _query = '';
+      _activeFilter = ApplicationFilterChip.all;
+      _projectFilter = null;
+      _clusterFilter = null;
+    });
+  }
+
   Widget _buildContent(BuildContext context) {
+    final theme = Theme.of(context);
     final normalizedQuery = _query.trim().toLowerCase();
     final allApplications = widget.controller.applications;
-    final unhealthyCount = allApplications
-        .where((application) => !application.isHealthy)
-        .length;
-    final outOfSyncCount = allApplications
-        .where((application) => application.isOutOfSync)
-        .length;
-    final healthSegments = <StatusSegment>[
-      StatusSegment(
-        color: AppColors.healthy,
-        count: allApplications.where((a) => a.isHealthy).length,
-      ),
-      StatusSegment(
-        color: AppColors.progressing,
-        count: allApplications
-            .where((a) => a.healthStatus.toLowerCase() == 'progressing')
-            .length,
-      ),
-      StatusSegment(
-        color: AppColors.degraded,
-        count: allApplications
-            .where((a) => a.healthStatus.toLowerCase() == 'degraded')
-            .length,
-      ),
-      StatusSegment(
-        color: AppColors.missing,
-        count: allApplications
-            .where((a) => a.healthStatus.toLowerCase() == 'missing')
-            .length,
-      ),
-      StatusSegment(
-        color: AppColors.unknown,
-        count:
-            allApplications.length -
-            allApplications
-                .where(
-                  (a) => const <String>{
-                    'healthy',
-                    'progressing',
-                    'degraded',
-                    'missing',
-                  }.contains(a.healthStatus.toLowerCase()),
-                )
-                .length,
-      ),
-    ];
     final searchedApplications = allApplications
         .where((application) {
           if (normalizedQuery.isEmpty) {
@@ -241,68 +208,69 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
           .length,
     };
 
+    final session = widget.controller.session;
+    final lastRefreshedAt = widget.controller.lastRefreshedAt;
+
+    const horizontal = EdgeInsets.symmetric(horizontal: 16);
+
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () => widget.controller.refreshApplications(),
         child: ListView(
-          padding: kPagePadding,
+          padding: EdgeInsets.only(
+            top: kPagePadding.top,
+            bottom: kPagePadding.bottom,
+          ),
           children: <Widget>[
-            AppPageHeader(
-              title: 'Applications',
-              subtitle: widget.controller.session == null
-                  ? 'Deployments across clusters'
-                  : widget.controller.session!.serverUrl,
-              leadingIcon: Icons.apps_rounded,
-              trailing: Wrap(
-                spacing: 6,
-                children: <Widget>[
-                  IconButton.filledTonal(
-                    tooltip: _isGridView ? 'List view' : 'Grid view',
-                    onPressed: () {
-                      setState(() {
-                        _isGridView = !_isGridView;
-                      });
-                    },
-                    icon: Icon(
-                      _isGridView
-                          ? Icons.view_list_rounded
-                          : Icons.grid_view_rounded,
+            Padding(
+              padding: horizontal,
+              child: AppPageHeader(
+                title: 'Applications',
+                subtitle: session == null
+                    ? 'Deployments across clusters'
+                    : _host(session.serverUrl),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    IconButton(
+                      tooltip: _isGridView ? 'List view' : 'Grid view',
+                      onPressed: () {
+                        setState(() {
+                          _isGridView = !_isGridView;
+                        });
+                      },
+                      icon: Icon(
+                        _isGridView
+                            ? Icons.view_list_rounded
+                            : Icons.grid_view_rounded,
+                      ),
                     ),
-                  ),
-                  IconButton.filledTonal(
-                    tooltip: 'Refresh',
-                    onPressed: widget.controller.busy
-                        ? null
-                        : () => widget.controller.refreshApplications(),
-                    icon: const Icon(Icons.refresh),
-                  ),
-                ],
-              ),
-              bottom: Align(
-                alignment: Alignment.centerLeft,
-                child: LastUpdatedText(
-                  timestamp: widget.controller.lastRefreshedAt,
+                    IconButton(
+                      tooltip: 'Refresh',
+                      onPressed: widget.controller.busy
+                          ? null
+                          : () => widget.controller.refreshApplications(),
+                      icon: const Icon(Icons.refresh),
+                    ),
+                  ],
+                ),
+                bottom: _SearchField(
+                  controller: _searchController,
+                  onChanged: _onSearchChanged,
+                  onClear: () {
+                    _debounce?.cancel();
+                    _searchController.clear();
+                    setState(() {
+                      _query = '';
+                    });
+                  },
+                  showClear: _query.isNotEmpty,
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            _OverviewStrip(
-              totalApplications: allApplications.length,
-              unhealthyCount: unhealthyCount,
-              outOfSyncCount: outOfSyncCount,
-              healthSegments: healthSegments,
-            ),
-            const SizedBox(height: 8),
-            _CommandBar(
-              searchController: _searchController,
-              onSearchChanged: _onSearchChanged,
-              onClearSearch: () {
-                _searchController.clear();
-                setState(() {
-                  _query = '';
-                });
-              },
-              showClear: _query.isNotEmpty,
+            const SizedBox(height: 10),
+            _FilterBar(
+              padding: horizontal,
               projectOptions: projectOptions,
               projectValue: _projectFilter,
               onProjectChanged: (value) {
@@ -317,114 +285,92 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                   _clusterFilter = value;
                 });
               },
-            ),
-            const SizedBox(height: 6),
-            _FilterChips(
               activeFilter: _activeFilter,
               counts: filterCounts,
-              onSelected: (filter) {
+              onFilterSelected: (filter) {
                 setState(() {
                   _activeFilter = filter;
                 });
               },
             ),
-            const SizedBox(height: 6),
-            LayoutBuilder(
-              builder: (BuildContext context, BoxConstraints constraints) {
-                final stackedControls = constraints.maxWidth < 320;
-                final summaryText =
-                    '${applications.length} of ${allApplications.length} applications';
-                final clearButton = _hasActiveControls
-                    ? TextButton(
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _query = '';
-                            _activeFilter = ApplicationFilterChip.all;
-                            _projectFilter = null;
-                            _clusterFilter = null;
-                          });
-                        },
-                        child: const Text('Clear'),
-                      )
-                    : null;
-                final sortDropdown = _SortDropdown(
-                  value: _sortField,
-                  onChanged: (field) {
-                    setState(() {
-                      _sortField = field;
-                    });
-                  },
-                );
-
-                if (!stackedControls) {
-                  return Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: Text(
-                          summaryText,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: AppColors.grey,
-                                fontWeight: FontWeight.w600,
-                              ),
+            const SizedBox(height: 14),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 8, 6),
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      '${applications.length} of ${allApplications.length} '
+                      'applications',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontFeatures: AppFonts.tabularFigures,
+                      ),
+                    ),
+                  ),
+                  if (_hasActiveControls)
+                    _FootnoteButton(
+                      label: 'Clear',
+                      onPressed: _clearAllControls,
+                    ),
+                  _SortMenu(
+                    value: _sortField,
+                    onChanged: (field) {
+                      setState(() {
+                        _sortField = field;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: horizontal,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  if (widget.controller.errorMessage != null)
+                    ErrorRetryWidget(
+                      message: widget.controller.errorMessage!,
+                      onRetry: () => widget.controller.refreshApplications(),
+                    ),
+                  if (widget.controller.loadingApplications &&
+                      !widget.controller.hasLoadedApplications)
+                    _LoadingSkeleton(isGrid: _isGridView)
+                  else if (applications.isEmpty)
+                    _EmptyState(
+                      filtered: _hasActiveControls,
+                      hasApps: allApplications.isNotEmpty,
+                      onClearFilters: _clearAllControls,
+                    )
+                  else if (_isGridView)
+                    _ApplicationGrid(
+                      applications: applications,
+                      onOpenApplication: widget.onOpenApplication,
+                    )
+                  else
+                    for (final application in applications)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _ApplicationCard(
+                          application: application,
+                          onTap: () =>
+                              widget.onOpenApplication(application.name),
                         ),
                       ),
-                      ?clearButton,
-                      sortDropdown,
-                    ],
-                  );
-                }
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      summaryText,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.grey,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: <Widget>[?clearButton, sortDropdown],
-                    ),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 6),
-            if (widget.controller.errorMessage != null)
-              ErrorRetryWidget(
-                message: widget.controller.errorMessage!,
-                onRetry: () => widget.controller.refreshApplications(),
+                ],
               ),
-            if (widget.controller.loadingApplications &&
-                !widget.controller.hasLoadedApplications)
-              _LoadingSkeleton(isGrid: _isGridView)
-            else if (applications.isEmpty)
-              _EmptyState(
-                filtered:
-                    normalizedQuery.isNotEmpty ||
-                    _activeFilter != ApplicationFilterChip.all,
-                hasApps: widget.controller.applications.isNotEmpty,
-              )
-            else if (_isGridView)
-              _ApplicationGrid(
-                applications: applications,
-                onOpenApplication: widget.onOpenApplication,
-              )
-            else
-              ...applications.map(
-                (application) => Padding(
-                  padding: const EdgeInsets.only(bottom: 5),
-                  child: _ApplicationCard(
-                    application: application,
-                    onTap: () => widget.onOpenApplication(application.name),
+            ),
+            if (lastRefreshedAt != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  'Updated ${formatTimeAgo(lastRefreshedAt)}',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -435,124 +381,12 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
   }
 }
 
-class _FilterChips extends StatelessWidget {
-  const _FilterChips({
-    required this.activeFilter,
-    required this.counts,
-    required this.onSelected,
-  });
+// ---------------------------------------------------------------------------
+// Search + filters
+// ---------------------------------------------------------------------------
 
-  final ApplicationFilterChip activeFilter;
-  final Map<ApplicationFilterChip, int> counts;
-  final ValueChanged<ApplicationFilterChip> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: <Widget>[
-          _buildChip(context, ApplicationFilterChip.all, 'All'),
-          const SizedBox(width: 6),
-          _buildChip(context, ApplicationFilterChip.healthy, 'Healthy'),
-          const SizedBox(width: 6),
-          _buildChip(context, ApplicationFilterChip.degraded, 'Degraded'),
-          const SizedBox(width: 6),
-          _buildChip(context, ApplicationFilterChip.outOfSync, 'Out of Sync'),
-          const SizedBox(width: 6),
-          _buildChip(context, ApplicationFilterChip.progressing, 'Progressing'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildChip(
-    BuildContext context,
-    ApplicationFilterChip chip,
-    String label,
-  ) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final isSelected = activeFilter == chip;
-    final chipColor = _chipColor(chip);
-
-    return FilterChip(
-      label: Text('$label · ${counts[chip] ?? 0}'),
-      selected: isSelected,
-      onSelected: (_) => onSelected(chip),
-      selectedColor: chipColor.withValues(alpha: 0.18),
-      backgroundColor: scheme.surfaceContainerHigh,
-      checkmarkColor: chipColor,
-      showCheckmark: false,
-      labelStyle: TextStyle(
-        fontFamily: 'DMSans',
-        color: isSelected ? chipColor : scheme.onSurfaceVariant,
-        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-      ),
-      side: BorderSide(color: isSelected ? chipColor : scheme.outlineVariant),
-      shape: RoundedRectangleBorder(borderRadius: AppRadius.pill),
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-    );
-  }
-
-  static Color _chipColor(ApplicationFilterChip chip) {
-    return switch (chip) {
-      ApplicationFilterChip.all => AppColors.teal,
-      ApplicationFilterChip.healthy => AppColors.healthy,
-      ApplicationFilterChip.degraded => AppColors.degraded,
-      ApplicationFilterChip.outOfSync => AppColors.outOfSync,
-      ApplicationFilterChip.progressing => AppColors.progressing,
-    };
-  }
-}
-
-class _SortDropdown extends StatelessWidget {
-  const _SortDropdown({required this.value, required this.onChanged});
-
-  final ApplicationSortField value;
-  final ValueChanged<ApplicationSortField> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButtonHideUnderline(
-      child: DropdownButton<ApplicationSortField>(
-        value: value,
-        icon: const Icon(Icons.sort_rounded, size: 20),
-        isDense: true,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: AppColors.grey,
-          fontWeight: FontWeight.w600,
-        ),
-        items: const <DropdownMenuItem<ApplicationSortField>>[
-          DropdownMenuItem(
-            value: ApplicationSortField.health,
-            child: Text('Needs attention first'),
-          ),
-          DropdownMenuItem(
-            value: ApplicationSortField.name,
-            child: Text('Sort by name'),
-          ),
-          DropdownMenuItem(
-            value: ApplicationSortField.lastSynced,
-            child: Text('Sort by last synced'),
-          ),
-          DropdownMenuItem(
-            value: ApplicationSortField.project,
-            child: Text('Sort by project'),
-          ),
-        ],
-        onChanged: (ApplicationSortField? field) {
-          if (field != null) {
-            onChanged(field);
-          }
-        },
-      ),
-    );
-  }
-}
-
-class _SearchBar extends StatelessWidget {
-  const _SearchBar({
+class _SearchField extends StatelessWidget {
+  const _SearchField({
     required this.controller,
     required this.onChanged,
     required this.onClear,
@@ -567,150 +401,147 @@ class _SearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final muted = theme.colorScheme.onSurfaceVariant;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHigh,
-        borderRadius: AppRadius.xl,
-      ),
+    return SizedBox(
+      height: 40,
       child: TextField(
         controller: controller,
         onChanged: onChanged,
         textAlignVertical: TextAlignVertical.center,
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: scheme.onSurface,
-          fontWeight: FontWeight.w600,
-        ),
+        textInputAction: TextInputAction.search,
+        style: theme.textTheme.bodyLarge,
         decoration: InputDecoration(
-          hintText: 'Search name, project, namespace, repo, cluster, revision',
-          hintStyle: theme.textTheme.bodyMedium?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
-          prefixIcon: Icon(
-            Icons.search_rounded,
-            color: scheme.onSurfaceVariant,
-          ),
+          hintText: 'Search',
+          prefixIcon: Icon(Icons.search_rounded, size: 20, color: muted),
           prefixIconConstraints: const BoxConstraints(
-            minWidth: 48,
-            minHeight: 48,
+            minWidth: 36,
+            minHeight: 40,
           ),
           suffixIcon: showClear
               ? IconButton(
                   tooltip: 'Clear',
-                  icon: const Icon(Icons.close_rounded, size: 20),
-                  color: scheme.onSurfaceVariant,
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  color: muted,
                   onPressed: onClear,
                 )
               : null,
-          filled: false,
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 8,
-            vertical: 14,
-          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 10),
         ),
       ),
     );
   }
 }
 
-class _CommandBar extends StatelessWidget {
-  const _CommandBar({
-    required this.searchController,
-    required this.onSearchChanged,
-    required this.onClearSearch,
-    required this.showClear,
+class _FilterBar extends StatelessWidget {
+  const _FilterBar({
+    required this.padding,
     required this.projectOptions,
     required this.projectValue,
     required this.onProjectChanged,
     required this.clusterOptions,
     required this.clusterValue,
     required this.onClusterChanged,
+    required this.activeFilter,
+    required this.counts,
+    required this.onFilterSelected,
   });
 
-  final TextEditingController searchController;
-  final ValueChanged<String> onSearchChanged;
-  final VoidCallback onClearSearch;
-  final bool showClear;
+  final EdgeInsetsGeometry padding;
   final List<String> projectOptions;
   final String? projectValue;
   final ValueChanged<String?> onProjectChanged;
   final List<String> clusterOptions;
   final String? clusterValue;
   final ValueChanged<String?> onClusterChanged;
+  final ApplicationFilterChip activeFilter;
+  final Map<ApplicationFilterChip, int> counts;
+  final ValueChanged<ApplicationFilterChip> onFilterSelected;
+
+  static const List<(ApplicationFilterChip, String)> _statusFilters =
+      <(ApplicationFilterChip, String)>[
+        (ApplicationFilterChip.all, 'All'),
+        (ApplicationFilterChip.healthy, 'Healthy'),
+        (ApplicationFilterChip.degraded, 'Degraded'),
+        (ApplicationFilterChip.outOfSync, 'Out of Sync'),
+        (ApplicationFilterChip.progressing, 'Progressing'),
+      ];
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final narrow = constraints.maxWidth < 760;
-        final search = _SearchBar(
-          controller: searchController,
-          onChanged: onSearchChanged,
-          onClear: onClearSearch,
-          showClear: showClear,
-        );
-        final filters = <Widget>[
-          _ScopeDropdown(
+    final theme = Theme.of(context);
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: padding,
+      child: Row(
+        children: <Widget>[
+          _ScopeMenu(
             label: 'Project',
-            icon: Icons.folder_outlined,
+            allLabel: 'All projects',
             value: projectValue,
             options: projectOptions,
             onChanged: onProjectChanged,
           ),
-          _ScopeDropdown(
+          const SizedBox(width: 8),
+          _ScopeMenu(
             label: 'Cluster',
-            icon: Icons.dns_outlined,
+            allLabel: 'All clusters',
             value: clusterValue,
             options: clusterOptions,
             onChanged: onClusterChanged,
           ),
-        ];
-
-        if (narrow) {
-          return Column(
-            children: <Widget>[
-              search,
-              const SizedBox(height: 6),
-              Row(
-                children: <Widget>[
-                  Expanded(child: filters[0]),
-                  const SizedBox(width: 6),
-                  Expanded(child: filters[1]),
-                ],
-              ),
-            ],
-          );
-        }
-
-        return Row(
-          children: <Widget>[
-            Expanded(flex: 3, child: search),
-            const SizedBox(width: 6),
-            Expanded(child: filters[0]),
-            const SizedBox(width: 6),
-            Expanded(child: filters[1]),
+          Container(
+            width: 1,
+            height: 20,
+            margin: const EdgeInsets.symmetric(horizontal: 10),
+            color: theme.colorScheme.outlineVariant,
+          ),
+          for (final (index, (chip, label)) in _statusFilters.indexed) ...[
+            if (index > 0) const SizedBox(width: 8),
+            FilterChip(
+              label: Text('$label ${counts[chip] ?? 0}'),
+              // The theme's state-dependent label style is lost when RawChip
+              // merges it with its defaults, so resolve it explicitly here.
+              labelStyle: _chipLabelStyle(theme, activeFilter == chip),
+              selected: activeFilter == chip,
+              onSelected: (_) => onFilterSelected(chip),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
           ],
-        );
-      },
+        ],
+      ),
     );
   }
 }
 
-class _ScopeDropdown extends StatelessWidget {
-  const _ScopeDropdown({
+TextStyle _chipLabelStyle(ThemeData theme, bool selected) {
+  final scheme = theme.colorScheme;
+  return TextStyle(
+    fontFamily: AppFonts.text,
+    fontSize: 13,
+    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+    letterSpacing: -0.1,
+    color: selected ? scheme.surfaceContainerLowest : scheme.onSurface,
+    fontFeatures: AppFonts.tabularFigures,
+  );
+}
+
+/// Compact neutral capsule that opens a menu of scope options. Turns into the
+/// inverted "selected" capsule while a value is active, like the chips.
+class _ScopeMenu extends StatelessWidget {
+  const _ScopeMenu({
     required this.label,
-    required this.icon,
+    required this.allLabel,
     required this.value,
     required this.options,
     required this.onChanged,
   });
 
+  static const String _allSentinel = '\u0000all';
+
   final String label;
-  final IconData icon;
+  final String allLabel;
   final String? value;
   final List<String> options;
   final ValueChanged<String?> onChanged;
@@ -719,176 +550,133 @@ class _ScopeDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final mutedColor = scheme.onSurfaceVariant;
+    final active = value != null;
+    final background = active ? scheme.onSurface : AppColors.fill(theme);
+    final foreground = active
+        ? scheme.surfaceContainerLowest
+        : scheme.onSurface;
 
-    return Container(
-      height: 48,
-      padding: const EdgeInsets.only(left: 14, right: 10),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHigh,
-        borderRadius: AppRadius.xl,
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String?>(
-          value: value,
-          isExpanded: true,
-          icon: Icon(Icons.expand_more_rounded, color: mutedColor),
-          hint: Row(
-            children: <Widget>[
-              Icon(icon, size: 18, color: mutedColor),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  label,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: mutedColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          selectedItemBuilder: (context) {
-            return <String?>[null, ...options]
-                .map((option) {
-                  return Row(
-                    children: <Widget>[
-                      Icon(icon, size: 18, color: mutedColor),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          option ?? label,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurface,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                })
-                .toList(growable: false);
-          },
-          items: <DropdownMenuItem<String?>>[
-            DropdownMenuItem<String?>(child: Text('All $label')),
-            ...options.map(
-              (option) => DropdownMenuItem<String?>(
-                value: option,
-                child: Text(option, overflow: TextOverflow.ellipsis),
-              ),
-            ),
-          ],
-          onChanged: onChanged,
+    return PopupMenuButton<String>(
+      tooltip: 'Filter by ${label.toLowerCase()}',
+      position: PopupMenuPosition.under,
+      onSelected: (selected) =>
+          onChanged(selected == _allSentinel ? null : selected),
+      itemBuilder: (context) => <PopupMenuEntry<String>>[
+        CheckedPopupMenuItem<String>(
+          value: _allSentinel,
+          checked: value == null,
+          child: Text(allLabel),
         ),
-      ),
-    );
-  }
-}
-
-class _OverviewStrip extends StatelessWidget {
-  const _OverviewStrip({
-    required this.totalApplications,
-    required this.unhealthyCount,
-    required this.outOfSyncCount,
-    required this.healthSegments,
-  });
-
-  final int totalApplications;
-  final int unhealthyCount;
-  final int outOfSyncCount;
-  final List<StatusSegment> healthSegments;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerLow,
-        borderRadius: AppRadius.md,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: <Widget>[
-              _MetricChip(
-                value: totalApplications,
-                label: 'Total',
-                color: scheme.primary,
-              ),
-              _MetricChip(
-                value: outOfSyncCount,
-                label: 'Drifted',
-                color: outOfSyncCount > 0
-                    ? AppColors.outOfSync
-                    : scheme.onSurfaceVariant,
-              ),
-              _MetricChip(
-                value: unhealthyCount,
-                label: 'Unhealthy',
-                color: unhealthyCount > 0
-                    ? AppColors.degraded
-                    : scheme.onSurfaceVariant,
-              ),
-            ],
+        if (options.isNotEmpty) const PopupMenuDivider(),
+        for (final option in options)
+          CheckedPopupMenuItem<String>(
+            value: option,
+            checked: option == value,
+            child: Text(option, overflow: TextOverflow.ellipsis),
           ),
-          const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: AppRadius.pill,
-            child: StatusSegmentBar(segments: healthSegments, height: 10),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MetricChip extends StatelessWidget {
-  const _MetricChip({
-    required this.value,
-    required this.label,
-    required this.color,
-  });
-
-  final int value;
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Semantics(
-      label: '$value $label',
+      ],
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.14),
-          borderRadius: AppRadius.pill,
+        height: 32,
+        padding: const EdgeInsets.only(left: 12, right: 8),
+        decoration: ShapeDecoration(
+          color: background,
+          shape: const StadiumBorder(),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Text(
-              '$value',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w800,
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 160),
+              child: Text(
+                value ?? label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: _chipLabelStyle(theme, active),
               ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 2),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 18,
+              color: active ? foreground : scheme.onSurfaceVariant,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Small tinted text button used in the footnote row ("Clear").
+class _FootnoteButton extends StatelessWidget {
+  const _FootnoteButton({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return TextButton(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        minimumSize: const Size(0, 32),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        textStyle: theme.textTheme.bodySmall?.copyWith(
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      child: Text(label),
+    );
+  }
+}
+
+class _SortMenu extends StatelessWidget {
+  const _SortMenu({required this.value, required this.onChanged});
+
+  final ApplicationSortField value;
+  final ValueChanged<ApplicationSortField> onChanged;
+
+  static String _label(ApplicationSortField field) {
+    return switch (field) {
+      ApplicationSortField.health => 'Needs attention first',
+      ApplicationSortField.name => 'Name',
+      ApplicationSortField.lastSynced => 'Last synced',
+      ApplicationSortField.project => 'Project',
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tint = theme.colorScheme.primary;
+
+    return PopupMenuButton<ApplicationSortField>(
+      tooltip: 'Sort',
+      position: PopupMenuPosition.under,
+      initialValue: value,
+      onSelected: onChanged,
+      itemBuilder: (context) => <PopupMenuEntry<ApplicationSortField>>[
+        for (final field in ApplicationSortField.values)
+          CheckedPopupMenuItem<ApplicationSortField>(
+            value: field,
+            checked: field == value,
+            child: Text(_label(field)),
+          ),
+      ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(Icons.sort_rounded, size: 16, color: tint),
+            const SizedBox(width: 4),
             Text(
-              label,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
+              _label(value),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: tint,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -897,6 +685,10 @@ class _MetricChip extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Application rows
+// ---------------------------------------------------------------------------
 
 class _ApplicationCard extends StatelessWidget {
   const _ApplicationCard({required this.application, required this.onTap});
@@ -909,6 +701,12 @@ class _ApplicationCard extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final healthColor = AppColors.healthColor(application.healthStatus);
+    final syncedAt = application.lastSyncedAt;
+    final hasSyncTime = syncedAt != null && syncedAt.isNotEmpty;
+    final subtitle = <String>[
+      if (application.project.isNotEmpty) application.project,
+      if (application.namespace.isNotEmpty) application.namespace,
+    ].join(' · ');
 
     return Material(
       color: scheme.surfaceContainerLow,
@@ -916,130 +714,143 @@ class _ApplicationCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: AppRadius.md,
-        child: Stack(
-          children: <Widget>[
-            Positioned(
-              top: 0,
-              bottom: 0,
-              left: 0,
-              child: IgnorePointer(
-                child: Container(width: 6, color: healthColor),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Semantics(
+                  label: 'Health: ${application.healthStatus}',
+                  child: StatusDot(color: healthColor, size: 9),
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 12, 14, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(
-                              application.name,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              application.project,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        alignment: WrapAlignment.end,
-                        children: <Widget>[
-                          StatusChip(
-                            icon: healthStatusIcon(application.healthStatus),
-                            label: application.healthStatus,
-                            color: healthColor,
-                          ),
-                          StatusChip(
-                            icon: syncStatusIcon(application.syncStatus),
-                            label: application.syncStatus,
-                            color: AppColors.syncColor(application.syncStatus),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  _CardMetaRow(
-                    children: <_MetaItem>[
-                      _MetaItem(
-                        Icons.dns_outlined,
-                        _clusterShortName(application.cluster),
-                      ),
-                      _MetaItem(
-                        Icons.view_in_ar_outlined,
-                        application.namespace,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  _CardMetaRow(
-                    children: <_MetaItem>[
-                      _MetaItem(
-                        Icons.route_outlined,
-                        _pathLabel(application.path),
-                      ),
-                      if (application.lastSyncedAt != null &&
-                          application.lastSyncedAt!.isNotEmpty)
-                        _MetaItem(
-                          Icons.history_rounded,
-                          _formatRelativeTime(application.lastSyncedAt!),
-                          flexible: false,
-                        ),
-                    ],
-                  ),
-                  if (application.hasOperationError) ...<Widget>[
-                    const SizedBox(height: 8),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
                       children: <Widget>[
-                        const ExcludeSemantics(
-                          child: Icon(
-                            Icons.error_outline_rounded,
-                            size: 14,
-                            color: AppColors.degraded,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            application.operationMessage!,
-                            maxLines: 2,
+                            application.name,
+                            style: theme.textTheme.titleMedium,
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (hasSyncTime) ...<Widget>[
+                          const SizedBox(width: 8),
+                          Text(
+                            _formatRelativeTime(syncedAt),
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.degraded,
-                              fontWeight: FontWeight.w600,
+                              color: scheme.onSurfaceVariant,
                             ),
                           ),
+                        ],
+                      ],
+                    ),
+                    if (subtitle.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: 1),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: <Widget>[
+                        StatusChip(
+                          icon: healthStatusIcon(application.healthStatus),
+                          label: application.healthStatus,
+                          color: healthColor,
+                        ),
+                        StatusChip(
+                          icon: syncStatusIcon(application.syncStatus),
+                          label: application.syncStatus,
+                          color: AppColors.syncColor(application.syncStatus),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 14,
+                      runSpacing: 4,
+                      children: <Widget>[
+                        FactBadge(
+                          icon: Icons.dns_rounded,
+                          label: _clusterShortName(application.cluster),
+                        ),
+                        if (application.path.isNotEmpty)
+                          FactBadge(
+                            icon: Icons.folder_rounded,
+                            label: _pathLabel(application.path),
+                          ),
+                      ],
+                    ),
+                    if (application.hasOperationError) ...<Widget>[
+                      const SizedBox(height: 10),
+                      _ErrorFootnote(message: application.operationMessage!),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 4),
+              const Padding(
+                padding: EdgeInsets.only(top: 1),
+                child: DisclosureChevron(),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _ErrorFootnote extends StatelessWidget {
+  const _ErrorFootnote({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.only(top: 1.5),
+          child: ExcludeSemantics(
+            child: Icon(
+              Icons.error_rounded,
+              size: 14,
+              color: AppColors.statusForeground(theme, AppColors.degraded),
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            message,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1058,21 +869,24 @@ class _ApplicationGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final width = constraints.maxWidth;
-        final crossAxisCount = width >= 980
+        final crossAxisCount = width >= 900
+            ? 4
+            : width >= 640
             ? 3
-            : width >= 620
+            : width >= 300
             ? 2
             : 1;
 
         return GridView.builder(
           shrinkWrap: true,
+          padding: const EdgeInsets.only(bottom: 10),
           physics: const NeverScrollableScrollPhysics(),
           itemCount: applications.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: crossAxisCount == 1 ? 2.45 : 1.28,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            mainAxisExtent: 150,
           ),
           itemBuilder: (BuildContext context, int index) {
             final application = applications[index];
@@ -1096,75 +910,111 @@ class _ApplicationGridCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final healthColor = AppColors.healthColor(application.healthStatus);
+    final scheme = theme.colorScheme;
+    final syncedAt = application.lastSyncedAt;
+    final hasSyncTime = syncedAt != null && syncedAt.isNotEmpty;
 
     return Material(
-      color: theme.colorScheme.surface,
-      borderRadius: AppRadius.base,
+      color: scheme.surfaceContainerLow,
+      borderRadius: AppRadius.md,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: AppRadius.base,
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: theme.dividerColor),
-            borderRadius: AppRadius.base,
-          ),
-          child: ClipRRect(
-            borderRadius: AppRadius.base,
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border(left: BorderSide(color: healthColor, width: 5)),
-              ),
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
                 children: <Widget>[
-                  Text(
-                    application.name,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+                  Expanded(
+                    child: Text(
+                      application.name,
+                      style: theme.textTheme.titleMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${application.project} / ${application.namespace}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  StatusChip(
-                    icon: healthStatusIcon(application.healthStatus),
-                    label: application.healthStatus,
-                    color: healthColor,
-                  ),
-                  const SizedBox(height: 4),
-                  StatusChip(
-                    icon: syncStatusIcon(application.syncStatus),
-                    label: application.syncStatus,
-                    color: AppColors.syncColor(application.syncStatus),
-                  ),
-                  if (application.lastSyncedAt != null &&
-                      application.lastSyncedAt!.isNotEmpty) ...<Widget>[
-                    const SizedBox(height: 4),
-                    Text(
-                      '${_shortRevision(application.targetRevision)} • ${_repoHost(application.repoUrl)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.greyLight,
+                  if (application.hasOperationError) ...<Widget>[
+                    const SizedBox(width: 6),
+                    Tooltip(
+                      message: application.operationMessage!,
+                      child: Icon(
+                        Icons.error_rounded,
+                        size: 16,
+                        color: AppColors.statusForeground(
+                          theme,
+                          AppColors.degraded,
+                        ),
                       ),
                     ),
                   ],
                 ],
               ),
-            ),
+              const SizedBox(height: 1),
+              Text(
+                application.project,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              const Spacer(),
+              _DotLabel(
+                color: AppColors.healthColor(application.healthStatus),
+                label: application.healthStatus,
+              ),
+              const SizedBox(height: 4),
+              _DotLabel(
+                color: AppColors.syncColor(application.syncStatus),
+                label: application.syncStatus,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                hasSyncTime
+                    ? _formatRelativeTime(syncedAt)
+                    : _clusterShortName(application.cluster),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: AppColors.tertiaryLabel(theme),
+                ),
+              ),
+            ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Status dot followed by a label — the quiet alternative to a capsule.
+class _DotLabel extends StatelessWidget {
+  const _DotLabel({required this.color, required this.label});
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: <Widget>[
+        StatusDot(color: color, size: 8),
+        const SizedBox(width: 7),
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1177,12 +1027,12 @@ String _formatRelativeTime(String isoTimestamp) {
   return formatTimeAgo(dateTime);
 }
 
-String _repoHost(String repoUrl) {
-  final uri = Uri.tryParse(repoUrl);
+String _host(String url) {
+  final uri = Uri.tryParse(url);
   if (uri != null && uri.host.isNotEmpty) {
-    return uri.host;
+    return uri.hasPort ? '${uri.host}:${uri.port}' : uri.host;
   }
-  return repoUrl;
+  return url;
 }
 
 String _clusterShortName(String cluster) {
@@ -1206,211 +1056,68 @@ String _pathLabel(String path) {
   return '${segments[segments.length - 2]}/${segments.last}';
 }
 
-String _shortRevision(String revision) {
-  return revision.length <= 10 ? revision : revision.substring(0, 10);
-}
-
-class _MetaItem {
-  const _MetaItem(this.icon, this.label, {this.flexible = true});
-
-  final IconData icon;
-  final String label;
-  final bool flexible;
-}
-
-/// Single line of icon + label pairs separated by bullets, used to keep
-/// application cards compact.
-class _CardMetaRow extends StatelessWidget {
-  const _CardMetaRow({required this.children});
-
-  final List<_MetaItem> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final style = theme.textTheme.labelMedium?.copyWith(
-      color: scheme.onSurfaceVariant,
-      fontWeight: FontWeight.w600,
-    );
-
-    final widgets = <Widget>[];
-    for (var i = 0; i < children.length; i++) {
-      final item = children[i];
-      if (i > 0) {
-        widgets.add(
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              '\u2022',
-              style: style?.copyWith(color: scheme.outline),
-            ),
-          ),
-        );
-      }
-      widgets.add(
-        ExcludeSemantics(
-          child: Icon(item.icon, size: 14, color: scheme.onSurfaceVariant),
-        ),
-      );
-      widgets.add(const SizedBox(width: 4));
-      final text = Text(
-        item.label,
-        style: style,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      );
-      widgets.add(item.flexible ? Flexible(child: text) : text);
-    }
-    return Row(children: widgets);
-  }
-}
+// ---------------------------------------------------------------------------
+// Empty + loading states
+// ---------------------------------------------------------------------------
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.filtered, required this.hasApps});
+  const _EmptyState({
+    required this.filtered,
+    required this.hasApps,
+    required this.onClearFilters,
+  });
 
   final bool filtered;
   final bool hasApps;
+  final VoidCallback onClearFilters;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final IconData icon;
-    final String title;
-    final String subtitle;
-
     if (filtered) {
-      icon = Icons.search_off_rounded;
-      title = 'No applications match this filter';
-      subtitle = 'Clear or change the filter to see more applications.';
-    } else if (hasApps) {
-      icon = Icons.visibility_off_rounded;
-      title = 'No applications visible';
-      subtitle =
-          'Your RBAC scope or current project access may be limiting the '
-          'visible applications.';
-    } else {
-      icon = Icons.cloud_queue_rounded;
-      title = 'No applications loaded';
-      subtitle =
-          'Connect to ArgoCD, then pull to refresh once your RBAC scope has '
-          'visible applications.';
+      return EmptyStateCard(
+        icon: Icons.search_off_rounded,
+        title: 'No applications match this filter',
+        subtitle: 'Clear or change the filter to see more applications.',
+        action: TextButton(
+          onPressed: onClearFilters,
+          child: const Text('Clear filters'),
+        ),
+      );
     }
-
-    final scheme = theme.colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerLow,
-        borderRadius: AppRadius.md,
-      ),
-      child: Column(
-        children: <Widget>[
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainerHigh,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 32, color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
+    if (hasApps) {
+      return const EmptyStateCard(
+        icon: Icons.visibility_off_rounded,
+        title: 'No applications visible',
+        subtitle:
+            'Your RBAC scope or current project access may be limiting the '
+            'visible applications.',
+      );
+    }
+    return const EmptyStateCard(
+      icon: Icons.cloud_queue_rounded,
+      title: 'No applications loaded',
+      subtitle:
+          'Connect to ArgoCD, then pull to refresh once your RBAC scope has '
+          'visible applications.',
     );
   }
 }
 
-class _LoadingSkeleton extends StatelessWidget {
+class _LoadingSkeleton extends StatefulWidget {
   const _LoadingSkeleton({required this.isGrid});
 
   final bool isGrid;
 
   @override
-  Widget build(BuildContext context) {
-    if (isGrid) {
-      return Column(
-        children: <Widget>[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Expanded(child: _SkeletonCard(delay: 0, compact: true)),
-              const SizedBox(width: 12),
-              Expanded(child: _SkeletonCard(delay: 120, compact: true)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Expanded(child: _SkeletonCard(delay: 240, compact: true)),
-              const SizedBox(width: 12),
-              Expanded(child: _SkeletonCard(delay: 360, compact: true)),
-            ],
-          ),
-        ],
-      );
-    }
-
-    return Column(
-      children: List<Widget>.generate(3, (index) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: _SkeletonCard(delay: index * 120, compact: false),
-        );
-      }),
-    );
-  }
+  State<_LoadingSkeleton> createState() => _LoadingSkeletonState();
 }
 
-class _SkeletonCard extends StatefulWidget {
-  const _SkeletonCard({required this.delay, required this.compact});
-
-  final int delay;
-  final bool compact;
-
-  @override
-  State<_SkeletonCard> createState() => _SkeletonCardState();
-}
-
-class _SkeletonCardState extends State<_SkeletonCard>
+class _LoadingSkeletonState extends State<_LoadingSkeleton>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    );
-    _animation = Tween<double>(
-      begin: 0.04,
-      end: 0.1,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-    Future<void>.delayed(Duration(milliseconds: widget.delay), () {
-      if (mounted) {
-        _controller.repeat(reverse: true);
-      }
-    });
-  }
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  )..repeat(reverse: true);
 
   @override
   void dispose() {
@@ -1420,167 +1127,115 @@ class _SkeletonCardState extends State<_SkeletonCard>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final skeletonColor = AppColors.skeleton(theme, alpha: _animation.value);
+    return FadeTransition(
+      opacity: Tween<double>(
+        begin: 0.55,
+        end: 1,
+      ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut)),
+      child: widget.isGrid ? _buildGrid() : _buildList(),
+    );
+  }
 
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        if (widget.compact) {
-          return Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: AppRadius.base,
-              border: Border.all(color: theme.dividerColor),
-            ),
+  Widget _buildList() {
+    return Column(
+      children: <Widget>[
+        for (var i = 0; i < 3; i++)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 10),
+            child: _SkeletonCard(compact: false),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildGrid() {
+    return const Column(
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Expanded(child: _SkeletonCard(compact: true)),
+            SizedBox(width: 10),
+            Expanded(child: _SkeletonCard(compact: true)),
+          ],
+        ),
+        SizedBox(height: 10),
+        Row(
+          children: <Widget>[
+            Expanded(child: _SkeletonCard(compact: true)),
+            SizedBox(width: 10),
+            Expanded(child: _SkeletonCard(compact: true)),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _SkeletonCard extends StatelessWidget {
+  const _SkeletonCard({required this.compact});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    if (compact) {
+      return Container(
+        height: 150,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerLow,
+          borderRadius: AppRadius.md,
+        ),
+        child: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            _SkeletonLine(width: 110, height: 14),
+            SizedBox(height: 8),
+            _SkeletonLine(width: 70, height: 10),
+            Spacer(),
+            _SkeletonLine(width: 80, height: 10),
+            SizedBox(height: 8),
+            _SkeletonLine(width: 64, height: 10),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLow,
+        borderRadius: AppRadius.md,
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _SkeletonLine(width: 9, height: 9, radius: 5),
+          SizedBox(width: 12),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
+                _SkeletonLine(width: 160, height: 14),
+                SizedBox(height: 8),
+                _SkeletonLine(width: 110, height: 10),
+                SizedBox(height: 14),
                 Row(
                   children: <Widget>[
-                    Container(
-                      width: 4,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: skeletonColor,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          _SkeletonLine(
-                            width: 100,
-                            height: 16,
-                            alpha: _animation.value,
-                          ),
-                          const SizedBox(height: 6),
-                          _SkeletonLine(
-                            width: 70,
-                            height: 12,
-                            alpha: _animation.value,
-                          ),
-                        ],
-                      ),
-                    ),
+                    _SkeletonLine(width: 72, height: 20, radius: 10),
+                    SizedBox(width: 6),
+                    _SkeletonLine(width: 72, height: 20, radius: 10),
                   ],
                 ),
-                const SizedBox(height: 10),
-                Row(
-                  children: <Widget>[
-                    _SkeletonLine(
-                      width: 60,
-                      height: 22,
-                      alpha: _animation.value,
-                      borderRadius: 4,
-                    ),
-                    const SizedBox(width: 6),
-                    _SkeletonLine(
-                      width: 60,
-                      height: 22,
-                      alpha: _animation.value,
-                      borderRadius: 4,
-                    ),
-                  ],
-                ),
+                SizedBox(height: 12),
+                _SkeletonLine(width: 220, height: 10),
               ],
             ),
-          );
-        }
-
-        return Container(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: AppRadius.base,
-            border: Border.all(color: theme.dividerColor),
           ),
-          child: ClipRRect(
-            borderRadius: AppRadius.base,
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  left: BorderSide(color: skeletonColor, width: 3),
-                ),
-              ),
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  _SkeletonLine(
-                    width: 180,
-                    height: 16,
-                    alpha: _animation.value,
-                  ),
-                  const SizedBox(height: 6),
-                  _SkeletonLine(
-                    width: 220,
-                    height: 12,
-                    alpha: _animation.value,
-                  ),
-                  const SizedBox(height: 4),
-                  _SkeletonLine(
-                    width: 280,
-                    height: 12,
-                    alpha: _animation.value,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: <Widget>[
-                      _SkeletonLine(
-                        width: 64,
-                        height: 22,
-                        alpha: _animation.value,
-                        borderRadius: 4,
-                      ),
-                      const SizedBox(width: 6),
-                      _SkeletonLine(
-                        width: 64,
-                        height: 22,
-                        alpha: _animation.value,
-                        borderRadius: 4,
-                      ),
-                      const Spacer(),
-                      _SkeletonLine(
-                        width: 50,
-                        height: 12,
-                        alpha: _animation.value,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: <Widget>[
-                      _SkeletonLine(
-                        width: 72,
-                        height: 22,
-                        alpha: _animation.value,
-                        borderRadius: 4,
-                      ),
-                      const SizedBox(width: 8),
-                      _SkeletonLine(
-                        width: 72,
-                        height: 22,
-                        alpha: _animation.value,
-                        borderRadius: 4,
-                      ),
-                      const SizedBox(width: 8),
-                      _SkeletonLine(
-                        width: 72,
-                        height: 22,
-                        alpha: _animation.value,
-                        borderRadius: 4,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+        ],
+      ),
     );
   }
 }
@@ -1589,25 +1244,21 @@ class _SkeletonLine extends StatelessWidget {
   const _SkeletonLine({
     required this.width,
     required this.height,
-    required this.alpha,
-    this.borderRadius = 4,
+    this.radius = 4,
   });
 
   final double width;
   final double height;
-  final double alpha;
-  final double borderRadius;
+  final double radius;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: AppColors.skeleton(theme, alpha: alpha),
-        borderRadius: BorderRadius.circular(borderRadius),
+        color: AppColors.fill(Theme.of(context)),
+        borderRadius: BorderRadius.circular(radius),
       ),
     );
   }

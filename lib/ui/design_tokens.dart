@@ -1,10 +1,28 @@
 // Design tokens for spacing, border radius, opacity, elevation/shadows,
 // and shared card decorations.
 //
-// Radii follow Material 3's expressive shape scale
-// (extra-small=4 / small=8 / medium=12 / large=16 / extra-large=28).
+// The visual language follows Apple's Human Interface Guidelines: grouped
+// content on a neutral background, continuous-feeling rounded corners, hairline
+// separators and almost no drop shadows. See "Design language" in CLAUDE.md.
 
 import 'package:flutter/painting.dart';
+
+/// Bundled font families.
+abstract final class AppFonts {
+  /// UI text (SF Pro Text stand-in).
+  static const String text = 'Inter';
+
+  /// Large titles and numerals (SF Pro Display stand-in).
+  static const String display = 'InterDisplay';
+
+  /// Code, logs, manifests, diffs (SF Mono stand-in).
+  static const String mono = 'JetBrainsMono';
+
+  /// Tabular figures — use for counters and timestamps that update in place.
+  static const List<FontFeature> tabularFigures = <FontFeature>[
+    FontFeature.tabularFigures(),
+  ];
+}
 
 abstract final class AppSpacing {
   static const double xs = 2;
@@ -17,6 +35,7 @@ abstract final class AppSpacing {
   static const double huge = 32;
   static const double giant = 40;
   static const double shellRail = 104;
+  static const double shellSidebar = 248;
 }
 
 abstract final class AppRadius {
@@ -26,16 +45,16 @@ abstract final class AppRadius {
   /// 8dp — small chip groups, status badges.
   static final BorderRadius sm = BorderRadius.circular(8);
 
-  /// 12dp — M3 medium shape. Default for most surface tiles, list rows, badges.
+  /// 12dp — inner tiles, list rows, inputs, buttons.
   static final BorderRadius base = BorderRadius.circular(12);
 
-  /// 16dp — M3 large shape. Used by stock M3 Card & SearchBar.
+  /// 16dp — cards and grouped sections.
   static final BorderRadius md = BorderRadius.circular(16);
 
   /// 20dp — feature cards, hero panels.
   static final BorderRadius lg = BorderRadius.circular(20);
 
-  /// 28dp — M3 extra-large. FABs, sheets, dialogs.
+  /// 28dp — sheets and large floating surfaces.
   static final BorderRadius xl = BorderRadius.circular(28);
 
   /// Fully rounded.
@@ -77,14 +96,14 @@ abstract final class AppElevation {
   /// Subtle two-layer shadow for slightly raised surfaces.
   static List<BoxShadow> subtle(Color shadowColor) => <BoxShadow>[
     BoxShadow(
-      color: shadowColor.withValues(alpha: 0.07),
-      blurRadius: 18,
-      offset: const Offset(0, 10),
+      color: shadowColor.withValues(alpha: 0.05),
+      blurRadius: 16,
+      offset: const Offset(0, 4),
     ),
     BoxShadow(
-      color: shadowColor.withValues(alpha: 0.03),
-      blurRadius: 6,
-      offset: const Offset(0, 2),
+      color: shadowColor.withValues(alpha: 0.04),
+      blurRadius: 2,
+      offset: const Offset(0, 1),
     ),
   ];
 
@@ -115,7 +134,7 @@ abstract final class AppElevation {
 
 /// Shared card decoration factory for consistent styling across all screens.
 ///
-/// All cards default to `AppRadius.base` (12dp). Surface-tonal cards pass
+/// All cards default to `AppRadius.md` (16dp). Surface-tonal cards pass
 /// no border color; outlined variants pass an explicit color.
 abstract final class AppCardDecoration {
   /// Standard surface card: tonal surface, optional thin outline, no shadow.
@@ -125,7 +144,7 @@ abstract final class AppCardDecoration {
   }) {
     return BoxDecoration(
       color: backgroundColor,
-      borderRadius: AppRadius.base,
+      borderRadius: AppRadius.md,
       border: borderColor == null ? null : Border.all(color: borderColor),
     );
   }
@@ -138,7 +157,7 @@ abstract final class AppCardDecoration {
   }) {
     return BoxDecoration(
       color: backgroundColor,
-      borderRadius: AppRadius.base,
+      borderRadius: AppRadius.md,
       border: borderColor == null ? null : Border.all(color: borderColor),
       boxShadow: AppElevation.subtle(shadowColor),
     );

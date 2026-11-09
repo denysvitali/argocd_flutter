@@ -16,7 +16,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Connect to ArgoCD'), findsOneWidget);
+    expect(find.text('Sign in to Argo CD'), findsOneWidget);
     expect(find.text('Server URL'), findsOneWidget);
     expect(find.text('Sign in'), findsOneWidget);
     expect(find.text('Test server'), findsOneWidget);
