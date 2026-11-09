@@ -9,6 +9,7 @@ import 'argocd_api.dart';
 import 'certificate_provider.dart';
 import 'health_monitor.dart';
 import 'session_storage.dart';
+import 'sso_service.dart' as sso;
 
 enum AppStage { booting, unauthenticated, authenticated }
 
@@ -18,15 +19,18 @@ class AppController extends ChangeNotifier {
     required ArgoCdApi api,
     required CertificateProvider certificateProvider,
     HealthMonitor? healthMonitor,
+    Future<AppSession> Function(String serverUrl)? ssoSignIn,
   }) : _storage = storage,
        _api = api,
        _certificateProvider = certificateProvider,
-       _healthMonitor = healthMonitor;
+       _healthMonitor = healthMonitor,
+       _ssoSignIn = ssoSignIn ?? sso.signInWithSso;
 
   final SessionStorage _storage;
   final ArgoCdApi _api;
   final CertificateProvider _certificateProvider;
   final HealthMonitor? _healthMonitor;
+  final Future<AppSession> Function(String serverUrl) _ssoSignIn;
 
   HealthMonitor? get healthMonitor => _healthMonitor;
 
@@ -141,6 +145,25 @@ class AppController extends ChangeNotifier {
         refreshApplications(showSpinner: false),
         refreshProjects(showSpinner: false),
       ]);
+      _stage = AppStage.authenticated;
+      _healthMonitor?.resume();
+    });
+  }
+
+  Future<void> signInWithSso({required String serverUrl}) async {
+    await _runBusyAction(() async {
+      final normalizedServerUrl = serverUrl.trim();
+      await _storage.saveLastServerUrl(normalizedServerUrl);
+      _lastServerUrl = normalizedServerUrl;
+      await _api.verifyServer(normalizedServerUrl);
+      final nextSession = await _ssoSignIn(normalizedServerUrl);
+      _session = nextSession;
+      await _storage.saveSession(nextSession);
+      await Future.wait<void>(<Future<void>>[
+        refreshApplications(showSpinner: false),
+        refreshProjects(showSpinner: false),
+      ]);
+      _lastUsername = nextSession.username;
       _stage = AppStage.authenticated;
       _healthMonitor?.resume();
     });

@@ -113,7 +113,9 @@ class _SignInScreenState extends State<SignInScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                       decoration: BoxDecoration(
-                        color: scheme.secondaryContainer.withValues(alpha: 0.55),
+                        color: scheme.secondaryContainer.withValues(
+                          alpha: 0.55,
+                        ),
                         borderRadius: AppRadius.lg,
                       ),
                       child: Row(
@@ -175,7 +177,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Use your ArgoCD server URL and credentials.',
+                              'Use your ArgoCD credentials or single sign-on.',
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 color: scheme.onSurfaceVariant,
                               ),
@@ -289,7 +291,19 @@ class _SignInScreenState extends State<SignInScreen> {
                                 ),
                                 _SignInButton(
                                   busy: widget.controller.busy,
+                                  enabled: !_testingConnection,
                                   onPressed: _submit,
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed:
+                                      widget.controller.busy ||
+                                          _testingConnection
+                                      ? null
+                                      : _submitSso,
+                                  icon: const Icon(
+                                    Icons.open_in_browser_rounded,
+                                  ),
+                                  label: const Text('Sign in with SSO'),
                                 ),
                               ],
                             ),
@@ -322,6 +336,25 @@ class _SignInScreenState extends State<SignInScreen> {
         username: _usernameController.text,
         password: _passwordController.text,
       );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {});
+    }
+  }
+
+  Future<void> _submitSso() async {
+    if (!_validateServerOnly()) {
+      return;
+    }
+
+    setState(() {
+      _dismissedError = null;
+    });
+
+    try {
+      await widget.controller.signInWithSso(serverUrl: _serverController.text);
     } catch (_) {
       if (!mounted) {
         return;
@@ -397,15 +430,20 @@ class _SignInScreenState extends State<SignInScreen> {
 }
 
 class _SignInButton extends StatelessWidget {
-  const _SignInButton({required this.busy, required this.onPressed});
+  const _SignInButton({
+    required this.busy,
+    required this.enabled,
+    required this.onPressed,
+  });
 
   final bool busy;
+  final bool enabled;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     return FilledButton.icon(
-      onPressed: busy ? null : onPressed,
+      onPressed: busy || !enabled ? null : onPressed,
       icon: busy
           ? const _ShimmerIcon()
           : const Icon(Icons.arrow_forward_rounded),
@@ -583,11 +621,7 @@ class _CertificateBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Icon(
-            Icons.verified_user_outlined,
-            color: scheme.tertiary,
-            size: 20,
-          ),
+          Icon(Icons.verified_user_outlined, color: scheme.tertiary, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

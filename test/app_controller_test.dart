@@ -2,11 +2,47 @@ import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/models/argo_project.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/core/services/argocd_api.dart';
+import 'package:argocd_flutter/core/services/certificate_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'test_helpers.dart';
 
 void main() {
+  test('SSO signs in and persists the returned session', () async {
+    final storage = MemorySessionStorage();
+    final controller = AppController(
+      storage: storage,
+      api: FakeArgoCdApi.withSeedData(),
+      certificateProvider: const CertificateProvider(),
+      ssoSignIn: (url) async {
+        expect(url, testSession.serverUrl);
+        return testSession;
+      },
+    );
+    await controller.initialize();
+    await controller.signInWithSso(serverUrl: ' ${testSession.serverUrl} ');
+    expect(controller.stage, AppStage.authenticated);
+    expect((await storage.loadSession())?.token, testSession.token);
+    expect(controller.applications, isNotEmpty);
+  });
+
+  test('SSO failure remains signed out and displays the error', () async {
+    final controller = AppController(
+      storage: MemorySessionStorage(),
+      api: FakeArgoCdApi(),
+      certificateProvider: const CertificateProvider(),
+      ssoSignIn: (_) async => throw const ArgoCdException('SSO failed'),
+    );
+    await controller.initialize();
+    await expectLater(
+      controller.signInWithSso(serverUrl: testSession.serverUrl),
+      throwsA(isA<ArgoCdException>()),
+    );
+    expect(controller.stage, AppStage.unauthenticated);
+    expect(controller.errorMessage, 'SSO failed');
+    expect(controller.busy, isFalse);
+  });
+
   test('initial state is AppStage.booting', () {
     final controller = createTestController();
     expect(controller.stage, AppStage.booting);
@@ -17,20 +53,21 @@ void main() {
     expect(controller.errorMessage, isNull);
   });
 
-  test('initialize() with no saved session transitions to unauthenticated',
-      () async {
-    final controller = createTestController();
-
-    await controller.initialize();
-
-    expect(controller.stage, AppStage.unauthenticated);
-    expect(controller.session, isNull);
-    expect(controller.applications, isEmpty);
-    expect(controller.projects, isEmpty);
-  });
-
   test(
-      'initialize() with saved session transitions to authenticated '
+    'initialize() with no saved session transitions to unauthenticated',
+    () async {
+      final controller = createTestController();
+
+      await controller.initialize();
+
+      expect(controller.stage, AppStage.unauthenticated);
+      expect(controller.session, isNull);
+      expect(controller.applications, isEmpty);
+      expect(controller.projects, isEmpty);
+    },
+  );
+
+  test('initialize() with saved session transitions to authenticated '
       'and loads data', () async {
     final storage = MemorySessionStorage()..seedSession(testSession);
     final api = FakeArgoCdApi(
@@ -52,37 +89,39 @@ void main() {
     expect(controller.hasLoadedProjects, isTrue);
   });
 
-  test('signIn() with valid credentials transitions to authenticated',
-      () async {
-    final api = FakeArgoCdApi(
-      applications: <ArgoApplication>[seedApp],
-      projects: <ArgoProject>[seedProject],
-    );
-    final storage = MemorySessionStorage();
-    final controller = createTestController(storage: storage, api: api);
-    await controller.initialize();
+  test(
+    'signIn() with valid credentials transitions to authenticated',
+    () async {
+      final api = FakeArgoCdApi(
+        applications: <ArgoApplication>[seedApp],
+        projects: <ArgoProject>[seedProject],
+      );
+      final storage = MemorySessionStorage();
+      final controller = createTestController(storage: storage, api: api);
+      await controller.initialize();
 
-    expect(controller.stage, AppStage.unauthenticated);
+      expect(controller.stage, AppStage.unauthenticated);
 
-    await controller.signIn(
-      serverUrl: 'https://argocd.example.com',
-      username: 'admin',
-      password: 'password',
-    );
+      await controller.signIn(
+        serverUrl: 'https://argocd.example.com',
+        username: 'admin',
+        password: 'password',
+      );
 
-    expect(controller.stage, AppStage.authenticated);
-    expect(controller.session, isNotNull);
-    expect(controller.session!.token, 'fake-token');
-    expect(controller.applications, hasLength(1));
-    expect(controller.projects, hasLength(1));
-    expect(controller.errorMessage, isNull);
-    expect(controller.busy, isFalse);
+      expect(controller.stage, AppStage.authenticated);
+      expect(controller.session, isNotNull);
+      expect(controller.session!.token, 'fake-token');
+      expect(controller.applications, hasLength(1));
+      expect(controller.projects, hasLength(1));
+      expect(controller.errorMessage, isNull);
+      expect(controller.busy, isFalse);
 
-    // Verify session was persisted
-    final savedSession = await storage.loadSession();
-    expect(savedSession, isNotNull);
-    expect(savedSession!.token, 'fake-token');
-  });
+      // Verify session was persisted
+      final savedSession = await storage.loadSession();
+      expect(savedSession, isNotNull);
+      expect(savedSession!.token, 'fake-token');
+    },
+  );
 
   test('signIn() with invalid credentials sets error message', () async {
     final api = FakeArgoCdApi(
@@ -109,8 +148,7 @@ void main() {
     expect(controller.session, isNull);
   });
 
-  test('signOut() clears session and transitions to unauthenticated',
-      () async {
+  test('signOut() clears session and transitions to unauthenticated', () async {
     final storage = MemorySessionStorage()..seedSession(testSession);
     final api = FakeArgoCdApi(
       applications: <ArgoApplication>[seedApp],
@@ -229,20 +267,21 @@ void main() {
   });
 
   test(
-      'initialize() with expired saved session falls back to unauthenticated',
-      () async {
-    final storage = MemorySessionStorage()..seedSession(testSession);
-    final api = FakeArgoCdApi(
-      fetchApplicationsError: const ArgoCdException('Unauthorized'),
-    );
-    final controller = createTestController(storage: storage, api: api);
+    'initialize() with expired saved session falls back to unauthenticated',
+    () async {
+      final storage = MemorySessionStorage()..seedSession(testSession);
+      final api = FakeArgoCdApi(
+        fetchApplicationsError: const ArgoCdException('Unauthorized'),
+      );
+      final controller = createTestController(storage: storage, api: api);
 
-    await controller.initialize();
+      await controller.initialize();
 
-    expect(controller.stage, AppStage.unauthenticated);
-    expect(controller.session, isNull);
-    expect(controller.errorMessage, 'Saved session expired. Sign in again.');
-  });
+      expect(controller.stage, AppStage.unauthenticated);
+      expect(controller.session, isNull);
+      expect(controller.errorMessage, 'Saved session expired. Sign in again.');
+    },
+  );
 
   test('concurrent busy action throws ArgoCdException', () async {
     final storage = MemorySessionStorage()..seedSession(testSession);
