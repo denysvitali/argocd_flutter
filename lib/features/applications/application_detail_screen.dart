@@ -12,6 +12,7 @@ import 'app_diff_screen.dart';
 import 'log_viewer_screen.dart';
 import 'manifest_viewer_screen.dart';
 import 'pods_screen.dart';
+import 'resource_map_screen.dart';
 import 'resource_tree_screen.dart';
 
 /// Vertical gap between top-level sections.
@@ -1110,6 +1111,24 @@ class _ResourcesSection extends StatelessWidget {
       children: <Widget>[
         if (application.resources.isNotEmpty)
           _ResourceHealthSummary(resources: application.resources),
+        GroupedRow(
+          leading: IconWell(
+            icon: Icons.hub_rounded,
+            color: theme.colorScheme.primary,
+          ),
+          title: 'Resource Map',
+          subtitle: 'Live view of workloads, ReplicaSets and pods',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => ResourceMapScreen(
+                  controller: controller,
+                  applicationName: application.name,
+                ),
+              ),
+            );
+          },
+        ),
         GroupedRow(
           leading: IconWell(
             icon: Icons.account_tree_rounded,
