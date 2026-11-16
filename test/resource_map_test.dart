@@ -2,6 +2,7 @@ import 'package:argocd_flutter/core/models/app_session.dart';
 import 'package:argocd_flutter/core/models/argo_application.dart';
 import 'package:argocd_flutter/core/models/argo_resource_node.dart';
 import 'package:argocd_flutter/features/applications/pod_screen.dart';
+import 'package:argocd_flutter/features/applications/resource_graph.dart';
 import 'package:argocd_flutter/features/applications/resource_map_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -173,6 +174,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Show as list'));
+    await tester.pumpAndSettle();
 
     expect(find.text('Workloads'), findsOneWidget);
     expect(find.text('Networking'), findsOneWidget);
@@ -220,6 +223,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Show as list'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Issues'));
     await tester.pumpAndSettle();
@@ -250,5 +255,92 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();
     expect(api.treeCalls, 2);
+  });
+
+  group('layoutResourceGraph', () {
+    test('places columns by depth and centres parents on children', () {
+      final layout = layoutResourceGraph(
+        applicationName: 'happy-daemon',
+        sections: buildResourceMap(_tree()),
+      );
+      final byName = <String, GraphNode>{
+        for (final n in layout.nodes)
+          if (n.resource != null) '${n.resource!.kind}/${n.resource!.name}': n,
+      };
+      final deploy = byName['Deployment/happy-daemon']!;
+      final rs = byName['ReplicaSet/happy-daemon-6974484d8d']!;
+      expect(layout.root.position.dx, kGraphPadding);
+      expect(
+        deploy.position.dx,
+        kGraphPadding + kGraphNodeWidth + kGraphColumnGap,
+      );
+      expect(rs.position.dx, greaterThan(deploy.position.dx));
+      // RS card grows to hold its two pods.
+      expect(rs.height, kGraphHeaderHeight + 2 * kGraphPodRowHeight + 8);
+      // Older ReplicaSets are a single stack node.
+      final stacks = layout.nodes.where((n) => n.type == GraphNodeType.stack);
+      expect(stacks.single.stackCount, 8);
+      // No two cards overlap.
+      for (final a in layout.nodes) {
+        for (final b in layout.nodes) {
+          if (!identical(a, b)) {
+            expect(a.rect.overlaps(b.rect), isFalse);
+          }
+        }
+      }
+    });
+
+    test('collapsed nodes hide children, expanded stacks show them', () {
+      final sections = buildResourceMap(_tree());
+      final collapsed = layoutResourceGraph(
+        applicationName: 'a',
+        sections: sections,
+        collapsed: <String>{'Deployment/happy-daemon'},
+      );
+      expect(
+        collapsed.nodes.where((n) => n.resource?.kind == 'ReplicaSet'),
+        isEmpty,
+      );
+      final expanded = layoutResourceGraph(
+        applicationName: 'a',
+        sections: sections,
+        expandedStacks: <String>{'Deployment/happy-daemon'},
+      );
+      expect(
+        expanded.nodes.where((n) => n.resource?.kind == 'ReplicaSet').length,
+        9,
+      );
+    });
+  });
+
+  testWidgets('graph is the default view; pods and stacks are tappable', (
+    tester,
+  ) async {
+    final api = _MapApi();
+    final controller = await createAuthenticatedController(api: api);
+    await tester.pumpWidget(
+      wrap(
+        ResourceMapScreen(
+          controller: controller,
+          applicationName: 'payments-api',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ResourceGraphView), findsOneWidget);
+    expect(find.text('8 ReplicaSets'), findsOneWidget);
+    expect(find.text('rev:10'), findsOneWidget);
+
+    await tester.tap(find.text('8 ReplicaSets'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(find.text('Hide older ReplicaSets'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Fit to screen'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Collapse children').first);
+    await tester.pumpAndSettle();
+    expect(find.text('happy-daemon-6974484d8d'), findsNothing);
   });
 }

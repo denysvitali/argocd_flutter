@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'manifest_viewer_screen.dart';
 import 'pod_screen.dart';
 import 'pods_screen.dart';
+import 'resource_graph.dart';
 
 // ---------------------------------------------------------------------------
 // Model
@@ -276,6 +277,7 @@ class _ResourceMapScreenState extends State<ResourceMapScreen>
 
   String _query = '';
   bool _issuesOnly = false;
+  bool _graph = true;
   final Set<String> _collapsed = <String>{};
   final Set<String> _showOlder = <String>{};
   final TextEditingController _searchController = TextEditingController();
@@ -369,8 +371,77 @@ class _ResourceMapScreenState extends State<ResourceMapScreen>
             ),
           ],
         ),
+        actions: <Widget>[
+          IconButton(
+            tooltip: _graph ? 'Show as list' : 'Show as graph',
+            onPressed: () => setState(() => _graph = !_graph),
+            icon: Icon(
+              _graph ? Icons.view_agenda_outlined : Icons.account_tree_outlined,
+            ),
+          ),
+          const SizedBox(width: 4),
+        ],
       ),
       body: _buildBody(theme),
+    );
+  }
+
+  Widget _buildGraph(ThemeData theme, List<ArgoResourceNode> nodes) {
+    final app = _application;
+    final message = app?.healthMessage ?? '';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        if (app != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+            child: Row(
+              children: <Widget>[
+                StatusChip(
+                  label: app.healthStatus,
+                  color: AppColors.healthColor(app.healthStatus),
+                  icon: healthStatusIcon(app.healthStatus),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                StatusChip(
+                  label: app.syncStatus,
+                  color: AppColors.syncColor(app.syncStatus),
+                  icon: syncStatusIcon(app.syncStatus),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text(
+                    _error != null ? 'Showing last known state' : message,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: _error != null
+                          ? AppColors.statusForeground(theme, AppColors.warning)
+                          : theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        Divider(
+          height: 0.5,
+          thickness: 0.5,
+          color: theme.colorScheme.outlineVariant,
+        ),
+        Expanded(
+          child: ResourceGraphView(
+            applicationName: widget.applicationName,
+            application: app,
+            sections: buildResourceMap(
+              nodes,
+              managed: app?.resources ?? const <ArgoResource>[],
+            ),
+            onOpenResource: _openResource,
+            onOpenPod: _openPod,
+          ),
+        ),
+      ],
     );
   }
 
@@ -397,6 +468,10 @@ class _ResourceMapScreenState extends State<ResourceMapScreen>
           ),
         ],
       );
+    }
+
+    if (_graph && nodes.isNotEmpty) {
+      return _buildGraph(theme, nodes);
     }
 
     final sections = buildResourceMap(
