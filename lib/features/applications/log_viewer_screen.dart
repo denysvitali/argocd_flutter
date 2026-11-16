@@ -1,3 +1,4 @@
+import 'package:argocd_flutter/core/models/pod_details.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
 import 'package:argocd_flutter/ui/design_tokens.dart';
@@ -14,6 +15,7 @@ class LogViewerScreen extends StatefulWidget {
     required this.namespace,
     required this.podName,
     this.containerName,
+    this.containers = const <String>[],
   });
 
   final AppController controller;
@@ -21,6 +23,10 @@ class LogViewerScreen extends StatefulWidget {
   final String namespace;
   final String podName;
   final String? containerName;
+
+  /// All containers of the pod; when more than one, the toolbar offers a
+  /// switcher. Discovered automatically if ArgoCD asks for a container.
+  final List<String> containers;
 
   @override
   State<LogViewerScreen> createState() => _LogViewerScreenState();
@@ -32,10 +38,14 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
   final ScrollController _verticalController = ScrollController();
   bool _wrapLines = true;
   bool _follow = false;
+  String? _container;
+  List<String> _containers = const <String>[];
 
   @override
   void initState() {
     super.initState();
+    _container = widget.containerName;
+    _containers = widget.containers;
     _future = _loadLogs();
   }
 
@@ -45,15 +55,13 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
     super.dispose();
   }
 
-  bool get _hasContainer => widget.containerName?.isNotEmpty ?? false;
+  bool get _hasContainer => _container?.isNotEmpty ?? false;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final title = _hasContainer
-        ? '${widget.podName}/${widget.containerName}'
-        : widget.podName;
+    final title = widget.podName;
 
     return Scaffold(
       appBar: AppBar(
@@ -129,7 +137,9 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
               _LogToolbar(
                 lineCount: lines.length,
                 applicationName: widget.applicationName,
-                containerName: _hasContainer ? widget.containerName : null,
+                containerName: _hasContainer ? _container : null,
+                containers: _containers,
+                onSelectContainer: _selectContainer,
                 wrapLines: _wrapLines,
                 follow: _follow,
                 onToggleWrap: () => setState(() => _wrapLines = !_wrapLines),
@@ -268,17 +278,48 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
   }
 
   Future<String> _loadLogs() async {
-    final logs = await widget.controller.fetchResourceLogs(
+    var logs = await widget.controller.fetchResourceLogs(
       applicationName: widget.applicationName,
       namespace: widget.namespace,
       podName: widget.podName,
-      containerName: widget.containerName,
+      containerName: _container,
     );
+    // Multi-container pods need an explicit container; ArgoCD answers with
+    // an error string as log content. Pick the first one and retry.
+    final discovered = _hasContainer ? null : containersFromLogError(logs);
+    if (discovered != null && discovered.isNotEmpty) {
+      final container = discovered.first;
+      logs = await widget.controller.fetchResourceLogs(
+        applicationName: widget.applicationName,
+        namespace: widget.namespace,
+        podName: widget.podName,
+        containerName: container,
+      );
+      if (mounted) {
+        setState(() {
+          _container = container;
+          if (_containers.isEmpty) {
+            _containers = discovered;
+          }
+        });
+      }
+    }
     _lastLoadedLogs = logs;
     if (_follow) {
       _scheduleScrollToEnd();
     }
     return logs;
+  }
+
+  void _selectContainer(String name) {
+    if (name == _container) {
+      return;
+    }
+    setState(() {
+      _container = name;
+      _lastLoadedLogs = null;
+      _future = _loadLogs();
+    });
   }
 
   void _refresh() {
@@ -342,6 +383,8 @@ class _LogToolbar extends StatelessWidget {
     required this.lineCount,
     required this.applicationName,
     required this.containerName,
+    required this.containers,
+    required this.onSelectContainer,
     required this.wrapLines,
     required this.follow,
     required this.onToggleWrap,
@@ -351,6 +394,8 @@ class _LogToolbar extends StatelessWidget {
   final int lineCount;
   final String applicationName;
   final String? containerName;
+  final List<String> containers;
+  final ValueChanged<String> onSelectContainer;
   final bool wrapLines;
   final bool follow;
   final VoidCallback onToggleWrap;
@@ -388,7 +433,26 @@ class _LogToolbar extends StatelessWidget {
           ),
           if (containerName != null) ...<Widget>[
             const SizedBox(width: 8),
-            _ContainerCapsule(name: containerName!),
+            if (containers.length > 1)
+              PopupMenuButton<String>(
+                tooltip: 'Switch container',
+                initialValue: containerName,
+                onSelected: onSelectContainer,
+                itemBuilder: (_) => <PopupMenuEntry<String>>[
+                  for (final name in containers)
+                    CheckedPopupMenuItem<String>(
+                      value: name,
+                      checked: name == containerName,
+                      child: Text(name),
+                    ),
+                ],
+                child: _ContainerCapsule(
+                  name: containerName!,
+                  showChevron: true,
+                ),
+              )
+            else
+              _ContainerCapsule(name: containerName!),
             const SizedBox(width: 4),
           ],
           _ToolbarToggle(
@@ -410,9 +474,10 @@ class _LogToolbar extends StatelessWidget {
 }
 
 class _ContainerCapsule extends StatelessWidget {
-  const _ContainerCapsule({required this.name});
+  const _ContainerCapsule({required this.name, this.showChevron = false});
 
   final String name;
+  final bool showChevron;
 
   @override
   Widget build(BuildContext context) {
@@ -446,6 +511,14 @@ class _ContainerCapsule extends StatelessWidget {
                 ),
               ),
             ),
+            if (showChevron) ...<Widget>[
+              const SizedBox(width: 2),
+              Icon(
+                Icons.unfold_more_rounded,
+                size: 14,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ],
           ],
         ),
       ),

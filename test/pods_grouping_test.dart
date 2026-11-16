@@ -2,19 +2,22 @@ import 'package:argocd_flutter/core/models/argo_resource_node.dart';
 import 'package:argocd_flutter/features/applications/pods_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-ArgoResourceNode _node(String kind, String name, {List<String> parents = const []}) =>
-    ArgoResourceNode(
-      group: '',
-      version: 'v1',
-      kind: kind,
-      namespace: 'ns',
-      name: name,
-      uid: '$kind/$name',
-      parentUids: parents,
-      healthStatus: 'Healthy',
-      healthMessage: '',
-      createdAt: '',
-    );
+ArgoResourceNode _node(
+  String kind,
+  String name, {
+  List<String> parents = const [],
+}) => ArgoResourceNode(
+  group: '',
+  version: 'v1',
+  kind: kind,
+  namespace: 'ns',
+  name: name,
+  uid: '$kind/$name',
+  parentUids: parents,
+  healthStatus: 'Healthy',
+  healthMessage: '',
+  createdAt: '',
+);
 
 void main() {
   test('groups pods by ReplicaSet and Deployment', () {

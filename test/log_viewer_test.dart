@@ -196,7 +196,7 @@ void main() {
       expect(find.text('payments-api-7f9d9c'), findsWidgets);
     });
 
-    testWidgets('title shows podName/containerName when container name given', (
+    testWidgets('title shows podName and container capsule when container name given', (
       WidgetTester tester,
     ) async {
       final controller = _buildController();
@@ -211,7 +211,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('payments-api-7f9d9c/app'), findsWidgets);
+      expect(find.text('payments-api-7f9d9c'), findsWidgets);
+      expect(find.text('app'), findsOneWidget);
     });
 
     testWidgets('empty containerName falls back to pod name in title', (

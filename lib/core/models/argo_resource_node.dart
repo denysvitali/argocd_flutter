@@ -12,6 +12,8 @@ class ArgoResourceNode {
     required this.healthStatus,
     required this.healthMessage,
     required this.createdAt,
+    this.info = const <String, String>{},
+    this.images = const <String>[],
   });
 
   factory ArgoResourceNode.fromJson(Map<String, dynamic> json) {
@@ -32,6 +34,17 @@ class ArgoResourceNode {
       healthStatus: parseString(health['status'], fallback: 'Unknown'),
       healthMessage: parseString(health['message']),
       createdAt: parseString(json['createdAt']),
+      info: <String, String>{
+        for (final dynamic item in parseList(json['info']))
+          if (parseString(parseMap(item)['name']).isNotEmpty)
+            parseString(parseMap(item)['name']): parseString(
+              parseMap(item)['value'],
+            ),
+      },
+      images: parseList(json['images'])
+          .map((dynamic image) => parseString(image))
+          .where((String image) => image.isNotEmpty)
+          .toList(growable: false),
     );
   }
 
@@ -45,6 +58,11 @@ class ArgoResourceNode {
   final String healthStatus;
   final String healthMessage;
   final String createdAt;
+
+  /// ArgoCD's `info` key/value pairs (for pods: "Status Reason", "Node",
+  /// "Containers" as ready/total, "Restart Count").
+  final Map<String, String> info;
+  final List<String> images;
 
   bool get isRoot => parentUids.isEmpty;
   String get displayKind => group.isNotEmpty ? '$kind.$group' : kind;
