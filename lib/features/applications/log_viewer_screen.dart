@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:argocd_flutter/core/models/pod_details.dart';
 import 'package:argocd_flutter/core/services/app_controller.dart';
 import 'package:argocd_flutter/ui/app_colors.dart';
@@ -16,6 +18,7 @@ class LogViewerScreen extends StatefulWidget {
     required this.podName,
     this.containerName,
     this.containers = const <String>[],
+    this.followInterval = const Duration(seconds: 3),
   });
 
   final AppController controller;
@@ -28,31 +31,71 @@ class LogViewerScreen extends StatefulWidget {
   /// switcher. Discovered automatically if ArgoCD asks for a container.
   final List<String> containers;
 
+  /// How often the tail is re-fetched while following.
+  final Duration followInterval;
+
   @override
   State<LogViewerScreen> createState() => _LogViewerScreenState();
 }
 
-class _LogViewerScreenState extends State<LogViewerScreen> {
-  late Future<String> _future;
-  String? _lastLoadedLogs;
+class _LogViewerScreenState extends State<LogViewerScreen>
+    with WidgetsBindingObserver {
+  /// Distance from the bottom within which the view counts as "at the end"
+  /// and keeps sticking to new output.
+  static const double _stickThreshold = 48;
+
   final ScrollController _verticalController = ScrollController();
   bool _wrapLines = true;
-  bool _follow = false;
+  bool _follow = true;
   String? _container;
   List<String> _containers = const <String>[];
+
+  String? _logs;
+  Object? _error;
+  bool _loading = true;
+
+  /// Last background poll failed; existing output stays on screen.
+  bool _pollFailed = false;
+
+  /// New output arrived while the user was scrolled up.
+  bool _hasUnseen = false;
+
+  bool _inForeground = true;
+  Timer? _pollTimer;
+
+  /// Bumped on every user-initiated load so stale responses are dropped.
+  int _generation = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _container = widget.containerName;
     _containers = widget.containers;
-    _future = _loadLogs();
+    _verticalController.addListener(_onScroll);
+    _reload();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _pollTimer?.cancel();
     _verticalController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final foreground = state == AppLifecycleState.resumed;
+    if (foreground == _inForeground) {
+      return;
+    }
+    _inForeground = foreground;
+    if (foreground) {
+      _poll();
+    } else {
+      _pollTimer?.cancel();
+    }
   }
 
   bool get _hasContainer => _container?.isNotEmpty ?? false;
@@ -98,71 +141,84 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
           const SizedBox(width: 4),
         ],
       ),
-      body: FutureBuilder<String>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(
-              child: SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2.5),
-              ),
-            );
-          }
+      body: _buildBody(theme),
+    );
+  }
 
-          if (snapshot.hasError) {
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
-              children: <Widget>[
-                EmptyStateCard(
-                  icon: Icons.terminal_rounded,
-                  title: "Couldn't Load Logs",
-                  subtitle: snapshot.error.toString(),
-                  action: FilledButton(
-                    onPressed: _refresh,
-                    child: const Text('Retry'),
-                  ),
+  Widget _buildBody(ThemeData theme) {
+    final logs = _logs;
+    if (logs == null) {
+      if (_loading) {
+        return const Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2.5),
+          ),
+        );
+      }
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+        children: <Widget>[
+          EmptyStateCard(
+            icon: Icons.terminal_rounded,
+            title: "Couldn't Load Logs",
+            subtitle: _error.toString(),
+            action: FilledButton(
+              onPressed: _reload,
+              child: const Text('Retry'),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final lines = logs.isEmpty ? const <String>[] : logs.split('\n');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _LogToolbar(
+          lineCount: lines.length,
+          applicationName: widget.applicationName,
+          containerName: _hasContainer ? _container : null,
+          containers: _containers,
+          onSelectContainer: _selectContainer,
+          wrapLines: _wrapLines,
+          follow: _follow,
+          pollFailed: _pollFailed,
+          onToggleWrap: () => setState(() => _wrapLines = !_wrapLines),
+          onToggleFollow: _toggleFollow,
+        ),
+        Expanded(
+          child: logs.isEmpty
+              ? ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  children: <Widget>[
+                    EmptyStateCard(
+                      icon: Icons.notes_rounded,
+                      title: 'No Output',
+                      subtitle: _follow
+                          ? 'No logs returned. Waiting for new output…'
+                          : 'No logs returned.',
+                    ),
+                  ],
+                )
+              : Stack(
+                  children: <Widget>[
+                    Positioned.fill(child: _buildConsole(theme, lines)),
+                    if (_hasUnseen)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 28,
+                        child: Center(
+                          child: _JumpToLatestButton(onPressed: _jumpToEnd),
+                        ),
+                      ),
+                  ],
                 ),
-              ],
-            );
-          }
-
-          final logs = snapshot.requireData;
-          final lines = logs.isEmpty ? const <String>[] : logs.split('\n');
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              _LogToolbar(
-                lineCount: lines.length,
-                applicationName: widget.applicationName,
-                containerName: _hasContainer ? _container : null,
-                containers: _containers,
-                onSelectContainer: _selectContainer,
-                wrapLines: _wrapLines,
-                follow: _follow,
-                onToggleWrap: () => setState(() => _wrapLines = !_wrapLines),
-                onToggleFollow: _toggleFollow,
-              ),
-              Expanded(
-                child: logs.isEmpty
-                    ? ListView(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                        children: const <Widget>[
-                          EmptyStateCard(
-                            icon: Icons.notes_rounded,
-                            title: 'No Output',
-                            subtitle: 'No logs returned.',
-                          ),
-                        ],
-                      )
-                    : _buildConsole(theme, lines),
-              ),
-            ],
-          );
-        },
-      ),
+        ),
+      ],
     );
   }
 
@@ -277,7 +333,7 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
     return theme.colorScheme.onSurfaceVariant;
   }
 
-  Future<String> _loadLogs() async {
+  Future<String> _fetch() async {
     var logs = await widget.controller.fetchResourceLogs(
       applicationName: widget.applicationName,
       namespace: widget.namespace,
@@ -295,61 +351,149 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
         podName: widget.podName,
         containerName: container,
       );
-      if (mounted) {
-        setState(() {
-          _container = container;
-          if (_containers.isEmpty) {
-            _containers = discovered;
-          }
-        });
+      _container = container;
+      if (_containers.isEmpty) {
+        _containers = discovered;
       }
     }
-    _lastLoadedLogs = logs;
-    if (_follow) {
-      _scheduleScrollToEnd();
-    }
     return logs;
+  }
+
+  /// Foreground load: shows the spinner / error state.
+  Future<void> _reload() async {
+    _pollTimer?.cancel();
+    final generation = ++_generation;
+    setState(() {
+      _loading = true;
+      _logs = null;
+      _error = null;
+      _pollFailed = false;
+      _hasUnseen = false;
+    });
+    try {
+      final logs = await _fetch();
+      if (!mounted || generation != _generation) {
+        return;
+      }
+      setState(() {
+        _logs = logs;
+        _loading = false;
+      });
+      _scrollToEnd(animate: false);
+    } catch (error) {
+      if (!mounted || generation != _generation) {
+        return;
+      }
+      setState(() {
+        _error = error;
+        _loading = false;
+      });
+    }
+    _schedulePoll();
+  }
+
+  /// Background refresh while following: keeps current output on failure.
+  Future<void> _poll() async {
+    _pollTimer?.cancel();
+    if (!mounted || !_follow || !_inForeground || _logs == null) {
+      return;
+    }
+    final generation = _generation;
+    try {
+      final logs = await _fetch();
+      if (!mounted || generation != _generation) {
+        return;
+      }
+      final changed = logs != _logs;
+      final atEnd = _isAtEnd;
+      setState(() {
+        _pollFailed = false;
+        if (changed) {
+          _logs = logs;
+          if (!atEnd) {
+            _hasUnseen = true;
+          }
+        }
+      });
+      if (changed && atEnd) {
+        _scrollToEnd();
+      }
+    } catch (_) {
+      if (!mounted || generation != _generation) {
+        return;
+      }
+      setState(() => _pollFailed = true);
+    }
+    _schedulePoll();
+  }
+
+  void _schedulePoll() {
+    _pollTimer?.cancel();
+    if (!mounted || !_follow || !_inForeground || _logs == null) {
+      return;
+    }
+    _pollTimer = Timer(widget.followInterval, _poll);
   }
 
   void _selectContainer(String name) {
     if (name == _container) {
       return;
     }
-    setState(() {
-      _container = name;
-      _lastLoadedLogs = null;
-      _future = _loadLogs();
-    });
+    _container = name;
+    _reload();
   }
 
-  void _refresh() {
-    setState(() {
-      _future = _loadLogs();
-    });
-  }
+  void _refresh() => _reload();
 
   void _toggleFollow() {
     setState(() => _follow = !_follow);
     if (_follow) {
-      _scheduleScrollToEnd();
+      _jumpToEnd();
+      _poll();
+    } else {
+      _pollTimer?.cancel();
     }
   }
 
-  void _scheduleScrollToEnd() {
+  bool get _isAtEnd {
+    if (!_verticalController.hasClients) {
+      return true;
+    }
+    final position = _verticalController.position;
+    return position.maxScrollExtent - position.pixels <= _stickThreshold;
+  }
+
+  void _onScroll() {
+    if (_hasUnseen && _isAtEnd) {
+      setState(() => _hasUnseen = false);
+    }
+  }
+
+  void _jumpToEnd() {
+    setState(() => _hasUnseen = false);
+    _scrollToEnd();
+  }
+
+  void _scrollToEnd({bool animate = true}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_verticalController.hasClients) {
         return;
       }
-      _verticalController.animateTo(
-        _verticalController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 240),
-        curve: Curves.easeOutCubic,
-      );
+      final end = _verticalController.position.maxScrollExtent;
+      if (animate) {
+        _verticalController.animateTo(
+          end,
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOutCubic,
+        );
+      } else {
+        _verticalController.jumpTo(end);
+      }
     });
   }
 
   Future<void> _copyLogs() async {
-    final logs = _lastLoadedLogs;
+    final logs = _logs;
     if (logs == null) {
       ScaffoldMessenger.of(
         context,
@@ -387,6 +531,7 @@ class _LogToolbar extends StatelessWidget {
     required this.onSelectContainer,
     required this.wrapLines,
     required this.follow,
+    required this.pollFailed,
     required this.onToggleWrap,
     required this.onToggleFollow,
   });
@@ -398,6 +543,7 @@ class _LogToolbar extends StatelessWidget {
   final ValueChanged<String> onSelectContainer;
   final bool wrapLines;
   final bool follow;
+  final bool pollFailed;
   final VoidCallback onToggleWrap;
   final VoidCallback onToggleFollow;
 
@@ -455,10 +601,9 @@ class _LogToolbar extends StatelessWidget {
               _ContainerCapsule(name: containerName!),
             const SizedBox(width: 4),
           ],
-          _ToolbarToggle(
-            tooltip: follow ? 'Stop following' : 'Follow output',
-            icon: Icons.vertical_align_bottom_rounded,
-            selected: follow,
+          _LiveToggle(
+            follow: follow,
+            pollFailed: pollFailed,
             onPressed: onToggleFollow,
           ),
           _ToolbarToggle(
@@ -551,6 +696,122 @@ class _ToolbarToggle extends StatelessWidget {
       selectedIcon: Icon(icon, color: theme.colorScheme.primary),
       onPressed: onPressed,
       icon: Icon(icon, color: theme.colorScheme.onSurfaceVariant),
+    );
+  }
+}
+
+/// "● Live" / "Paused" capsule that toggles following.
+class _LiveToggle extends StatelessWidget {
+  const _LiveToggle({
+    required this.follow,
+    required this.pollFailed,
+    required this.onPressed,
+  });
+
+  final bool follow;
+  final bool pollFailed;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = !follow
+        ? AppColors.unknown
+        : pollFailed
+        ? AppColors.warning
+        : AppColors.healthy;
+    final label = !follow
+        ? 'Paused'
+        : pollFailed
+        ? 'Retrying'
+        : 'Live';
+    return Tooltip(
+      message: follow ? 'Stop following' : 'Follow output',
+      child: Semantics(
+        button: true,
+        toggled: follow,
+        label: 'Follow logs',
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: AppRadius.pill,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            padding: const EdgeInsets.fromLTRB(8, 4, 10, 4),
+            decoration: BoxDecoration(
+              color: follow
+                  ? AppColors.statusTint(theme, color)
+                  : AppColors.fill(theme),
+              borderRadius: AppRadius.pill,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                if (follow)
+                  StatusDot(color: color, size: 7)
+                else
+                  Icon(
+                    Icons.pause_rounded,
+                    size: 12,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                const SizedBox(width: 5),
+                Text(
+                  label,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: follow
+                        ? AppColors.statusForeground(theme, color)
+                        : theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Floating pill shown when new output arrived while scrolled up.
+class _JumpToLatestButton extends StatelessWidget {
+  const _JumpToLatestButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.primary,
+      shape: const StadiumBorder(),
+      elevation: 3,
+      shadowColor: Colors.black26,
+      child: InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: onPressed,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 7, 14, 7),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(
+                Icons.arrow_downward_rounded,
+                size: 15,
+                color: theme.colorScheme.onPrimary,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                'New output',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.onPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

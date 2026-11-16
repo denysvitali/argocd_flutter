@@ -99,7 +99,7 @@ void main() {
       await tester.pumpWidget(_buildWidget(controller: controller));
       await tester.pumpAndSettle();
 
-      expect(find.text('No logs returned.'), findsOneWidget);
+      expect(find.textContaining('No logs returned.'), findsOneWidget);
     });
 
     testWidgets('refresh button triggers reload', (WidgetTester tester) async {
@@ -110,11 +110,6 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(find.byIcon(Icons.refresh));
-      await tester.pump();
-
-      // Should show loading indicator during refresh.
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-
       await tester.pumpAndSettle();
 
       // Logs should be visible again after refresh.
@@ -196,24 +191,25 @@ void main() {
       expect(find.text('payments-api-7f9d9c'), findsWidgets);
     });
 
-    testWidgets('title shows podName and container capsule when container name given', (
-      WidgetTester tester,
-    ) async {
-      final controller = _buildController();
-      await controller.initialize();
+    testWidgets(
+      'title shows podName and container capsule when container name given',
+      (WidgetTester tester) async {
+        final controller = _buildController();
+        await controller.initialize();
 
-      await tester.pumpWidget(
-        _buildWidget(
-          controller: controller,
-          podName: 'payments-api-7f9d9c',
-          containerName: 'app',
-        ),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          _buildWidget(
+            controller: controller,
+            podName: 'payments-api-7f9d9c',
+            containerName: 'app',
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('payments-api-7f9d9c'), findsWidgets);
-      expect(find.text('app'), findsOneWidget);
-    });
+        expect(find.text('payments-api-7f9d9c'), findsWidgets);
+        expect(find.text('app'), findsOneWidget);
+      },
+    );
 
     testWidgets('empty containerName falls back to pod name in title', (
       WidgetTester tester,
@@ -231,6 +227,104 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('payments-api-7f9d9c'), findsWidgets);
+    });
+
+    Future<AppController> followController(String Function() onFetch) async {
+      final storage = _MemorySessionStorage()..seedSession(_testSession);
+      final controller = AppController(
+        storage: storage,
+        api: _ToggleLogApi(onFetch: onFetch),
+        certificateProvider: const CertificateProvider(),
+      );
+      await controller.initialize();
+      return controller;
+    }
+
+    Widget followWidget(AppController controller) => MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
+      home: LogViewerScreen(
+        controller: controller,
+        applicationName: 'payments-api',
+        namespace: 'payments',
+        podName: 'payments-api-7f9d9c',
+        followInterval: const Duration(seconds: 2),
+      ),
+    );
+
+    testWidgets('follows by default and appends new output', (
+      WidgetTester tester,
+    ) async {
+      var logs = _sampleLogs;
+      var calls = 0;
+      final controller = await followController(() {
+        calls++;
+        return logs;
+      });
+
+      await tester.pumpWidget(followWidget(controller));
+      await tester.pumpAndSettle();
+      expect(find.text('Live'), findsOneWidget);
+      expect(calls, 1);
+
+      logs = '$_sampleLogs\n2026-03-10T10:00:09Z INFO new line';
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      expect(calls, 2);
+      expect(find.textContaining('INFO new line'), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      expect(calls, 3);
+    });
+
+    testWidgets('pausing stops polling, resuming fetches again', (
+      WidgetTester tester,
+    ) async {
+      var calls = 0;
+      final controller = await followController(() {
+        calls++;
+        return _sampleLogs;
+      });
+
+      await tester.pumpWidget(followWidget(controller));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Live'));
+      await tester.pumpAndSettle();
+      expect(find.text('Paused'), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 10));
+      expect(calls, 1);
+
+      await tester.tap(find.text('Paused'));
+      await tester.pumpAndSettle();
+      expect(find.text('Live'), findsOneWidget);
+      expect(calls, 2);
+    });
+
+    testWidgets('poll failure keeps output and shows Retrying', (
+      WidgetTester tester,
+    ) async {
+      var calls = 0;
+      final controller = await followController(() {
+        calls++;
+        if (calls == 2) {
+          throw const ArgoCdException('network blip');
+        }
+        return _sampleLogs;
+      });
+
+      await tester.pumpWidget(followWidget(controller));
+      await tester.pumpAndSettle();
+
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      expect(find.text('Retrying'), findsOneWidget);
+      expect(find.textContaining('INFO started'), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      expect(find.text('Live'), findsOneWidget);
     });
   });
 }
