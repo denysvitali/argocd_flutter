@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'app_diff_screen.dart';
 import 'log_viewer_screen.dart';
 import 'manifest_viewer_screen.dart';
+import 'pods_screen.dart';
 import 'resource_tree_screen.dart';
 
 /// Vertical gap between top-level sections.
@@ -1120,6 +1121,24 @@ class _ResourcesSection extends StatelessWidget {
             Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (_) => ResourceTreeScreen(
+                  controller: controller,
+                  applicationName: application.name,
+                ),
+              ),
+            );
+          },
+        ),
+        GroupedRow(
+          leading: IconWell(
+            icon: Icons.view_in_ar_rounded,
+            color: theme.colorScheme.primary,
+          ),
+          title: 'Pods',
+          subtitle: 'Grouped by Deployment and ReplicaSet, with logs',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => PodsScreen(
                   controller: controller,
                   applicationName: application.name,
                 ),
